@@ -129,6 +129,29 @@ def listar_habilidades_personalizado(codigo: str, db: Session = Depends(get_db))
     return sala.historia.contenido.get("habilidades_pasivas_personalizado", [])
 
 
+@router.get("/{codigo}/nodos")
+def listar_nodos_historia(
+    codigo: str,
+    db: Session = Depends(get_db),
+    payload: TokenPayload = Depends(requerir_token),
+):
+    """Lista de todos los nodos de la historia, para que el máster pueda
+    elegir a cuál saltar sin tener que escribir el id a mano."""
+    sala = _obtener_sala_por_codigo(codigo, db)
+    _requerir_master_de_sala(sala, payload)
+
+    return [
+        {
+            "id": nodo_id,
+            "tipo": nodo.get("tipo"),
+            "texto": nodo.get("texto", ""),
+            "es_final": nodo.get("es_final", False),
+            "tipo_final": nodo.get("tipo_final"),
+        }
+        for nodo_id, nodo in sala.historia.contenido.get("nodos", {}).items()
+    ]
+
+
 @router.delete("/{codigo}", status_code=status.HTTP_204_NO_CONTENT)
 def borrar_sala(
     codigo: str,

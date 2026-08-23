@@ -3,6 +3,7 @@ import type {
   Atributo,
   HabilidadPasiva,
   HistoriaResumen,
+  NodoResumen,
   Personaje,
   PersonajePregenerado,
   Sala,
@@ -84,6 +85,9 @@ export const api = {
 
   habilidadesPersonalizado: (codigo: string) =>
     peticion<HabilidadPasiva[]>(`/salas/${codigo}/habilidades-personalizado`),
+
+  listarNodos: (codigo: string, token: string) =>
+    peticion<NodoResumen[]>(`/salas/${codigo}/nodos`, { token }),
 
   cerrarSala: (codigo: string, token: string) =>
     peticion<Sala>(`/salas/${codigo}/cerrar`, { method: 'POST', token }),

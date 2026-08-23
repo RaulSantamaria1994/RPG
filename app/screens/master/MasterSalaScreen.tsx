@@ -1,13 +1,31 @@
-import { useEffect, useState } from 'react';
-import { FlatList, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { useEffect, useMemo, useState } from 'react';
+import {
+  FlatList,
+  Modal,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
+} from 'react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../../navigation/types';
+import { api } from '../../services/api';
 import { useSalaStore } from '../../store/salaStore';
+import type { NodoResumen } from '../../types';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'MasterSala'>;
 
+const ETIQUETA_TIPO: Record<NodoResumen['tipo'], string> = {
+  interactivo: 'Interactivo',
+  narrativo: 'Narrativo',
+  combate: 'Combate',
+};
+
 export default function MasterSalaScreen({ navigation }: Props) {
   const sala = useSalaStore((s) => s.sala);
+  const token = useSalaStore((s) => s.token);
   const estado = useSalaStore((s) => s.estado);
   const personajes = useSalaStore((s) => s.personajes);
   const log = useSalaStore((s) => s.log);
@@ -17,12 +35,26 @@ export default function MasterSalaScreen({ navigation }: Props) {
   const enviar = useSalaStore((s) => s.enviar);
   const reiniciar = useSalaStore((s) => s.reiniciar);
 
-  const [nodoDestino, setNodoDestino] = useState('');
+  const [nodos, setNodos] = useState<NodoResumen[]>([]);
+  const [selectorVisible, setSelectorVisible] = useState(false);
+  const [filtro, setFiltro] = useState('');
 
   useEffect(() => {
     conectar();
     return () => desconectar();
   }, []);
+
+  useEffect(() => {
+    if (sala && token) {
+      api.listarNodos(sala.codigo, token).then(setNodos).catch(() => {});
+    }
+  }, [sala, token]);
+
+  const nodosFiltrados = useMemo(() => {
+    const q = filtro.trim().toLowerCase();
+    if (!q) return nodos;
+    return nodos.filter((n) => n.id.toLowerCase().includes(q) || n.texto.toLowerCase().includes(q));
+  }, [nodos, filtro]);
 
   if (!sala) return null;
 
@@ -31,6 +63,12 @@ export default function MasterSalaScreen({ navigation }: Props) {
   function salir() {
     reiniciar();
     navigation.popToTop();
+  }
+
+  function saltarA(nodoId: string) {
+    enviar('override_nodo', { nodo_id: nodoId });
+    setSelectorVisible(false);
+    setFiltro('');
   }
 
   return (
@@ -103,23 +141,8 @@ export default function MasterSalaScreen({ navigation }: Props) {
 
         <View style={styles.seccion}>
           <Text style={styles.seccionTitulo}>Control del máster</Text>
-          <TextInput
-            style={styles.input}
-            placeholder="id de nodo (override manual)"
-            placeholderTextColor="#7a6c8f"
-            value={nodoDestino}
-            onChangeText={setNodoDestino}
-          />
-          <TouchableOpacity
-            style={styles.botonSecundario}
-            onPress={() => {
-              if (nodoDestino.trim()) {
-                enviar('override_nodo', { nodo_id: nodoDestino.trim() });
-                setNodoDestino('');
-              }
-            }}
-          >
-            <Text style={styles.botonSecundarioTexto}>Forzar salto de nodo</Text>
+          <TouchableOpacity style={styles.botonSecundario} onPress={() => setSelectorVisible(true)}>
+            <Text style={styles.botonSecundarioTexto}>Forzar salto de nodo…</Text>
           </TouchableOpacity>
         </View>
       </ScrollView>
@@ -137,6 +160,55 @@ export default function MasterSalaScreen({ navigation }: Props) {
           )}
         />
       </View>
+
+      <Modal
+        visible={selectorVisible}
+        animationType="slide"
+        transparent
+        onRequestClose={() => setSelectorVisible(false)}
+      >
+        <View style={styles.modalFondo}>
+          <View style={styles.modalContenido}>
+            <View style={styles.modalCabecera}>
+              <Text style={styles.seccionTitulo}>Elegir nodo destino</Text>
+              <TouchableOpacity onPress={() => setSelectorVisible(false)}>
+                <Text style={styles.salir}>Cerrar</Text>
+              </TouchableOpacity>
+            </View>
+            <TextInput
+              style={styles.input}
+              placeholder="Buscar por id o texto…"
+              placeholderTextColor="#7a6c8f"
+              value={filtro}
+              onChangeText={setFiltro}
+            />
+            <FlatList
+              data={nodosFiltrados}
+              keyExtractor={(item) => item.id}
+              style={{ marginTop: 8 }}
+              renderItem={({ item }) => (
+                <TouchableOpacity
+                  style={[
+                    styles.nodoItem,
+                    item.id === estado?.nodo_actual_id && styles.nodoItemActual,
+                  ]}
+                  onPress={() => saltarA(item.id)}
+                >
+                  <View style={styles.nodoItemCabecera}>
+                    <Text style={styles.nodoItemId}>{item.id}</Text>
+                    <Text style={styles.nodoItemTipo}>
+                      {item.es_final ? `Final: ${item.tipo_final}` : ETIQUETA_TIPO[item.tipo]}
+                    </Text>
+                  </View>
+                  <Text style={styles.nodoItemTexto} numberOfLines={2}>
+                    {item.texto}
+                  </Text>
+                </TouchableOpacity>
+              )}
+            />
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -192,4 +264,37 @@ const styles = StyleSheet.create({
   },
   logTexto: { color: '#c9b8e0', fontSize: 12, marginBottom: 2 },
   logHora: { color: '#7a6c8f' },
+  modalFondo: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.6)',
+    justifyContent: 'flex-end',
+  },
+  modalContenido: {
+    backgroundColor: '#1a1523',
+    borderTopLeftRadius: 16,
+    borderTopRightRadius: 16,
+    padding: 16,
+    maxHeight: '80%',
+    borderWidth: 1,
+    borderColor: '#3d2f57',
+  },
+  modalCabecera: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+  nodoItem: {
+    backgroundColor: '#241b33',
+    borderRadius: 8,
+    padding: 10,
+    marginBottom: 8,
+    borderWidth: 1,
+    borderColor: '#3d2f57',
+  },
+  nodoItemActual: { borderColor: '#a97fe0', backgroundColor: '#3d2f57' },
+  nodoItemCabecera: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 4 },
+  nodoItemId: { color: '#fff', fontWeight: '700' },
+  nodoItemTipo: { color: '#a390bd', fontSize: 11 },
+  nodoItemTexto: { color: '#c9b8e0', fontSize: 12 },
 });

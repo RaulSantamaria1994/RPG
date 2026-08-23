@@ -122,6 +122,14 @@ export interface TiradaResultado {
   resultados?: { personaje: string; exito: boolean; total: number }[];
 }
 
+export interface NodoResumen {
+  id: string;
+  tipo: 'interactivo' | 'narrativo' | 'combate';
+  texto: string;
+  es_final: boolean;
+  tipo_final: string | null;
+}
+
 export interface EventoLog {
   id: string;
   hora: string;
