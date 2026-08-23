@@ -11,19 +11,37 @@ import type {
 
 class ErrorApi extends Error {}
 
+const TIEMPO_ESPERA_MS = 8000;
+
 async function peticion<T>(
   ruta: string,
   opciones: RequestInit & { token?: string } = {}
 ): Promise<T> {
   const { token, headers, ...resto } = opciones;
-  const respuesta = await fetch(`${API_BASE_URL}${ruta}`, {
-    ...resto,
-    headers: {
-      'Content-Type': 'application/json',
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      ...headers,
-    },
-  });
+  const controlador = new AbortController();
+  const limite = setTimeout(() => controlador.abort(), TIEMPO_ESPERA_MS);
+
+  let respuesta: Response;
+  try {
+    respuesta = await fetch(`${API_BASE_URL}${ruta}`, {
+      ...resto,
+      signal: controlador.signal,
+      headers: {
+        'Content-Type': 'application/json',
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        ...headers,
+      },
+    });
+  } catch (e) {
+    if (e instanceof Error && e.name === 'AbortError') {
+      throw new ErrorApi(
+        `No hay respuesta de ${API_BASE_URL} tras ${TIEMPO_ESPERA_MS / 1000}s. Comprueba que el backend esté encendido y accesible desde este dispositivo.`
+      );
+    }
+    throw new ErrorApi(`No se pudo contactar con ${API_BASE_URL}.`);
+  } finally {
+    clearTimeout(limite);
+  }
 
   if (!respuesta.ok) {
     const cuerpo = await respuesta.json().catch(() => ({}));

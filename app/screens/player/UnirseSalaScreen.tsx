@@ -3,6 +3,7 @@ import { ActivityIndicator, StyleSheet, Text, TextInput, TouchableOpacity, View 
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../../navigation/types';
 import { api, ErrorApi } from '../../services/api';
+import { API_BASE_URL } from '../../services/config';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'JugadorUnirseSala'>;
 
@@ -48,6 +49,8 @@ export default function UnirseSalaScreen({ navigation }: Props) {
       <TouchableOpacity style={styles.boton} onPress={unirse} disabled={cargando}>
         {cargando ? <ActivityIndicator color="#fff" /> : <Text style={styles.botonTexto}>Continuar</Text>}
       </TouchableOpacity>
+
+      <Text style={styles.servidorTexto}>Servidor: {API_BASE_URL}</Text>
     </View>
   );
 }
@@ -76,4 +79,5 @@ const styles = StyleSheet.create({
     marginTop: 24,
   },
   botonTexto: { color: '#fff', fontSize: 16, fontWeight: '600' },
+  servidorTexto: { color: '#5c4f73', fontSize: 11, textAlign: 'center', marginTop: 32 },
 });
