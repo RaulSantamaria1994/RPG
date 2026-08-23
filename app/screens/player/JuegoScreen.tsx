@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Animated, FlatList, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../../navigation/types';
@@ -13,14 +13,19 @@ function formatearId(id: string): string {
 export default function JuegoScreen({ navigation }: Props) {
   const sala = useSalaStore((s) => s.sala);
   const personaje = useSalaStore((s) => s.personaje);
+  const personajes = useSalaStore((s) => s.personajes);
   const estado = useSalaStore((s) => s.estado);
   const log = useSalaStore((s) => s.log);
   const palabrasBloqueadas = useSalaStore((s) => s.palabrasBloqueadas);
+  const confirmacionesGrupales = useSalaStore((s) => s.confirmacionesGrupales);
+  const propuestasIntercambio = useSalaStore((s) => s.propuestasIntercambio);
   const ultimaTirada = useSalaStore((s) => s.ultimaTirada);
   const conectar = useSalaStore((s) => s.conectar);
   const desconectar = useSalaStore((s) => s.desconectar);
   const enviar = useSalaStore((s) => s.enviar);
   const reiniciar = useSalaStore((s) => s.reiniciar);
+
+  const [objetoParaDar, setObjetoParaDar] = useState<string | null>(null);
 
   const opacidadDado = useRef(new Animated.Value(0)).current;
 
@@ -96,6 +101,8 @@ export default function JuegoScreen({ navigation }: Props) {
                 (h) => h === p.hechizo_id_alternativo
               );
 
+              const confirmacion = confirmacionesGrupales[clave];
+
               return (
                 <View key={p.texto} style={styles.tarjetaPalabra}>
                   <TouchableOpacity
@@ -110,10 +117,30 @@ export default function JuegoScreen({ navigation }: Props) {
                       ]}
                     >
                       {p.texto}
+                      {p.modo_interaccion === 'grupal' ? ' (todos deben confirmar)' : ''}
                     </Text>
                     {usada && <Text style={styles.etiquetaEstado}>agotada</Text>}
                     {bloqueada && !usada && <Text style={styles.etiquetaEstado}>en curso…</Text>}
                   </TouchableOpacity>
+
+                  {p.modo_interaccion === 'grupal' && confirmacion && !usada && (
+                    <Text style={styles.etiquetaConfirmacion}>
+                      Confirmados: {confirmacion.confirmados}/{confirmacion.total}
+                    </Text>
+                  )}
+
+                  {p.modo_interaccion === 'apoyo' && !deshabilitada && (
+                    <TouchableOpacity
+                      style={styles.botonApoyo}
+                      onPress={() =>
+                        enviar('interactuar', { palabra_clave: p.texto, rol_apoyo: 'apoyo' })
+                      }
+                    >
+                      <Text style={styles.botonApoyoTexto}>
+                        Ayudar con {p.atributo_apoyo ?? 'otro atributo'} (da ventaja a quien actúe)
+                      </Text>
+                    </TouchableOpacity>
+                  )}
 
                   {!deshabilitada &&
                     hechizosDisponibles.map((h) => (
@@ -186,12 +213,67 @@ export default function JuegoScreen({ navigation }: Props) {
           </View>
         )}
 
+        {propuestasIntercambio
+          .filter((p) => p.destino_personaje_id === personaje.id)
+          .map((p) => (
+            <View key={p.clave} style={styles.tarjetaPropuesta}>
+              <Text style={styles.propuestaTexto}>
+                {p.origen_personaje_nombre} te ofrece "{p.objeto_nombre}"
+              </Text>
+              <TouchableOpacity
+                style={styles.botonAceptar}
+                onPress={() =>
+                  enviar('intercambio_confirmar', {
+                    origen_personaje_id: p.origen_personaje_id,
+                    objeto_id: p.objeto_id,
+                  })
+                }
+              >
+                <Text style={styles.botonAceptarTexto}>Aceptar</Text>
+              </TouchableOpacity>
+            </View>
+          ))}
+
         {personaje.inventario.length > 0 && (
-          <View>
+          <View style={{ gap: 8 }}>
             <Text style={styles.seccionTitulo}>Inventario</Text>
-            <Text style={styles.inventarioTexto}>
-              {personaje.inventario.map((o) => o.nombre).join(', ')}
-            </Text>
+            {personaje.inventario.map((o) => (
+              <View key={o.objeto_id} style={styles.tarjetaObjeto}>
+                <TouchableOpacity
+                  onPress={() =>
+                    setObjetoParaDar(objetoParaDar === o.objeto_id ? null : o.objeto_id)
+                  }
+                >
+                  <Text style={styles.objetoNombre}>
+                    {o.nombre} {objetoParaDar === o.objeto_id ? '▲' : '▼ dar…'}
+                  </Text>
+                </TouchableOpacity>
+                {objetoParaDar === o.objeto_id && (
+                  <View style={styles.filaDestinatarios}>
+                    {personajes
+                      .filter((otro) => otro.id !== personaje.id)
+                      .map((otro) => (
+                        <TouchableOpacity
+                          key={otro.id}
+                          style={styles.botonDestinatario}
+                          onPress={() => {
+                            enviar('intercambio_proponer', {
+                              objeto_id: o.objeto_id,
+                              destino_personaje_id: otro.id,
+                            });
+                            setObjetoParaDar(null);
+                          }}
+                        >
+                          <Text style={styles.botonDestinatarioTexto}>{otro.nombre}</Text>
+                        </TouchableOpacity>
+                      ))}
+                    {personajes.length <= 1 && (
+                      <Text style={styles.inventarioTexto}>No hay a quién dárselo todavía.</Text>
+                    )}
+                  </View>
+                )}
+              </View>
+            ))}
           </View>
         )}
       </ScrollView>
@@ -293,6 +375,45 @@ const styles = StyleSheet.create({
   },
   botonSecundarioTexto: { color: '#fff', fontWeight: '600' },
   inventarioTexto: { color: '#d8cbe8' },
+  etiquetaConfirmacion: { color: '#e0c27f', fontSize: 12, marginLeft: 4 },
+  botonApoyo: {
+    backgroundColor: '#1f2b45',
+    borderRadius: 8,
+    padding: 10,
+    borderWidth: 1,
+    borderColor: '#6f9fd0',
+    marginLeft: 12,
+  },
+  botonApoyoTexto: { color: '#b8d8ff', fontSize: 13 },
+  tarjetaPropuesta: {
+    backgroundColor: '#2b2a1f',
+    borderRadius: 10,
+    padding: 12,
+    borderWidth: 1,
+    borderColor: '#d0b86f',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  propuestaTexto: { color: '#f0e6c9', flex: 1, marginRight: 8 },
+  botonAceptar: { backgroundColor: '#6b9f3f', borderRadius: 6, paddingHorizontal: 12, paddingVertical: 8 },
+  botonAceptarTexto: { color: '#fff', fontWeight: '600' },
+  tarjetaObjeto: {
+    backgroundColor: '#241b33',
+    borderRadius: 8,
+    padding: 10,
+  },
+  objetoNombre: { color: '#fff' },
+  filaDestinatarios: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 8 },
+  botonDestinatario: {
+    backgroundColor: '#2f2540',
+    borderWidth: 1,
+    borderColor: '#6b3fa0',
+    borderRadius: 6,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+  },
+  botonDestinatarioTexto: { color: '#fff', fontSize: 12 },
   panelLog: {
     height: 100,
     borderTopWidth: 1,

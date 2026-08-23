@@ -1,5 +1,8 @@
 import json
 import os
+import socket
+import threading
+import time
 from pathlib import Path
 
 # El DATABASE_URL debe fijarse antes de que se importe app.database, que crea
@@ -9,6 +12,7 @@ os.environ.setdefault(
 )
 
 import pytest  # noqa: E402
+import uvicorn  # noqa: E402
 from fastapi.testclient import TestClient  # noqa: E402
 
 from app.database import Base, SessionLocal, engine  # noqa: E402
@@ -85,3 +89,32 @@ def d20_siempre_veinte(monkeypatch):
 @pytest.fixture()
 def d20_siempre_uno(monkeypatch):
     monkeypatch.setattr("secrets.randbelow", lambda n: 0)
+
+
+@pytest.fixture()
+def servidor_en_vivo(_preparar_esquema):
+    """Servidor uvicorn real en un hilo aparte. Necesario para probar dos
+    WebSockets concurrentes de verdad: TestClient abre cada websocket_connect
+    en su propio hilo/portal anyio aislado, así que un broadcast desde una
+    conexión hacia otra puede colgarse (visto al depurar el picker de nodos).
+    """
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+        s.bind(("127.0.0.1", 0))
+        puerto = s.getsockname()[1]
+
+    config = uvicorn.Config(app, host="127.0.0.1", port=puerto, log_level="warning")
+    server = uvicorn.Server(config)
+    hilo = threading.Thread(target=server.run, daemon=True)
+    hilo.start()
+
+    for _ in range(100):
+        if server.started:
+            break
+        time.sleep(0.05)
+    else:
+        raise RuntimeError("El servidor de pruebas no arrancó a tiempo.")
+
+    yield f"http://127.0.0.1:{puerto}", f"ws://127.0.0.1:{puerto}"
+
+    server.should_exit = True
+    hilo.join(timeout=5)

@@ -2,6 +2,15 @@ import { create } from 'zustand';
 import { ClienteSala, type MensajeWs } from '../services/websocket';
 import type { EstadoPublico, EventoLog, Personaje, Sala } from '../types';
 
+export interface PropuestaIntercambio {
+  clave: string;
+  origen_personaje_id: string;
+  origen_personaje_nombre: string;
+  objeto_id: string;
+  objeto_nombre: string;
+  destino_personaje_id: string;
+}
+
 interface SalaState {
   rol: 'master' | 'jugador' | null;
   sala: Sala | null;
@@ -11,6 +20,8 @@ interface SalaState {
   personajes: Personaje[];
   log: EventoLog[];
   palabrasBloqueadas: Record<string, string>;
+  confirmacionesGrupales: Record<string, { confirmados: number; total: number }>;
+  propuestasIntercambio: PropuestaIntercambio[];
   conectado: boolean;
   cliente: ClienteSala | null;
   ultimaTirada: { dado?: number; total?: number; exito: boolean; quien: string } | null;
@@ -40,6 +51,8 @@ export const useSalaStore = create<SalaState>((set, get) => ({
   personajes: [],
   log: [],
   palabrasBloqueadas: {},
+  confirmacionesGrupales: {},
+  propuestasIntercambio: [],
   conectado: false,
   cliente: null,
   ultimaTirada: null,
@@ -76,12 +89,24 @@ export const useSalaStore = create<SalaState>((set, get) => ({
       personajes: [],
       log: [],
       palabrasBloqueadas: {},
+      confirmacionesGrupales: {},
+      propuestasIntercambio: [],
       conectado: false,
       cliente: null,
       ultimaTirada: null,
     });
   },
 }));
+
+function actualizarInventario(
+  personajes: Personaje[],
+  personajeId: string,
+  actualizar: (inventario: Personaje['inventario']) => Personaje['inventario']
+): Personaje[] {
+  return personajes.map((p) =>
+    p.id === personajeId ? { ...p, inventario: actualizar(p.inventario) } : p
+  );
+}
 
 function procesarMensaje(
   mensaje: MensajeWs,
@@ -93,11 +118,19 @@ function procesarMensaje(
   switch (tipo) {
     case 'estado_inicial': {
       const { personajes, sala: _s, ...estado } = datos as any;
-      set({ estado: estado as EstadoPublico, personajes: personajes ?? [] });
+      const listaPersonajes: Personaje[] = personajes ?? [];
+      set((s) => {
+        const propio = listaPersonajes.find((p) => p.id === s.personaje?.id);
+        return {
+          estado: estado as EstadoPublico,
+          personajes: listaPersonajes,
+          personaje: propio ? { ...s.personaje, ...propio } : s.personaje,
+        };
+      });
       break;
     }
     case 'nodo_actualizado': {
-      set({ estado: datos as unknown as EstadoPublico });
+      set({ estado: datos as unknown as EstadoPublico, confirmacionesGrupales: {} });
       break;
     }
     case 'palabra_clave_bloqueada': {
@@ -163,10 +196,74 @@ function procesarMensaje(
       break;
     }
     case 'confirmacion_registrada': {
-      const d = datos as { confirmados: number; total: number };
+      const d = datos as { clave: string; confirmados: number; total: number };
       set((s) => ({
+        confirmacionesGrupales: {
+          ...s.confirmacionesGrupales,
+          [d.clave]: { confirmados: d.confirmados, total: d.total },
+        },
         log: [nuevoEvento(`Confirmaciones: ${d.confirmados}/${d.total}`), ...s.log],
       }));
+      break;
+    }
+    case 'apoyo_resuelto': {
+      const d = datos as { personaje_nombre: string; tirada: { exito: boolean } };
+      const resultado = d.tirada.exito ? 'consigue ayudar' : 'no logra ayudar';
+      set((s) => ({ log: [nuevoEvento(`${d.personaje_nombre} ${resultado}`), ...s.log] }));
+      break;
+    }
+    case 'intercambio_propuesto': {
+      const d = datos as {
+        origen_personaje_id: string;
+        origen_personaje_nombre: string;
+        objeto_id: string;
+        objeto_nombre: string;
+        destino_personaje_id: string;
+      };
+      const clave = `${d.origen_personaje_id}:${d.objeto_id}:${d.destino_personaje_id}`;
+      set((s) => ({
+        propuestasIntercambio: [
+          ...s.propuestasIntercambio.filter((p) => p.clave !== clave),
+          { clave, ...d },
+        ],
+        log: [
+          nuevoEvento(`${d.origen_personaje_nombre} ofrece "${d.objeto_nombre}"`),
+          ...s.log,
+        ],
+      }));
+      break;
+    }
+    case 'intercambio_completado': {
+      const d = datos as {
+        origen_personaje_id: string;
+        destino_personaje_id: string;
+        objeto: { objeto_id: string; nombre: string };
+      };
+      set((s) => {
+        let personajes = actualizarInventario(s.personajes, d.origen_personaje_id, (inv) =>
+          inv.filter((o) => o.objeto_id !== d.objeto.objeto_id)
+        );
+        personajes = actualizarInventario(personajes, d.destino_personaje_id, (inv) => [
+          ...inv,
+          d.objeto,
+        ]);
+
+        let personaje = s.personaje;
+        if (personaje?.id === d.origen_personaje_id) {
+          personaje = { ...personaje, inventario: personaje.inventario.filter((o) => o.objeto_id !== d.objeto.objeto_id) };
+        } else if (personaje?.id === d.destino_personaje_id) {
+          personaje = { ...personaje, inventario: [...personaje.inventario, d.objeto] };
+        }
+
+        return {
+          personajes,
+          personaje,
+          propuestasIntercambio: s.propuestasIntercambio.filter(
+            (p) => !(p.origen_personaje_id === d.origen_personaje_id && p.objeto_id === d.objeto.objeto_id)
+          ),
+          log: [nuevoEvento(`Intercambio completado: "${d.objeto.nombre}"`), ...s.log],
+        };
+      });
       break;
     }
     case 'error': {

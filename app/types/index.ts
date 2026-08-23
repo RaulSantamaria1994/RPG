@@ -71,6 +71,7 @@ export interface PalabraClave {
   requiere_objeto?: string | null;
   categoria_hechizo_alternativa?: string;
   hechizo_id_alternativo?: string;
+  atributo_apoyo?: Atributo;
 }
 
 export interface Nodo {

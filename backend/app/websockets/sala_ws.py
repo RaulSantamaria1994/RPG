@@ -475,13 +475,23 @@ async def _manejar_combate_accion(db, sala: Sala, conexion: ConexionJugador, dat
 
 
 async def _manejar_intercambio_proponer(db, sala: Sala, conexion: ConexionJugador, datos: dict) -> None:
+    origen = db.get(Personaje, uuid.UUID(conexion.personaje_id))
+    objeto = next(
+        (o for o in (origen.inventario or []) if o.get("objeto_id") == datos["objeto_id"]), None
+    )
+    if objeto is None:
+        await _enviar_error(conexion, "No tienes ese objeto en tu inventario.")
+        return
+
     await gestor.broadcast(
         str(sala.id),
         {
             "tipo": "intercambio_propuesto",
             "datos": {
                 "origen_personaje_id": conexion.personaje_id,
+                "origen_personaje_nombre": origen.nombre,
                 "objeto_id": datos["objeto_id"],
+                "objeto_nombre": objeto.get("nombre", datos["objeto_id"]),
                 "destino_personaje_id": datos["destino_personaje_id"],
             },
         },
@@ -586,6 +596,13 @@ async def sala_websocket(websocket: WebSocket, codigo: str, token: str = Query(.
             mensaje = await websocket.receive_json()
             tipo = mensaje.get("tipo")
             datos = mensaje.get("datos", {}) or {}
+
+            # Cada conexión WS tiene su propia sesión de BD; con expire_on_commit=False
+            # (necesario para que flag_modified funcione tras un commit intermedio, ver
+            # _resolver_turnos_enemigos) esta sesión nunca ve por sí sola los cambios que
+            # confirman OTRAS conexiones (p. ej. el máster forzando un salto de nodo).
+            # Expirar todo al principio de cada mensaje fuerza a releer de BD.
+            db.expire_all()
 
             manejador = MANEJADORES.get(tipo)
             if manejador is None:
