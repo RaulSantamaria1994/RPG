@@ -1,0 +1,119 @@
+"""Validación de historias antes de poder activarlas en una sala.
+
+Reglas exigidas por el spec:
+  1. Todas las referencias (nodo_exito, nodo_fallo, nodo_siguiente y las
+     variantes de combate) apuntan a nodos existentes.
+  2. No hay nodos huérfanos (inalcanzables desde el nodo inicial).
+  3. Todo camino alcanzable termina en al menos un nodo con es_final: true.
+"""
+
+from dataclasses import dataclass, field
+
+TIPOS_NODO_VALIDOS = {"interactivo", "narrativo", "combate"}
+
+
+@dataclass
+class ResultadoValidacion:
+    valida: bool
+    errores: list[str] = field(default_factory=list)
+
+
+def _referencias_de_nodo(nodo_id: str, nodo: dict) -> set[str]:
+    """Devuelve el conjunto de ids de nodo a los que puede saltarse desde `nodo`."""
+    refs: set[str] = set()
+
+    if nodo.get("nodo_siguiente"):
+        refs.add(nodo["nodo_siguiente"])
+
+    for palabra in nodo.get("palabras_clave", []) or []:
+        for campo in ("nodo_exito", "nodo_fallo"):
+            if palabra.get(campo):
+                refs.add(palabra[campo])
+
+    for campo in ("nodo_victoria", "nodo_derrota", "nodo_huida", "nodo_negociacion"):
+        if nodo.get(campo):
+            refs.add(nodo[campo])
+
+    return refs
+
+
+def validar_historia(contenido: dict) -> ResultadoValidacion:
+    errores: list[str] = []
+
+    nodo_inicial = contenido.get("nodo_inicial")
+    nodos: dict = contenido.get("nodos", {}) or {}
+
+    if not nodo_inicial:
+        errores.append("Falta 'nodo_inicial'.")
+        return ResultadoValidacion(False, errores)
+
+    if not nodos:
+        errores.append("La historia no tiene nodos.")
+        return ResultadoValidacion(False, errores)
+
+    if nodo_inicial not in nodos:
+        errores.append(f"El nodo inicial '{nodo_inicial}' no existe en 'nodos'.")
+        return ResultadoValidacion(False, errores)
+
+    for nodo_id, nodo in nodos.items():
+        tipo = nodo.get("tipo")
+        if tipo not in TIPOS_NODO_VALIDOS:
+            errores.append(f"Nodo '{nodo_id}': tipo '{tipo}' no reconocido.")
+        if tipo == "interactivo" and not nodo.get("palabras_clave") and not nodo.get("es_final"):
+            errores.append(f"Nodo '{nodo_id}': interactivo sin palabras_clave y no es final.")
+        if nodo.get("es_final") and not nodo.get("tipo_final"):
+            errores.append(f"Nodo '{nodo_id}': es_final=true sin 'tipo_final'.")
+
+    # 1. Referencias válidas
+    edges: dict[str, set[str]] = {}
+    for nodo_id, nodo in nodos.items():
+        refs = _referencias_de_nodo(nodo_id, nodo)
+        edges[nodo_id] = refs
+        for ref in refs:
+            if ref not in nodos:
+                errores.append(f"Nodo '{nodo_id}' referencia a nodo inexistente '{ref}'.")
+
+    # Solo seguimos con el análisis de grafo si todas las referencias son válidas,
+    # para no arrastrar errores en cascada sobre ids inventados.
+    edges = {nid: {r for r in refs if r in nodos} for nid, refs in edges.items()}
+
+    # 2. Nodos huérfanos (inalcanzables desde nodo_inicial)
+    alcanzables: set[str] = set()
+    pendientes = [nodo_inicial]
+    while pendientes:
+        actual = pendientes.pop()
+        if actual in alcanzables:
+            continue
+        alcanzables.add(actual)
+        pendientes.extend(edges.get(actual, set()) - alcanzables)
+
+    huerfanos = set(nodos.keys()) - alcanzables
+    for h in sorted(huerfanos):
+        errores.append(f"Nodo '{h}' es inalcanzable desde el nodo inicial.")
+
+    # 3. Todo camino alcanzable debe poder llegar a un nodo final
+    finales = {nid for nid, n in nodos.items() if n.get("es_final")}
+    if not finales:
+        errores.append("La historia no tiene ningún nodo final (es_final: true).")
+
+    # Grafo inverso restringido a nodos alcanzables
+    inversos: dict[str, set[str]] = {nid: set() for nid in alcanzables}
+    for nid in alcanzables:
+        for dest in edges.get(nid, set()):
+            if dest in alcanzables:
+                inversos.setdefault(dest, set()).add(nid)
+
+    puede_llegar_a_final: set[str] = set()
+    pendientes = [f for f in finales if f in alcanzables]
+    while pendientes:
+        actual = pendientes.pop()
+        if actual in puede_llegar_a_final:
+            continue
+        puede_llegar_a_final.add(actual)
+        pendientes.extend(inversos.get(actual, set()) - puede_llegar_a_final)
+
+    sin_salida = alcanzables - puede_llegar_a_final
+    for nid in sorted(sin_salida):
+        errores.append(f"Nodo '{nid}' no tiene ningún camino hacia un nodo final.")
+
+    return ResultadoValidacion(valida=len(errores) == 0, errores=errores)

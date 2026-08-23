@@ -1,0 +1,77 @@
+"""Gestor de conexiones WebSocket: una lista de sockets por sala, con
+broadcast a todos los conectados. Vive en memoria del proceso — coherente
+con el spec (un proceso persistente por despliegue); el estado real de la
+partida sigue viviendo en PostgreSQL vía EstadoSala.
+"""
+
+from dataclasses import dataclass, field
+
+from fastapi import WebSocket
+
+
+@dataclass
+class ConexionJugador:
+    websocket: WebSocket
+    personaje_id: str | None
+    nombre: str
+    rol: str
+
+
+@dataclass
+class SalaConexiones:
+    conexiones: list[ConexionJugador] = field(default_factory=list)
+    # claves de palabra_clave (nodo_id:texto) actualmente bloqueadas, y quién las bloquea
+    palabras_bloqueadas: dict[str, str] = field(default_factory=dict)
+    # confirmaciones pendientes para interacciones en modo grupal/apoyo: clave -> set(personaje_id)
+    confirmaciones: dict[str, set[str]] = field(default_factory=dict)
+
+
+class GestorConexiones:
+    def __init__(self) -> None:
+        self._salas: dict[str, SalaConexiones] = {}
+
+    def _sala(self, sala_id: str) -> SalaConexiones:
+        return self._salas.setdefault(sala_id, SalaConexiones())
+
+    async def conectar(self, sala_id: str, conexion: ConexionJugador) -> None:
+        await conexion.websocket.accept()
+        self._sala(sala_id).conexiones.append(conexion)
+
+    def desconectar(self, sala_id: str, conexion: ConexionJugador) -> None:
+        sala = self._salas.get(sala_id)
+        if sala and conexion in sala.conexiones:
+            sala.conexiones.remove(conexion)
+
+    def conectados(self, sala_id: str) -> list[ConexionJugador]:
+        return self._sala(sala_id).conexiones
+
+    async def broadcast(self, sala_id: str, mensaje: dict) -> None:
+        for conexion in list(self._sala(sala_id).conexiones):
+            try:
+                await conexion.websocket.send_json(mensaje)
+            except Exception:
+                self.desconectar(sala_id, conexion)
+
+    async def enviar_a(self, conexion: ConexionJugador, mensaje: dict) -> None:
+        await conexion.websocket.send_json(mensaje)
+
+    def bloquear_palabra(self, sala_id: str, clave: str, nombre_jugador: str) -> bool:
+        bloqueadas = self._sala(sala_id).palabras_bloqueadas
+        if clave in bloqueadas:
+            return False
+        bloqueadas[clave] = nombre_jugador
+        return True
+
+    def liberar_palabra(self, sala_id: str, clave: str) -> None:
+        self._sala(sala_id).palabras_bloqueadas.pop(clave, None)
+
+    def registrar_confirmacion(self, sala_id: str, clave: str, personaje_id: str) -> set[str]:
+        confirmaciones = self._sala(sala_id).confirmaciones.setdefault(clave, set())
+        confirmaciones.add(personaje_id)
+        return confirmaciones
+
+    def limpiar_confirmaciones(self, sala_id: str, clave: str) -> None:
+        self._sala(sala_id).confirmaciones.pop(clave, None)
+
+
+gestor = GestorConexiones()

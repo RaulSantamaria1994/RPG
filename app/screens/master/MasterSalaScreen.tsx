@@ -1,0 +1,195 @@
+import { useEffect, useState } from 'react';
+import { FlatList, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import type { NativeStackScreenProps } from '@react-navigation/native-stack';
+import type { RootStackParamList } from '../../navigation/types';
+import { useSalaStore } from '../../store/salaStore';
+
+type Props = NativeStackScreenProps<RootStackParamList, 'MasterSala'>;
+
+export default function MasterSalaScreen({ navigation }: Props) {
+  const sala = useSalaStore((s) => s.sala);
+  const estado = useSalaStore((s) => s.estado);
+  const personajes = useSalaStore((s) => s.personajes);
+  const log = useSalaStore((s) => s.log);
+  const palabrasBloqueadas = useSalaStore((s) => s.palabrasBloqueadas);
+  const conectar = useSalaStore((s) => s.conectar);
+  const desconectar = useSalaStore((s) => s.desconectar);
+  const enviar = useSalaStore((s) => s.enviar);
+  const reiniciar = useSalaStore((s) => s.reiniciar);
+
+  const [nodoDestino, setNodoDestino] = useState('');
+
+  useEffect(() => {
+    conectar();
+    return () => desconectar();
+  }, []);
+
+  if (!sala) return null;
+
+  const nodo = estado?.nodo;
+
+  function salir() {
+    reiniciar();
+    navigation.popToTop();
+  }
+
+  return (
+    <View style={styles.contenedor}>
+      <View style={styles.cabecera}>
+        <Text style={styles.codigoEtiqueta}>Código de sala</Text>
+        <Text style={styles.codigo}>{sala.codigo}</Text>
+        <TouchableOpacity onPress={salir}>
+          <Text style={styles.salir}>Salir</Text>
+        </TouchableOpacity>
+      </View>
+
+      <ScrollView style={styles.panelPrincipal} contentContainerStyle={{ padding: 16, gap: 12 }}>
+        {estado?.finalizada && (
+          <View style={styles.finalBanner}>
+            <Text style={styles.finalBannerTexto}>
+              Partida finalizada — final: {estado.tipo_final}
+            </Text>
+          </View>
+        )}
+
+        <Text style={styles.nodoTitulo}>Nodo: {estado?.nodo_actual_id}</Text>
+        <Text style={styles.nodoTexto}>{nodo?.texto}</Text>
+
+        {nodo?.tipo === 'interactivo' && (
+          <View style={styles.seccion}>
+            <Text style={styles.seccionTitulo}>Palabras clave</Text>
+            {nodo.palabras_clave?.map((p) => {
+              const clave = `${estado?.nodo_actual_id}:${p.texto}`;
+              const usada = estado?.palabras_clave_usadas.includes(clave);
+              const bloqueadaPor = palabrasBloqueadas[clave];
+              return (
+                <View key={p.texto} style={styles.palabraFila}>
+                  <Text style={[styles.palabraTexto, usada && styles.palabraUsada]}>
+                    {p.texto} {usada ? '(agotada)' : ''}
+                  </Text>
+                  {bloqueadaPor && <Text style={styles.palabraBloqueo}>🔒 {bloqueadaPor}</Text>}
+                </View>
+              );
+            })}
+          </View>
+        )}
+
+        {nodo?.tipo === 'narrativo' && (
+          <TouchableOpacity style={styles.botonSecundario} onPress={() => enviar('continuar')}>
+            <Text style={styles.botonSecundarioTexto}>Avanzar al siguiente nodo</Text>
+          </TouchableOpacity>
+        )}
+
+        {estado?.fase === 'combate' && estado.combate && (
+          <View style={styles.seccion}>
+            <Text style={styles.seccionTitulo}>Combate — ronda {estado.combate.ronda}</Text>
+            {estado.combate.enemigos.map((en) => (
+              <Text key={en.enemigo_id} style={styles.enemigoTexto}>
+                {en.nombre}: {en.vida}/{en.vida_max} PV {en.derrotado ? '(derrotado)' : ''}
+              </Text>
+            ))}
+          </View>
+        )}
+
+        <View style={styles.seccion}>
+          <Text style={styles.seccionTitulo}>Jugadores</Text>
+          {personajes.map((p) => (
+            <Text key={p.id} style={styles.jugadorTexto}>
+              {p.nombre} ({p.jugador_nombre}) — PV {p.vida_actual}/{p.vida_max} · Maná{' '}
+              {p.mana_actual}/{p.mana_max}
+            </Text>
+          ))}
+        </View>
+
+        <View style={styles.seccion}>
+          <Text style={styles.seccionTitulo}>Control del máster</Text>
+          <TextInput
+            style={styles.input}
+            placeholder="id de nodo (override manual)"
+            placeholderTextColor="#7a6c8f"
+            value={nodoDestino}
+            onChangeText={setNodoDestino}
+          />
+          <TouchableOpacity
+            style={styles.botonSecundario}
+            onPress={() => {
+              if (nodoDestino.trim()) {
+                enviar('override_nodo', { nodo_id: nodoDestino.trim() });
+                setNodoDestino('');
+              }
+            }}
+          >
+            <Text style={styles.botonSecundarioTexto}>Forzar salto de nodo</Text>
+          </TouchableOpacity>
+        </View>
+      </ScrollView>
+
+      <View style={styles.panelLog}>
+        <Text style={styles.seccionTitulo}>Actividad en vivo</Text>
+        <FlatList
+          data={log}
+          keyExtractor={(item) => item.id}
+          renderItem={({ item }) => (
+            <Text style={styles.logTexto}>
+              <Text style={styles.logHora}>{item.hora} </Text>
+              {item.texto}
+            </Text>
+          )}
+        />
+      </View>
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  contenedor: { flex: 1, backgroundColor: '#1a1523' },
+  cabecera: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#3d2f57',
+  },
+  codigoEtiqueta: { color: '#c9b8e0', fontSize: 12 },
+  codigo: { color: '#fff', fontSize: 24, fontWeight: '700', letterSpacing: 4 },
+  salir: { color: '#ff8a8a' },
+  panelPrincipal: { flex: 1 },
+  finalBanner: { backgroundColor: '#4a2f6b', padding: 12, borderRadius: 8 },
+  finalBannerTexto: { color: '#fff', fontWeight: '600' },
+  nodoTitulo: { color: '#a390bd', fontSize: 12 },
+  nodoTexto: { color: '#f3e9ff', fontSize: 16, lineHeight: 22 },
+  seccion: { backgroundColor: '#241b33', borderRadius: 10, padding: 12, gap: 6 },
+  seccionTitulo: { color: '#c9b8e0', fontWeight: '700', marginBottom: 4 },
+  palabraFila: { flexDirection: 'row', justifyContent: 'space-between' },
+  palabraTexto: { color: '#fff' },
+  palabraUsada: { color: '#7a6c8f', textDecorationLine: 'line-through' },
+  palabraBloqueo: { color: '#e0c27f' },
+  enemigoTexto: { color: '#e0a9a9' },
+  jugadorTexto: { color: '#d8cbe8' },
+  input: {
+    backgroundColor: '#2f2540',
+    borderRadius: 8,
+    padding: 10,
+    color: '#fff',
+    borderWidth: 1,
+    borderColor: '#453a5c',
+  },
+  botonSecundario: {
+    backgroundColor: '#2f2540',
+    borderWidth: 1,
+    borderColor: '#6b3fa0',
+    borderRadius: 8,
+    paddingVertical: 10,
+    alignItems: 'center',
+  },
+  botonSecundarioTexto: { color: '#fff', fontWeight: '600' },
+  panelLog: {
+    height: 160,
+    borderTopWidth: 1,
+    borderTopColor: '#3d2f57',
+    padding: 12,
+  },
+  logTexto: { color: '#c9b8e0', fontSize: 12, marginBottom: 2 },
+  logHora: { color: '#7a6c8f' },
+});

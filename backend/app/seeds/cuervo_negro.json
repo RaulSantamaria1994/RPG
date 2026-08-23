@@ -1,0 +1,319 @@
+{
+  "historia_id": "cuervo_negro",
+  "titulo": "El Cuervo Negro",
+  "version": 1,
+  "muerte_permanente": false,
+  "nodo_inicial": "n001",
+  "hechizos": [
+    {
+      "hechizo_id": "grito_de_cuervo",
+      "nombre": "Grito de cuervo",
+      "categoria": "combate",
+      "coste_mana": 3,
+      "dificultad": 12,
+      "descripcion": "Un chillido espectral que aturde a un enemigo un instante.",
+      "efecto": "aturdir_enemigo"
+    }
+  ],
+  "habilidades_pasivas_personalizado": [
+    {
+      "id": "instinto_de_combate",
+      "nombre": "Instinto de combate",
+      "descripcion": "Ventaja en la primera tirada de iniciativa de cada combate."
+    },
+    {
+      "id": "ojo_arcano",
+      "nombre": "Ojo arcano",
+      "descripcion": "Detecta automáticamente si una palabra clave admite una vía mágica."
+    },
+    {
+      "id": "labia_facil",
+      "nombre": "Labia fácil",
+      "descripcion": "Ventaja en la primera tirada social de cada nodo."
+    },
+    {
+      "id": "paso_ligero",
+      "nombre": "Paso ligero",
+      "descripcion": "Ventaja en la primera tirada de Agilidad de cada nodo."
+    }
+  ],
+  "personajes_pregenerados": [
+    {
+      "id": "kara_la_espadachina",
+      "nombre": "Kara la Espadachina",
+      "trasfondo": "Antigua guardia de caravanas, dejó el oficio tras perder a su compañía en una emboscada. Busca respuestas, no oro.",
+      "atributos": { "fuerza": 5, "astucia": 2, "voluntad": 2, "agilidad": 4 },
+      "habilidad_pasiva": "instinto_de_combate",
+      "vida_max": 24,
+      "mana_max": 6,
+      "hechizos_conocidos": []
+    },
+    {
+      "id": "ilyana_la_hechicera",
+      "nombre": "Ilyana la Hechicera",
+      "trasfondo": "Expulsada de la academia arcana por experimentar con magia prohibida, sigue el rastro del Cuervo Negro por motivos propios.",
+      "atributos": { "fuerza": 1, "astucia": 3, "voluntad": 5, "agilidad": 2 },
+      "habilidad_pasiva": "ojo_arcano",
+      "vida_max": 16,
+      "mana_max": 16,
+      "hechizos_conocidos": ["luz_fantasma", "dardo_arcano", "toque_curativo", "grito_de_cuervo"]
+    },
+    {
+      "id": "tobias_el_trotamundos",
+      "nombre": "Tobías el Trotamundos",
+      "trasfondo": "Buscavidas con contactos en todos los puertos. Conoce el ambiente del contrabando mejor de lo que admite.",
+      "atributos": { "fuerza": 2, "astucia": 5, "voluntad": 2, "agilidad": 3 },
+      "habilidad_pasiva": "labia_facil",
+      "vida_max": 18,
+      "mana_max": 8,
+      "hechizos_conocidos": []
+    },
+    {
+      "id": "nadia_la_exploradora",
+      "nombre": "Nadia la Exploradora",
+      "trasfondo": "Rastreadora de las tierras del norte, llegó a la ciudad siguiendo pistas sobre mercancía robada de su aldea.",
+      "atributos": { "fuerza": 2, "astucia": 3, "voluntad": 2, "agilidad": 5 },
+      "habilidad_pasiva": "paso_ligero",
+      "vida_max": 20,
+      "mana_max": 10,
+      "hechizos_conocidos": ["luz_fantasma"]
+    }
+  ],
+  "nodos": {
+    "n001": {
+      "tipo": "interactivo",
+      "texto": "La taberna huele a cerveza rancia y humo de pipa. En una esquina, un hombre encapuchado observa la puerta con demasiada atención. El tabernero limpia vasos sin mirar a nadie a los ojos.",
+      "palabras_clave": [
+        {
+          "texto": "hombre apoyado en la pared",
+          "tipo_interaccion": "hablar",
+          "atributo": "astucia",
+          "dificultad": 12,
+          "nodo_exito": "n002",
+          "nodo_fallo": "n003"
+        },
+        {
+          "texto": "preguntar al tabernero por rumores",
+          "tipo_interaccion": "hablar",
+          "repetible": true,
+          "nodo_exito": "n001_info"
+        }
+      ],
+      "es_final": false
+    },
+    "n001_info": {
+      "tipo": "narrativo",
+      "texto": "El tabernero se encoge de hombros: \"Solo sé que en el muelle viejo se mueve mercancía que no paga aduana. Nada más, y nada menos.\"",
+      "nodo_siguiente": "n001",
+      "es_final": false
+    },
+    "n002": {
+      "tipo": "narrativo",
+      "texto": "El hombre te mira de reojo y susurra una dirección antes de perderse entre la gente: el almacén junto al muelle viejo.",
+      "nodo_siguiente": "n004",
+      "es_final": false
+    },
+    "n003": {
+      "tipo": "interactivo",
+      "texto": "El hombre se pone tenso al notar tu interés y sale disparado hacia la calle, volcando una mesa a su paso.",
+      "palabras_clave": [
+        {
+          "texto": "perseguirlo",
+          "tipo_interaccion": "perseguir",
+          "atributo": "agilidad",
+          "dificultad": 13,
+          "nodo_exito": "n004b",
+          "nodo_fallo": "n005",
+          "flags_set_fallo": { "pista_perdida": true }
+        }
+      ],
+      "es_final": false
+    },
+    "n004": {
+      "tipo": "narrativo",
+      "texto": "Sigues sus indicaciones hasta el muelle viejo. La niebla cubre las tablas podridas del embarcadero.",
+      "nodo_siguiente": "n006",
+      "es_final": false
+    },
+    "n004b": {
+      "tipo": "narrativo",
+      "texto": "Lo alcanzas sin aliento contra un callejón sin salida. Asustado, confiesa la ubicación exacta del almacén antes de que lo dejes ir.",
+      "nodo_siguiente": "n006",
+      "es_final": false
+    },
+    "n005": {
+      "tipo": "narrativo",
+      "texto": "Lo pierdes entre la multitud del mercado nocturno. Frustrados, decidís seguir vuestro propio instinto hasta el muelle viejo.",
+      "nodo_siguiente": "n006",
+      "es_final": false
+    },
+    "n006": {
+      "tipo": "interactivo",
+      "texto": "El almacén se alza sobre pilotes de madera, con una única puerta lateral entreabierta y luz de faroles filtrándose por las rendijas.",
+      "palabras_clave": [
+        {
+          "texto": "forzar la puerta lateral",
+          "tipo_interaccion": "forzar",
+          "atributo": "fuerza",
+          "dificultad": 14,
+          "categoria_hechizo_alternativa": "utilidad",
+          "modo_interaccion": "apoyo",
+          "atributo_apoyo": "astucia",
+          "nodo_exito": "n007",
+          "nodo_fallo": "n008",
+          "fallo_con_coste": true,
+          "flags_set_fallo": { "alerta_guardias": true }
+        }
+      ],
+      "es_final": false
+    },
+    "n007": {
+      "tipo": "narrativo",
+      "texto": "La puerta cede sin apenas ruido. El interior del almacén queda a vuestra merced, en penumbra.",
+      "nodo_siguiente": "n009",
+      "es_final": false
+    },
+    "n008": {
+      "tipo": "narrativo",
+      "texto": "La puerta cede con un crujido que resuena entre los pilotes. Dentro, unas sombras se detienen un instante, alerta.",
+      "nodo_siguiente": "n009",
+      "es_final": false
+    },
+    "n009": {
+      "tipo": "interactivo",
+      "texto": "Cajas selladas se apilan hasta el techo. Al fondo, voces amortiguadas discuten en torno a un farol.",
+      "palabras_clave": [
+        {
+          "texto": "examinar las cajas selladas",
+          "tipo_interaccion": "examinar",
+          "atributo": "astucia",
+          "dificultad": 11,
+          "nodo_exito": "n010",
+          "nodo_fallo": "n_combate1",
+          "objeto_otorga_exito": {
+            "objeto_id": "sello_contrabandista",
+            "nombre": "Sello del Cuervo Negro",
+            "destino": "grupo"
+          }
+        },
+        {
+          "texto": "escuchar las voces al fondo",
+          "tipo_interaccion": "escuchar",
+          "atributo": "astucia",
+          "dificultad": 10,
+          "nodo_exito": "n012",
+          "nodo_fallo": "n_combate1",
+          "flags_set_exito": { "sabe_plan": true }
+        },
+        {
+          "texto": "confrontar al líder con pruebas",
+          "tipo_interaccion": "hablar",
+          "atributo": "astucia",
+          "dificultad": 13,
+          "requiere_flag": "sabe_plan",
+          "requiere_objeto": "sello_contrabandista",
+          "nodo_exito": "n014",
+          "nodo_fallo": "n_combate1"
+        }
+      ],
+      "es_final": false
+    },
+    "n010": {
+      "tipo": "narrativo",
+      "texto": "Entre la paja de embalaje encontráis un sello de cera con la forma de un cuervo negro: la prueba que buscabais.",
+      "nodo_siguiente": "n009",
+      "es_final": false
+    },
+    "n012": {
+      "tipo": "narrativo",
+      "texto": "Escucháis al líder detallar la ruta de huida prevista para la próxima carga, hacia el norte.",
+      "nodo_siguiente": "n009",
+      "es_final": false
+    },
+    "n014": {
+      "tipo": "narrativo",
+      "texto": "Acorralado por las pruebas y la información que maneja el grupo, el líder de los contrabandistas se rinde sin resistirse y entrega la ruta completa.",
+      "nodo_siguiente": "n017",
+      "es_final": false
+    },
+    "n_combate1": {
+      "tipo": "combate",
+      "texto": "Los contrabandistas os rodean, machetes en alto. \"Nadie sale de aquí con lo que ha visto.\"",
+      "enemigos": [
+        {
+          "enemigo_id": "contrabandista_1",
+          "nombre": "Contrabandista",
+          "vida": 10,
+          "atributos": { "fuerza": 2, "agilidad": 1, "defensa": 11 },
+          "ataques": [{ "nombre": "Machete", "dano": 3, "modificador": 2 }]
+        },
+        {
+          "enemigo_id": "contrabandista_2",
+          "nombre": "Contrabandista",
+          "vida": 10,
+          "atributos": { "fuerza": 2, "agilidad": 2, "defensa": 11 },
+          "ataques": [{ "nombre": "Machete", "dano": 3, "modificador": 2 }]
+        }
+      ],
+      "nodo_victoria": "n015",
+      "nodo_derrota": "n_final_derrota",
+      "nodo_huida": "n016",
+      "es_final": false
+    },
+    "n015": {
+      "tipo": "narrativo",
+      "texto": "Los contrabandistas caen o huyen despavoridos. Entre sus pertenencias encontráis el sello del Cuervo Negro, prueba irrefutable de la red.",
+      "nodo_siguiente": "n017",
+      "es_final": false
+    },
+    "n016": {
+      "tipo": "narrativo",
+      "texto": "Huís del almacén entre las sombras del muelle, con el corazón acelerado y ninguna respuesta clara en las manos.",
+      "nodo_siguiente": "n_final_tragico",
+      "es_final": false
+    },
+    "n017": {
+      "tipo": "interactivo",
+      "texto": "Con las pruebas del Cuervo Negro en vuestro poder, el grupo debe decidir juntos qué hacer con lo descubierto.",
+      "palabras_clave": [
+        {
+          "texto": "entregarlo todo a la guardia de la ciudad",
+          "tipo_interaccion": "decidir",
+          "modo_interaccion": "grupal",
+          "nodo_exito": "n_final_heroico"
+        },
+        {
+          "texto": "quedaros con el botín y desaparecer",
+          "tipo_interaccion": "decidir",
+          "modo_interaccion": "grupal",
+          "nodo_exito": "n_final_secreto"
+        }
+      ],
+      "es_final": false
+    },
+    "n_final_heroico": {
+      "tipo": "narrativo",
+      "texto": "La guardia desmantela la red del Cuervo Negro gracias a vuestras pruebas. La ciudad os aclama como los héroes que acabaron con el contrabando del muelle viejo.",
+      "es_final": true,
+      "tipo_final": "heroico"
+    },
+    "n_final_secreto": {
+      "tipo": "narrativo",
+      "texto": "Desaparecéis en la noche con el botín del Cuervo Negro. Nadie sabrá nunca qué ocurrió en el muelle viejo, y vosotros guardaréis el secreto para siempre.",
+      "es_final": true,
+      "tipo_final": "secreto"
+    },
+    "n_final_tragico": {
+      "tipo": "narrativo",
+      "texto": "El misterio del Cuervo Negro queda sin resolver. La red sigue operando en la sombra, y la culpa de no haberla detenido os perseguirá.",
+      "es_final": true,
+      "tipo_final": "tragico"
+    },
+    "n_final_derrota": {
+      "tipo": "narrativo",
+      "texto": "Caéis ante los contrabandistas del muelle viejo. Vuestra historia, y vuestras preguntas, terminan aquí.",
+      "es_final": true,
+      "tipo_final": "derrota"
+    }
+  }
+}
