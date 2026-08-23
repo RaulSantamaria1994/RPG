@@ -15,6 +15,8 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     defaults:
       run:
         working-directory: app
@@ -54,3 +56,13 @@ jobs:
           name: rpg-narrativo-debug-apk
           path: app/android/app/build/outputs/apk/debug/app-debug.apk
           retention-days: 14
+
+      - name: Publicar el APK como release descargable
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: apk-${{ github.run_id }}
+          name: "RPG Narrativo APK (build ${{ github.run_number }})"
+          prerelease: true
+          files: app/android/app/build/outputs/apk/debug/app-debug.apk
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
