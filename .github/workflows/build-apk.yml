@@ -1,0 +1,56 @@
+name: Build Android APK
+
+on:
+  workflow_dispatch:
+    inputs:
+      api_url:
+        description: "URL base del backend, ej. https://tu-backend.example.com (vacío = localhost de desarrollo)"
+        required: false
+        default: ""
+      api_ws_url:
+        description: "URL WebSocket del backend, ej. wss://tu-backend.example.com (vacío = localhost de desarrollo)"
+        required: false
+        default: ""
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: app
+    env:
+      EXPO_PUBLIC_API_URL: ${{ github.event.inputs.api_url }}
+      EXPO_PUBLIC_API_WS_URL: ${{ github.event.inputs.api_ws_url }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: app/package-lock.json
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - uses: android-actions/setup-android@v3
+
+      - name: Instalar dependencias
+        run: npm ci
+
+      - name: Generar proyecto nativo Android
+        run: npx expo prebuild --platform android --non-interactive
+
+      - name: Compilar APK de depuración
+        working-directory: app/android
+        run: ./gradlew assembleDebug --no-daemon
+
+      - name: Subir APK como artefacto
+        uses: actions/upload-artifact@v4
+        with:
+          name: rpg-narrativo-debug-apk
+          path: app/android/app/build/outputs/apk/debug/app-debug.apk
+          retention-days: 14

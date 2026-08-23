@@ -1,17 +1,19 @@
 {
   "expo": {
-    "name": "app",
-    "slug": "app",
+    "name": "RPG Narrativo",
+    "slug": "rpg-narrativo",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
-    "userInterfaceStyle": "light",
+    "userInterfaceStyle": "dark",
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.rpgnarrativo.app"
     },
     "android": {
+      "package": "com.rpgnarrativo.app",
       "adaptiveIcon": {
-        "backgroundColor": "#E6F4FE",
+        "backgroundColor": "#1a1523",
         "foregroundImage": "./assets/android-icon-foreground.png",
         "backgroundImage": "./assets/android-icon-background.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
