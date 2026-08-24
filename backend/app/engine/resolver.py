@@ -156,7 +156,14 @@ def aplicar_resultado(
         objeto = palabra_clave.get("objeto_otorga_exito")
         if objeto:
             destino = objeto.get("destino", "personaje")
-            item = {"objeto_id": objeto["objeto_id"], "nombre": objeto.get("nombre", objeto["objeto_id"])}
+            item = {
+                "objeto_id": objeto["objeto_id"],
+                "nombre": objeto.get("nombre", objeto["objeto_id"]),
+            }
+            if "efecto" in objeto:
+                item["efecto"] = objeto["efecto"]
+            if "consumible" in objeto:
+                item["consumible"] = objeto["consumible"]
             if destino == "grupo":
                 inventario = list(estado.inventario_grupo or [])
                 inventario.append(item)

@@ -48,7 +48,13 @@ def iniciar_combate(nodo: dict, personajes: list[Personaje]) -> dict:
         "ronda": 1,
         "terminado": False,
         "resultado": None,
+        "dificultad_huida": nodo.get("dificultad_huida", 12),
+        "dificultad_negociacion": nodo.get("dificultad_negociacion", 13),
     }
+
+
+def enemigo_en_combate(combate: dict, enemigo_id: str) -> dict | None:
+    return next((e for e in combate["enemigos"] if e["enemigo_id"] == enemigo_id), None)
 
 
 def _enemigo(combate: dict, enemigo_id: str) -> dict:

@@ -13,6 +13,7 @@ from sqlalchemy.orm.attributes import flag_modified
 from app.database import SessionLocal
 from app.engine import combate as combate_engine
 from app.engine.dice import resolver_tirada, resolver_tirada_opuesta
+from app.engine.hechizos_base import hechizos_disponibles
 from app.engine.resolver import (
     ErrorInteraccion,
     ManaInsuficiente,
@@ -43,6 +44,13 @@ def _personajes_no_master(db, sala_id) -> list[Personaje]:
         .filter(Personaje.sala_id == sala_id, Personaje.es_master.is_(False))
         .all()
     )
+
+
+def _personajes_confirmables(db, sala_id) -> list[Personaje]:
+    """Personajes que cuentan para tiradas grupales y para el orden de
+    iniciativa de un combate nuevo: todos menos quienes el máster haya
+    marcado como ausentes."""
+    return [p for p in _personajes_no_master(db, sala_id) if p.estado != "ausente"]
 
 
 def _estado_publico(sala: Sala) -> dict:
@@ -99,7 +107,7 @@ async def _avanzar_y_notificar(db, sala: Sala, nodo_id: str) -> None:
         aplicar_descanso(estado, _personajes_no_master(db, sala.id), resumen["nodo"])
 
     if resumen["nodo"].get("tipo") == "combate":
-        combate = combate_engine.iniciar_combate(resumen["nodo"], _personajes_no_master(db, sala.id))
+        combate = combate_engine.iniciar_combate(resumen["nodo"], _personajes_confirmables(db, sala.id))
         estado.combate = combate
         flag_modified(estado, "combate")
 
@@ -107,7 +115,7 @@ async def _avanzar_y_notificar(db, sala: Sala, nodo_id: str) -> None:
     await _broadcast_nodo(sala)
 
     if resumen["nodo"].get("tipo") == "combate":
-        await _resolver_turnos_enemigos(db, sala)
+        await _avanzar_turnos_invalidos(db, sala)
 
 
 def _elegir_objetivo(personajes: list[Personaje]) -> Personaje | None:
@@ -117,36 +125,69 @@ def _elegir_objetivo(personajes: list[Personaje]) -> Personaje | None:
     return min(activos, key=lambda p: p.vida_actual)
 
 
-async def _resolver_turnos_enemigos(db, sala: Sala) -> None:
+async def _avanzar_turnos_invalidos(db, sala: Sala) -> None:
+    """Resuelve automáticamente los turnos que no requieren acción de un
+    jugador real: ataques de enemigos, enemigos derrotados, enemigos
+    aturdidos y turnos de personajes inactivos (ausentes o inconscientes).
+    Se detiene en cuanto llega a un turno de un personaje que sí puede
+    actuar, o cuando el combate termina.
+    """
     estado = sala.estado_sala
     combate = estado.combate
     if not combate or combate.get("terminado"):
         return
 
-    personajes = _personajes_no_master(db, sala.id)
-    while not combate["terminado"] and combate["orden_iniciativa"][
-        combate["turno_index"]
-    ].startswith("enemigo:"):
-        enemigo_id = combate["orden_iniciativa"][combate["turno_index"]].split(":", 1)[1]
-        objetivo = _elegir_objetivo(personajes)
-        if objetivo is None:
-            combate["terminado"] = True
-            combate["resultado"] = "derrota"
-            break
+    personajes = {str(p.id): p for p in _personajes_no_master(db, sala.id)}
 
-        resultado = combate_engine.resolver_ataque_enemigo(combate, enemigo_id, objetivo)
-        flag_modified(estado, "combate")
-        db.commit()
-        await gestor.broadcast(
-            str(sala.id), {"tipo": "combate_resultado", "datos": {"origen": "enemigo", **resultado}}
-        )
+    while not combate["terminado"]:
+        entrada = combate["orden_iniciativa"][combate["turno_index"]]
+        tipo_turno, id_turno = entrada.split(":", 1)
 
-        if all(p.estado != "activo" for p in personajes):
-            combate["terminado"] = True
-            combate["resultado"] = "derrota"
-            break
+        if tipo_turno == "enemigo":
+            enemigo = combate_engine.enemigo_en_combate(combate, id_turno)
+            if enemigo is None or enemigo["derrotado"]:
+                combate_engine.avanzar_turno(combate)
+                continue
 
-        combate_engine.avanzar_turno(combate)
+            if enemigo.get("aturdido"):
+                enemigo["aturdido"] = False
+                flag_modified(estado, "combate")
+                db.commit()
+                await gestor.broadcast(
+                    str(sala.id),
+                    {
+                        "tipo": "combate_resultado",
+                        "datos": {"origen": "enemigo", "accion": "aturdido", "enemigo_id": id_turno},
+                    },
+                )
+                combate_engine.avanzar_turno(combate)
+                continue
+
+            objetivo = _elegir_objetivo(list(personajes.values()))
+            if objetivo is None:
+                combate["terminado"] = True
+                combate["resultado"] = "derrota"
+                break
+
+            resultado = combate_engine.resolver_ataque_enemigo(combate, id_turno, objetivo)
+            flag_modified(estado, "combate")
+            db.commit()
+            await gestor.broadcast(
+                str(sala.id), {"tipo": "combate_resultado", "datos": {"origen": "enemigo", **resultado}}
+            )
+
+            if all(p.estado != "activo" for p in personajes.values()):
+                combate["terminado"] = True
+                combate["resultado"] = "derrota"
+                break
+
+            combate_engine.avanzar_turno(combate)
+        else:
+            personaje = personajes.get(id_turno)
+            if personaje is None or personaje.estado != "activo":
+                combate_engine.avanzar_turno(combate)
+                continue
+            break  # turno válido de un jugador activo: se espera su acción
 
     flag_modified(estado, "combate")
     db.commit()
@@ -276,7 +317,7 @@ async def _resolver_grupal(
 ) -> None:
     clave = _clave_palabra(nodo_id, palabra["texto"])
     confirmaciones = gestor.registrar_confirmacion(str(sala.id), clave, str(personaje.id))
-    total = len(_personajes_no_master(db, sala.id))
+    total = len(_personajes_confirmables(db, sala.id))
 
     await gestor.broadcast(
         str(sala.id),
@@ -294,7 +335,7 @@ async def _resolver_grupal(
 
     if palabra.get("dificultad"):
         regla = palabra.get("regla_grupal", "mejor_resultado")
-        participantes = _personajes_no_master(db, sala.id)
+        participantes = _personajes_confirmables(db, sala.id)
         resultados = [
             {"personaje": p.nombre, **resolver_tirada(getattr(p, palabra["atributo"]), palabra["dificultad"]).to_dict()}
             for p in participantes
@@ -342,6 +383,10 @@ async def _manejar_interactuar(db, sala: Sala, conexion: ConexionJugador, datos:
         personaje = db.get(Personaje, uuid.UUID(conexion.personaje_id))
         if personaje is None:
             raise ErrorInteraccion("Tu personaje ya no existe en esta sala.")
+        if personaje.estado == "ausente":
+            raise ErrorInteraccion(
+                "Estás marcado como ausente: pide al máster que te reactive para poder actuar."
+            )
         verificar_requisitos(nodo_id, palabra, estado, personaje)
     except (ErrorInteraccion, KeyError) as exc:
         await _enviar_error(conexion, str(exc) if isinstance(exc, ErrorInteraccion) else "Datos incompletos.")
@@ -407,6 +452,47 @@ async def _manejar_override_resultado(db, sala: Sala, conexion: ConexionJugador,
     await _avanzar_y_notificar(db, sala, cambios["nodo_destino"])
 
 
+async def _manejar_marcar_ausente(db, sala: Sala, conexion: ConexionJugador, datos: dict) -> None:
+    if conexion.rol != "master":
+        await _enviar_error(conexion, "Solo el máster puede marcar a un jugador como ausente.")
+        return
+    try:
+        personaje = db.get(Personaje, uuid.UUID(datos["personaje_id"]))
+    except (KeyError, ValueError):
+        await _enviar_error(conexion, "Datos incompletos.")
+        return
+    if personaje is None or personaje.sala_id != sala.id:
+        await _enviar_error(conexion, "Ese personaje no existe en esta sala.")
+        return
+
+    personaje.estado = "ausente"
+    db.commit()
+    await gestor.broadcast(
+        str(sala.id), {"tipo": "personaje_actualizado", "datos": _personaje_publico(personaje)}
+    )
+    await _avanzar_turnos_invalidos(db, sala)
+
+
+async def _manejar_marcar_activo(db, sala: Sala, conexion: ConexionJugador, datos: dict) -> None:
+    if conexion.rol != "master":
+        await _enviar_error(conexion, "Solo el máster puede reactivar a un jugador.")
+        return
+    try:
+        personaje = db.get(Personaje, uuid.UUID(datos["personaje_id"]))
+    except (KeyError, ValueError):
+        await _enviar_error(conexion, "Datos incompletos.")
+        return
+    if personaje is None or personaje.sala_id != sala.id:
+        await _enviar_error(conexion, "Ese personaje no existe en esta sala.")
+        return
+
+    personaje.estado = "activo"
+    db.commit()
+    await gestor.broadcast(
+        str(sala.id), {"tipo": "personaje_actualizado", "datos": _personaje_publico(personaje)}
+    )
+
+
 async def _manejar_combate_accion(db, sala: Sala, conexion: ConexionJugador, datos: dict) -> None:
     estado = sala.estado_sala
     combate = estado.combate
@@ -438,7 +524,7 @@ async def _manejar_combate_accion(db, sala: Sala, conexion: ConexionJugador, dat
             await _avanzar_y_notificar(db, sala, nodo_actual.get("nodo_victoria"))
             return
     elif accion == "huir":
-        resultado = resolver_tirada(personaje.agilidad, dificultad=12)
+        resultado = resolver_tirada(personaje.agilidad, dificultad=combate.get("dificultad_huida", 12))
         await gestor.broadcast(
             str(sala.id),
             {"tipo": "combate_resultado", "datos": {"origen": "jugador", "accion": "huir", "tirada": resultado.to_dict()}},
@@ -451,7 +537,7 @@ async def _manejar_combate_accion(db, sala: Sala, conexion: ConexionJugador, dat
             await _avanzar_y_notificar(db, sala, nodo_actual["nodo_huida"])
             return
     elif accion == "negociar":
-        resultado = resolver_tirada(personaje.astucia, dificultad=combate.get("dificultad_negociar", 13))
+        resultado = resolver_tirada(personaje.astucia, dificultad=combate.get("dificultad_negociacion", 13))
         await gestor.broadcast(
             str(sala.id),
             {"tipo": "combate_resultado", "datos": {"origen": "jugador", "accion": "negociar", "tirada": resultado.to_dict()}},
@@ -463,6 +549,124 @@ async def _manejar_combate_accion(db, sala: Sala, conexion: ConexionJugador, dat
             db.commit()
             await _avanzar_y_notificar(db, sala, nodo_actual["nodo_negociacion"])
             return
+    elif accion == "objeto":
+        try:
+            objeto_id = datos["objeto_id"]
+        except KeyError:
+            await _enviar_error(conexion, "Falta el objeto a usar.")
+            return
+        inventario = list(personaje.inventario or [])
+        objeto = next((o for o in inventario if o.get("objeto_id") == objeto_id), None)
+        efecto = (objeto or {}).get("efecto") or {}
+        if objeto is None or efecto.get("tipo") not in ("curar_vida", "curar_mana"):
+            await _enviar_error(conexion, "Ese objeto no se puede usar en combate.")
+            return
+
+        cantidad = efecto.get("cantidad", 0)
+        if efecto["tipo"] == "curar_vida":
+            personaje.vida_actual = min(personaje.vida_max, personaje.vida_actual + cantidad)
+        else:
+            personaje.mana_actual = min(personaje.mana_max, personaje.mana_actual + cantidad)
+
+        if objeto.get("consumible", True):
+            inventario.remove(objeto)
+            personaje.inventario = inventario
+            flag_modified(personaje, "inventario")
+
+        db.commit()
+        await gestor.broadcast(
+            str(sala.id),
+            {
+                "tipo": "combate_resultado",
+                "datos": {
+                    "origen": "jugador",
+                    "accion": "objeto",
+                    "personaje_id": str(personaje.id),
+                    "objeto": objeto,
+                    "efecto": efecto,
+                },
+            },
+        )
+    elif accion == "hechizo":
+        try:
+            hechizo_id = datos["hechizo_id"]
+        except KeyError:
+            await _enviar_error(conexion, "Falta el hechizo a lanzar.")
+            return
+
+        hechizo = hechizos_disponibles(sala.historia.contenido).get(hechizo_id)
+        if hechizo is None or hechizo["efecto"] not in (
+            "dano_directo",
+            "restaura_vida_o_mana",
+            "aturdir_enemigo",
+        ):
+            await _enviar_error(conexion, "Ese hechizo no se puede usar en combate.")
+            return
+        if hechizo_id not in (personaje.hechizos_conocidos or []):
+            await _enviar_error(conexion, "No conoces ese hechizo.")
+            return
+        if personaje.mana_actual < hechizo["coste_mana"]:
+            await _enviar_error(conexion, "No tienes maná suficiente.")
+            return
+
+        personaje.mana_actual -= hechizo["coste_mana"]
+        resultado_tirada = resolver_tirada(personaje.voluntad, hechizo["dificultad"])
+        efecto_aplicado = None
+
+        if resultado_tirada.exito:
+            if hechizo["efecto"] in ("dano_directo", "aturdir_enemigo"):
+                enemigo_id = datos.get("objetivo_enemigo_id")
+                enemigo = combate_engine.enemigo_en_combate(combate, enemigo_id or "")
+                if enemigo is None:
+                    await _enviar_error(conexion, "Ese enemigo no está en el combate.")
+                    return
+                if hechizo["efecto"] == "dano_directo":
+                    dano = max(1, personaje.voluntad // 2 + 2)
+                    enemigo["vida"] = max(0, enemigo["vida"] - dano)
+                    if enemigo["vida"] == 0:
+                        enemigo["derrotado"] = True
+                    efecto_aplicado = {"tipo": "dano", "enemigo_id": enemigo_id, "dano": dano}
+                else:
+                    enemigo["aturdido"] = True
+                    efecto_aplicado = {"tipo": "aturdido", "enemigo_id": enemigo_id}
+            else:  # restaura_vida_o_mana
+                objetivo_id = datos.get("objetivo_personaje_id")
+                try:
+                    objetivo = db.get(Personaje, uuid.UUID(objetivo_id)) if objetivo_id else None
+                except ValueError:
+                    objetivo = None
+                if objetivo is None or objetivo.sala_id != sala.id:
+                    await _enviar_error(conexion, "Ese objetivo no es válido.")
+                    return
+                cantidad = 6
+                objetivo.vida_actual = min(objetivo.vida_max, objetivo.vida_actual + cantidad)
+                efecto_aplicado = {
+                    "tipo": "curacion",
+                    "personaje_id": str(objetivo.id),
+                    "cantidad": cantidad,
+                }
+
+        flag_modified(estado, "combate")
+        db.commit()
+        await gestor.broadcast(
+            str(sala.id),
+            {
+                "tipo": "combate_resultado",
+                "datos": {
+                    "origen": "jugador",
+                    "accion": "hechizo",
+                    "personaje_id": str(personaje.id),
+                    "hechizo": hechizo["nombre"],
+                    "tirada": resultado_tirada.to_dict(),
+                    "efecto": efecto_aplicado,
+                },
+            },
+        )
+        if combate_engine.evaluar_fin_combate(combate) == "victoria":
+            flag_modified(estado, "combate")
+            db.commit()
+            await _avanzar_y_notificar(db, sala, nodo_actual.get("nodo_victoria"))
+            return
     else:
         await _enviar_error(conexion, f"Acción de combate '{accion}' no reconocida.")
         return
@@ -471,7 +675,7 @@ async def _manejar_combate_accion(db, sala: Sala, conexion: ConexionJugador, dat
     flag_modified(estado, "combate")
     db.commit()
     await _broadcast_nodo(sala)
-    await _resolver_turnos_enemigos(db, sala)
+    await _avanzar_turnos_invalidos(db, sala)
 
 
 async def _manejar_intercambio_proponer(db, sala: Sala, conexion: ConexionJugador, datos: dict) -> None:
@@ -537,6 +741,8 @@ MANEJADORES = {
     "continuar": _manejar_continuar,
     "override_nodo": _manejar_override_nodo,
     "override_resultado": _manejar_override_resultado,
+    "marcar_ausente": _manejar_marcar_ausente,
+    "marcar_activo": _manejar_marcar_activo,
     "combate_accion": _manejar_combate_accion,
     "intercambio_proponer": _manejar_intercambio_proponer,
     "intercambio_confirmar": _manejar_intercambio_confirmar,

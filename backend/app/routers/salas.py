@@ -3,6 +3,7 @@ from sqlalchemy.orm import Session
 
 from app.config import get_settings
 from app.database import get_db
+from app.engine.hechizos_base import hechizos_disponibles
 from app.models.estado_sala import EstadoSala
 from app.models.historia import Historia
 from app.models.personaje import Personaje
@@ -127,6 +128,12 @@ def listar_pregenerados_disponibles(codigo: str, db: Session = Depends(get_db)):
 def listar_habilidades_personalizado(codigo: str, db: Session = Depends(get_db)):
     sala = _obtener_sala_por_codigo(codigo, db)
     return sala.historia.contenido.get("habilidades_pasivas_personalizado", [])
+
+
+@router.get("/{codigo}/hechizos")
+def listar_hechizos_disponibles(codigo: str, db: Session = Depends(get_db)):
+    sala = _obtener_sala_por_codigo(codigo, db)
+    return list(hechizos_disponibles(sala.historia.contenido).values())
 
 
 @router.get("/{codigo}/nodos")

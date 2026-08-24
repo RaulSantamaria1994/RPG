@@ -53,11 +53,28 @@ export interface Personaje {
   vida_actual: number;
   mana_max: number;
   mana_actual: number;
-  inventario: { objeto_id: string; nombre: string }[];
+  inventario: ObjetoInventario[];
   hechizos_conocidos: string[];
   rasgos: string[];
   estado: string;
   es_master?: boolean;
+}
+
+export interface ObjetoInventario {
+  objeto_id: string;
+  nombre: string;
+  efecto?: { tipo: string; cantidad?: number } | null;
+  consumible?: boolean;
+}
+
+export interface Hechizo {
+  hechizo_id: string;
+  nombre: string;
+  categoria: string;
+  coste_mana: number;
+  dificultad: number;
+  descripcion: string;
+  efecto?: string | null;
 }
 
 export interface PalabraClave {
@@ -72,6 +89,9 @@ export interface PalabraClave {
   categoria_hechizo_alternativa?: string;
   hechizo_id_alternativo?: string;
   atributo_apoyo?: Atributo;
+  dificultad_apoyo?: number;
+  npc_modificador?: number;
+  regla_grupal?: 'mejor_resultado' | 'todos_aciertan';
 }
 
 export interface Nodo {
@@ -90,6 +110,7 @@ export interface EnemigoCombate {
   vida: number;
   vida_max: number;
   derrotado: boolean;
+  aturdido?: boolean;
 }
 
 export interface EstadoCombate {
@@ -99,6 +120,8 @@ export interface EstadoCombate {
   ronda: number;
   terminado: boolean;
   resultado: string | null;
+  dificultad_huida?: number;
+  dificultad_negociacion?: number;
 }
 
 export interface EstadoPublico {
@@ -106,7 +129,7 @@ export interface EstadoPublico {
   nodo: Nodo;
   flags: Record<string, unknown>;
   palabras_clave_usadas: string[];
-  inventario_grupo: { objeto_id: string; nombre: string }[];
+  inventario_grupo: ObjetoInventario[];
   fase: 'exploracion' | 'combate';
   combate: EstadoCombate | null;
   finalizada: boolean;

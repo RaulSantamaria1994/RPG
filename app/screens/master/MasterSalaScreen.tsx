@@ -138,10 +138,25 @@ export default function MasterSalaScreen({ navigation }: Props) {
         <View style={styles.seccion}>
           <Text style={styles.seccionTitulo}>Jugadores</Text>
           {personajes.map((p) => (
-            <Text key={p.id} style={styles.jugadorTexto}>
-              {p.nombre} ({p.jugador_nombre}) — PV {p.vida_actual}/{p.vida_max} · Maná{' '}
-              {p.mana_actual}/{p.mana_max}
-            </Text>
+            <View key={p.id} style={styles.jugadorFila}>
+              <Text style={[styles.jugadorTexto, p.estado === 'ausente' && styles.jugadorAusente]}>
+                {p.nombre} ({p.jugador_nombre}) — PV {p.vida_actual}/{p.vida_max} · Maná{' '}
+                {p.mana_actual}/{p.mana_max}
+                {p.estado === 'ausente' ? ' · ausente' : ''}
+              </Text>
+              <TouchableOpacity
+                style={styles.botonAusente}
+                onPress={() =>
+                  enviar(p.estado === 'ausente' ? 'marcar_activo' : 'marcar_ausente', {
+                    personaje_id: p.id,
+                  })
+                }
+              >
+                <Text style={styles.botonAusenteTexto}>
+                  {p.estado === 'ausente' ? 'Reactivar' : 'Marcar ausente'}
+                </Text>
+              </TouchableOpacity>
+            </View>
           ))}
         </View>
 
@@ -244,7 +259,23 @@ const styles = StyleSheet.create({
   palabraUsada: { color: '#7a6c8f', textDecorationLine: 'line-through' },
   palabraBloqueo: { color: '#e0c27f' },
   enemigoTexto: { color: '#e0a9a9' },
-  jugadorTexto: { color: '#d8cbe8' },
+  jugadorFila: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    gap: 8,
+  },
+  jugadorTexto: { color: '#d8cbe8', flex: 1 },
+  jugadorAusente: { color: '#e0a9a9', fontStyle: 'italic' },
+  botonAusente: {
+    backgroundColor: '#2f2540',
+    borderWidth: 1,
+    borderColor: '#6b3fa0',
+    borderRadius: 6,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+  },
+  botonAusenteTexto: { color: '#fff', fontSize: 11, fontWeight: '600' },
   input: {
     backgroundColor: '#2f2540',
     borderRadius: 8,

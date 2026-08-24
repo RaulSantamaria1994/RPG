@@ -201,12 +201,52 @@ function procesarMensaje(
       break;
     }
     case 'combate_resultado': {
-      const d = datos as { origen: string; dano_aplicado?: number; accion?: string };
-      const texto =
-        d.origen === 'jugador'
-          ? `Ataque de jugador: ${d.dano_aplicado ?? 0} de daño`
-          : `Un enemigo ataca: ${d.dano_aplicado ?? 0} de daño`;
+      const d = datos as {
+        origen: string;
+        dano_aplicado?: number;
+        accion?: string;
+        enemigo_id?: string;
+        objeto?: { nombre: string };
+        hechizo?: string;
+        efecto?: { tipo: string; dano?: number; cantidad?: number; enemigo_id?: string } | null;
+        tirada?: { exito?: boolean };
+      };
+      let texto: string;
+      if (d.origen === 'enemigo' && d.accion === 'aturdido') {
+        texto = 'Un enemigo aturdido pierde su turno';
+      } else if (d.accion === 'objeto') {
+        texto = `Usa "${d.objeto?.nombre ?? 'un objeto'}"`;
+      } else if (d.accion === 'hechizo') {
+        const exito = d.tirada?.exito;
+        texto = exito
+          ? `Lanza ${d.hechizo}: ${d.efecto?.tipo === 'dano' ? `${d.efecto.dano} de daño` : d.efecto?.tipo === 'aturdido' ? 'enemigo aturdido' : d.efecto?.tipo === 'curacion' ? `${d.efecto.cantidad} de curación` : 'efecto aplicado'}`
+          : `Falla al lanzar ${d.hechizo}`;
+      } else if (d.accion === 'huir') {
+        texto = d.tirada?.exito ? 'Consigue huir' : 'No logra huir';
+      } else if (d.accion === 'negociar') {
+        texto = d.tirada?.exito ? 'Consigue negociar' : 'No logra negociar';
+      } else if (d.origen === 'jugador') {
+        texto = `Ataque de jugador: ${d.dano_aplicado ?? 0} de daño`;
+      } else {
+        texto = `Un enemigo ataca: ${d.dano_aplicado ?? 0} de daño`;
+      }
       set((s) => ({ log: [nuevoEvento(texto), ...s.log] }));
+      break;
+    }
+    case 'personaje_actualizado': {
+      const d = datos as unknown as Personaje;
+      set((s) => ({
+        personajes: s.personajes.some((p) => p.id === d.id)
+          ? s.personajes.map((p) => (p.id === d.id ? { ...p, ...d } : p))
+          : [...s.personajes, d],
+        personaje: s.personaje?.id === d.id ? { ...s.personaje, ...d } : s.personaje,
+        log: [
+          nuevoEvento(
+            d.estado === 'ausente' ? `${d.nombre} ha sido marcado ausente` : `${d.nombre} vuelve a estar activo`
+          ),
+          ...s.log,
+        ],
+      }));
       break;
     }
     case 'jugador_conectado': {

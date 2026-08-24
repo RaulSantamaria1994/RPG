@@ -2,6 +2,7 @@ import { API_BASE_URL } from './config';
 import type {
   Atributo,
   HabilidadPasiva,
+  Hechizo,
   HistoriaResumen,
   NodoResumen,
   Personaje,
@@ -106,6 +107,8 @@ export const api = {
 
   listarNodos: (codigo: string, token: string) =>
     peticion<NodoResumen[]>(`/salas/${codigo}/nodos`, { token }),
+
+  listarHechizos: (codigo: string) => peticion<Hechizo[]>(`/salas/${codigo}/hechizos`),
 
   cerrarSala: (codigo: string, token: string) =>
     peticion<Sala>(`/salas/${codigo}/cerrar`, { method: 'POST', token }),

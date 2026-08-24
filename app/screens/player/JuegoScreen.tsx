@@ -2,13 +2,25 @@ import { useEffect, useRef, useState } from 'react';
 import { Animated, FlatList, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../../navigation/types';
+import { api } from '../../services/api';
 import { useSalaStore } from '../../store/salaStore';
+import type { Atributo, Hechizo } from '../../types';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'JugadorJuego'>;
 
 function formatearId(id: string): string {
   return id.replace(/_/g, ' ').replace(/^\w/, (c) => c.toUpperCase());
 }
+
+const ETIQUETA_ATRIBUTO: Record<Atributo, string> = {
+  fuerza: 'Fuerza',
+  astucia: 'Astucia',
+  voluntad: 'Voluntad',
+  agilidad: 'Agilidad',
+};
+
+const EFECTOS_HECHIZO_COMBATE = new Set(['dano_directo', 'restaura_vida_o_mana', 'aturdir_enemigo']);
+const EFECTOS_OBJETO_COMBATE = new Set(['curar_vida', 'curar_mana']);
 
 export default function JuegoScreen({ navigation }: Props) {
   const sala = useSalaStore((s) => s.sala);
@@ -26,6 +38,10 @@ export default function JuegoScreen({ navigation }: Props) {
   const reiniciar = useSalaStore((s) => s.reiniciar);
 
   const [objetoParaDar, setObjetoParaDar] = useState<string | null>(null);
+  const [palabraExpandida, setPalabraExpandida] = useState<string | null>(null);
+  const [hechizos, setHechizos] = useState<Hechizo[]>([]);
+  const [seccionCombate, setSeccionCombate] = useState<'objeto' | 'hechizo' | null>(null);
+  const [hechizoElegido, setHechizoElegido] = useState<string | null>(null);
 
   const opacidadDado = useRef(new Animated.Value(0)).current;
 
@@ -33,6 +49,12 @@ export default function JuegoScreen({ navigation }: Props) {
     conectar();
     return () => desconectar();
   }, []);
+
+  useEffect(() => {
+    if (sala) {
+      api.listarHechizos(sala.codigo).then(setHechizos).catch(() => {});
+    }
+  }, [sala]);
 
   useEffect(() => {
     if (!ultimaTirada) return;
@@ -52,6 +74,7 @@ export default function JuegoScreen({ navigation }: Props) {
   const enCombate = estado?.fase === 'combate' && estado.combate;
   const esMiTurno =
     enCombate && estado!.combate!.orden_iniciativa[estado!.combate!.turno_index] === `personaje:${personaje.id}`;
+  const soyAusente = personaje.estado === 'ausente';
 
   function salir() {
     reiniciar();
@@ -93,15 +116,25 @@ export default function JuegoScreen({ navigation }: Props) {
           </View>
         )}
 
+        {soyAusente && (
+          <View style={styles.ausenteBanner}>
+            <Text style={styles.ausenteBannerTexto}>
+              Estás marcado como ausente: el máster debe reactivarte para que puedas volver a
+              actuar.
+            </Text>
+          </View>
+        )}
+
         <Text style={styles.nodoTexto}>{nodo?.texto}</Text>
 
-        {nodo?.tipo === 'interactivo' && !enCombate && (
+        {nodo?.tipo === 'interactivo' && !enCombate && !soyAusente && (
           <View style={{ gap: 8 }}>
             {nodo.palabras_clave?.map((p) => {
               const clave = `${estado?.nodo_actual_id}:${p.texto}`;
               const usada = estado?.palabras_clave_usadas.includes(clave);
               const bloqueada = !!palabrasBloqueadas[clave];
               const deshabilitada = usada || bloqueada;
+              const expandida = palabraExpandida === clave;
 
               const hechizosDisponibles = personaje.hechizos_conocidos.filter(
                 (h) => h === p.hechizo_id_alternativo
@@ -109,12 +142,17 @@ export default function JuegoScreen({ navigation }: Props) {
 
               const confirmacion = confirmacionesGrupales[clave];
 
+              function tirar(datosExtra: Record<string, unknown> = {}) {
+                enviar('interactuar', { palabra_clave: p.texto, ...datosExtra });
+                setPalabraExpandida(null);
+              }
+
               return (
                 <View key={p.texto} style={styles.tarjetaPalabra}>
                   <TouchableOpacity
                     disabled={deshabilitada}
                     style={[styles.botonPalabra, deshabilitada && styles.botonPalabraDeshabilitado]}
-                    onPress={() => enviar('interactuar', { palabra_clave: p.texto })}
+                    onPress={() => setPalabraExpandida(expandida ? null : clave)}
                   >
                     <Text
                       style={[
@@ -135,37 +173,63 @@ export default function JuegoScreen({ navigation }: Props) {
                     </Text>
                   )}
 
-                  {p.modo_interaccion === 'apoyo' && !deshabilitada && (
-                    <TouchableOpacity
-                      style={styles.botonApoyo}
-                      onPress={() =>
-                        enviar('interactuar', { palabra_clave: p.texto, rol_apoyo: 'apoyo' })
-                      }
-                    >
-                      <Text style={styles.botonApoyoTexto}>
-                        Ayudar con {p.atributo_apoyo ?? 'otro atributo'} (da ventaja a quien actúe)
-                      </Text>
-                    </TouchableOpacity>
-                  )}
+                  {expandida && !deshabilitada && (
+                    <View style={styles.panelRequisito}>
+                      {p.modo_interaccion === 'opuesta' ? (
+                        <Text style={styles.requisitoTexto}>
+                          Tirada enfrentada: tu {p.atributo ? ETIQUETA_ATRIBUTO[p.atributo] : '?'} (
+                          {p.atributo ? personaje[p.atributo] : '?'}) contra un rival con
+                          modificador {p.npc_modificador ?? 0}.
+                        </Text>
+                      ) : p.dificultad ? (
+                        <Text style={styles.requisitoTexto}>
+                          Necesitas sacar {p.dificultad} o más tirando 1d20 +{' '}
+                          {p.atributo ? ETIQUETA_ATRIBUTO[p.atributo] : '?'} (tu{' '}
+                          {p.atributo ? ETIQUETA_ATRIBUTO[p.atributo] : '?'}: {p.atributo ? personaje[p.atributo] : '?'})
+                          {p.modo_interaccion === 'grupal' ? ' — cuenta la mejor tirada del grupo, según la regla.' : '.'}
+                        </Text>
+                      ) : (
+                        <Text style={styles.requisitoTexto}>
+                          Esta acción no requiere tirada: se resuelve al confirmar.
+                        </Text>
+                      )}
 
-                  {!deshabilitada &&
-                    hechizosDisponibles.map((h) => (
-                      <TouchableOpacity
-                        key={h}
-                        style={styles.botonHechizo}
-                        onPress={() =>
-                          enviar('interactuar', {
-                            palabra_clave: p.texto,
-                            via: 'hechizo',
-                            hechizo_id: h,
-                          })
-                        }
-                      >
-                        <Text style={styles.botonHechizoTexto}>
-                          Lanzar {formatearId(h)} (vía mágica)
+                      <TouchableOpacity style={styles.botonTirar} onPress={() => tirar()}>
+                        <Text style={styles.botonTirarTexto}>
+                          {p.dificultad ? '🎲 Tirar dado' : 'Confirmar'}
                         </Text>
                       </TouchableOpacity>
-                    ))}
+
+                      {p.modo_interaccion === 'apoyo' && (
+                        <TouchableOpacity
+                          style={styles.botonApoyo}
+                          onPress={() => tirar({ rol_apoyo: 'apoyo' })}
+                        >
+                          <Text style={styles.botonApoyoTexto}>
+                            Ayudar con {p.atributo_apoyo ? ETIQUETA_ATRIBUTO[p.atributo_apoyo] : 'otro atributo'} —
+                            dificultad {p.dificultad_apoyo ?? p.dificultad ?? 10} (da ventaja a quien
+                            actúe)
+                          </Text>
+                        </TouchableOpacity>
+                      )}
+
+                      {hechizosDisponibles.map((h) => {
+                        const info = hechizos.find((x) => x.hechizo_id === h);
+                        return (
+                          <TouchableOpacity
+                            key={h}
+                            style={styles.botonHechizo}
+                            onPress={() => tirar({ via: 'hechizo', hechizo_id: h })}
+                          >
+                            <Text style={styles.botonHechizoTexto}>
+                              🎲 Lanzar {info?.nombre ?? formatearId(h)} (vía mágica) — dificultad{' '}
+                              {info?.dificultad ?? '?'}, coste {info?.coste_mana ?? '?'} maná
+                            </Text>
+                          </TouchableOpacity>
+                        );
+                      })}
+                    </View>
+                  )}
                 </View>
               );
             })}
@@ -187,6 +251,7 @@ export default function JuegoScreen({ navigation }: Props) {
               <View key={en.enemigo_id} style={styles.tarjetaEnemigo}>
                 <Text style={styles.enemigoNombre}>
                   {en.nombre} — {en.vida}/{en.vida_max} PV {en.derrotado ? '☠' : ''}
+                  {en.aturdido ? ' 💫 aturdido' : ''}
                 </Text>
                 {esMiTurno && !en.derrotado && (
                   <TouchableOpacity
@@ -201,20 +266,154 @@ export default function JuegoScreen({ navigation }: Props) {
               </View>
             ))}
             {esMiTurno && (
-              <View style={{ flexDirection: 'row', gap: 8 }}>
-                <TouchableOpacity
-                  style={styles.botonSecundario}
-                  onPress={() => enviar('combate_accion', { accion: 'huir' })}
-                >
-                  <Text style={styles.botonSecundarioTexto}>Huir</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={styles.botonSecundario}
-                  onPress={() => enviar('combate_accion', { accion: 'negociar' })}
-                >
-                  <Text style={styles.botonSecundarioTexto}>Negociar</Text>
-                </TouchableOpacity>
-              </View>
+              <>
+                <View style={{ flexDirection: 'row', gap: 8 }}>
+                  <TouchableOpacity
+                    style={styles.botonSecundario}
+                    onPress={() => enviar('combate_accion', { accion: 'huir' })}
+                  >
+                    <Text style={styles.botonSecundarioTexto}>Huir</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={styles.botonSecundario}
+                    onPress={() => enviar('combate_accion', { accion: 'negociar' })}
+                  >
+                    <Text style={styles.botonSecundarioTexto}>Negociar</Text>
+                  </TouchableOpacity>
+                </View>
+
+                {(() => {
+                  const objetosUsables = personaje.inventario.filter(
+                    (o) => o.efecto?.tipo && EFECTOS_OBJETO_COMBATE.has(o.efecto.tipo)
+                  );
+                  const hechizosCombate = hechizos.filter(
+                    (h) =>
+                      personaje.hechizos_conocidos.includes(h.hechizo_id) &&
+                      h.efecto &&
+                      EFECTOS_HECHIZO_COMBATE.has(h.efecto)
+                  );
+                  const hechizo = hechizosCombate.find((h) => h.hechizo_id === hechizoElegido);
+
+                  return (
+                    <View style={{ gap: 8 }}>
+                      <View style={{ flexDirection: 'row', gap: 8 }}>
+                        <TouchableOpacity
+                          style={styles.botonSecundario}
+                          onPress={() => {
+                            setSeccionCombate(seccionCombate === 'objeto' ? null : 'objeto');
+                            setHechizoElegido(null);
+                          }}
+                        >
+                          <Text style={styles.botonSecundarioTexto}>
+                            Usar objeto ({objetosUsables.length})
+                          </Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                          style={styles.botonSecundario}
+                          onPress={() => {
+                            setSeccionCombate(seccionCombate === 'hechizo' ? null : 'hechizo');
+                            setHechizoElegido(null);
+                          }}
+                        >
+                          <Text style={styles.botonSecundarioTexto}>
+                            Lanzar hechizo ({hechizosCombate.length})
+                          </Text>
+                        </TouchableOpacity>
+                      </View>
+
+                      {seccionCombate === 'objeto' && (
+                        <View style={styles.panelRequisito}>
+                          {objetosUsables.length === 0 && (
+                            <Text style={styles.requisitoTexto}>No tienes objetos usables en combate.</Text>
+                          )}
+                          {objetosUsables.map((o) => (
+                            <TouchableOpacity
+                              key={o.objeto_id}
+                              style={styles.botonHechizo}
+                              onPress={() => {
+                                enviar('combate_accion', { accion: 'objeto', objeto_id: o.objeto_id });
+                                setSeccionCombate(null);
+                              }}
+                            >
+                              <Text style={styles.botonHechizoTexto}>
+                                {o.nombre} — {o.efecto?.tipo === 'curar_vida' ? `+${o.efecto?.cantidad ?? 0} PV` : `+${o.efecto?.cantidad ?? 0} maná`}
+                              </Text>
+                            </TouchableOpacity>
+                          ))}
+                        </View>
+                      )}
+
+                      {seccionCombate === 'hechizo' && !hechizo && (
+                        <View style={styles.panelRequisito}>
+                          {hechizosCombate.length === 0 && (
+                            <Text style={styles.requisitoTexto}>No conoces hechizos usables en combate.</Text>
+                          )}
+                          {hechizosCombate.map((h) => (
+                            <TouchableOpacity
+                              key={h.hechizo_id}
+                              style={styles.botonHechizo}
+                              onPress={() => setHechizoElegido(h.hechizo_id)}
+                            >
+                              <Text style={styles.botonHechizoTexto}>
+                                🎲 {h.nombre} — dificultad {h.dificultad}, coste {h.coste_mana} maná
+                                (tienes {personaje.mana_actual})
+                              </Text>
+                            </TouchableOpacity>
+                          ))}
+                        </View>
+                      )}
+
+                      {seccionCombate === 'hechizo' && hechizo && (
+                        <View style={styles.panelRequisito}>
+                          <Text style={styles.requisitoTexto}>Elige el objetivo de {hechizo.nombre}:</Text>
+                          {hechizo.efecto === 'restaura_vida_o_mana'
+                            ? personajes
+                                .filter((p) => p.estado !== 'ausente')
+                                .map((destino) => (
+                                  <TouchableOpacity
+                                    key={destino.id}
+                                    style={styles.botonHechizo}
+                                    onPress={() => {
+                                      enviar('combate_accion', {
+                                        accion: 'hechizo',
+                                        hechizo_id: hechizo.hechizo_id,
+                                        objetivo_personaje_id: destino.id,
+                                      });
+                                      setHechizoElegido(null);
+                                      setSeccionCombate(null);
+                                    }}
+                                  >
+                                    <Text style={styles.botonHechizoTexto}>{destino.nombre}</Text>
+                                  </TouchableOpacity>
+                                ))
+                            : estado!.combate!.enemigos
+                                .filter((en) => !en.derrotado)
+                                .map((en) => (
+                                  <TouchableOpacity
+                                    key={en.enemigo_id}
+                                    style={styles.botonHechizo}
+                                    onPress={() => {
+                                      enviar('combate_accion', {
+                                        accion: 'hechizo',
+                                        hechizo_id: hechizo.hechizo_id,
+                                        objetivo_enemigo_id: en.enemigo_id,
+                                      });
+                                      setHechizoElegido(null);
+                                      setSeccionCombate(null);
+                                    }}
+                                  >
+                                    <Text style={styles.botonHechizoTexto}>{en.nombre}</Text>
+                                  </TouchableOpacity>
+                                ))}
+                          <TouchableOpacity onPress={() => setHechizoElegido(null)}>
+                            <Text style={styles.botonApoyoTexto}>‹ Elegir otro hechizo</Text>
+                          </TouchableOpacity>
+                        </View>
+                      )}
+                    </View>
+                  );
+                })()}
+              </>
             )}
           </View>
         )}
@@ -326,7 +525,32 @@ const styles = StyleSheet.create({
   fallo: { color: '#e07f7f' },
   finalBanner: { backgroundColor: '#4a2f6b', padding: 12, borderRadius: 8 },
   finalBannerTexto: { color: '#fff', fontWeight: '600' },
+  ausenteBanner: {
+    backgroundColor: '#4a2f2f',
+    borderRadius: 8,
+    padding: 12,
+    borderWidth: 1,
+    borderColor: '#a05f5f',
+  },
+  ausenteBannerTexto: { color: '#f0d0d0', fontSize: 13 },
   nodoTexto: { color: '#f3e9ff', fontSize: 16, lineHeight: 22 },
+  panelRequisito: {
+    backgroundColor: '#1f1830',
+    borderRadius: 8,
+    padding: 10,
+    marginTop: 4,
+    gap: 8,
+    borderWidth: 1,
+    borderColor: '#453a5c',
+  },
+  requisitoTexto: { color: '#d8cbe8', fontSize: 13, lineHeight: 18 },
+  botonTirar: {
+    backgroundColor: '#6b3fa0',
+    borderRadius: 8,
+    paddingVertical: 10,
+    alignItems: 'center',
+  },
+  botonTirarTexto: { color: '#fff', fontWeight: '700' },
   tarjetaPalabra: { gap: 4 },
   botonPalabra: {
     backgroundColor: '#2f2540',
