@@ -1,6 +1,8 @@
+import { useEffect, useState } from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { StatusBar } from 'expo-status-bar';
+import { ActivityIndicator, StyleSheet, View } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import HomeScreen from './screens/HomeScreen';
@@ -10,16 +12,48 @@ import UnirseSalaScreen from './screens/player/UnirseSalaScreen';
 import SeleccionPersonajeScreen from './screens/player/SeleccionPersonajeScreen';
 import JuegoScreen from './screens/player/JuegoScreen';
 import type { RootStackParamList } from './navigation/types';
+import { useSalaStore } from './store/salaStore';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
+function usePersistenciaLista(): boolean {
+  const [lista, setLista] = useState(() => useSalaStore.persist.hasHydrated());
+
+  useEffect(() => {
+    if (useSalaStore.persist.hasHydrated()) {
+      setLista(true);
+      return;
+    }
+    return useSalaStore.persist.onFinishHydration(() => setLista(true));
+  }, []);
+
+  return lista;
+}
+
+function rutaInicialDesdeSesion(): keyof RootStackParamList {
+  const { rol, sala, token, personaje } = useSalaStore.getState();
+  if (rol === 'master' && sala && token) return 'MasterSala';
+  if (rol === 'jugador' && sala && token && personaje) return 'JugadorJuego';
+  return 'Home';
+}
+
 export default function App() {
+  const persistenciaLista = usePersistenciaLista();
+
+  if (!persistenciaLista) {
+    return (
+      <View style={styles.cargando}>
+        <ActivityIndicator color="#fff" size="large" />
+      </View>
+    );
+  }
+
   return (
     <SafeAreaProvider>
       <NavigationContainer>
         <StatusBar style="light" />
         <Stack.Navigator
-          initialRouteName="Home"
+          initialRouteName={rutaInicialDesdeSesion()}
           screenOptions={{
             headerStyle: { backgroundColor: '#1a1523' },
             headerTintColor: '#fff',
@@ -58,3 +92,7 @@ export default function App() {
     </SafeAreaProvider>
   );
 }
+
+const styles = StyleSheet.create({
+  cargando: { flex: 1, backgroundColor: '#1a1523', alignItems: 'center', justifyContent: 'center' },
+});

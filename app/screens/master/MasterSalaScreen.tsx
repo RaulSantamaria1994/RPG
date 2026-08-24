@@ -50,6 +50,12 @@ export default function MasterSalaScreen({ navigation }: Props) {
     }
   }, [sala, token]);
 
+  useEffect(() => {
+    if (!sala) {
+      navigation.reset({ index: 0, routes: [{ name: 'Home' }] });
+    }
+  }, [sala]);
+
   const nodosFiltrados = useMemo(() => {
     const q = filtro.trim().toLowerCase();
     if (!q) return nodos;
@@ -62,7 +68,7 @@ export default function MasterSalaScreen({ navigation }: Props) {
 
   function salir() {
     reiniciar();
-    navigation.popToTop();
+    navigation.reset({ index: 0, routes: [{ name: 'Home' }] });
   }
 
   function saltarA(nodoId: string) {

@@ -33,8 +33,12 @@ class GestorConexiones:
     def _sala(self, sala_id: str) -> SalaConexiones:
         return self._salas.setdefault(sala_id, SalaConexiones())
 
-    async def conectar(self, sala_id: str, conexion: ConexionJugador) -> None:
-        await conexion.websocket.accept()
+    def conectar(self, sala_id: str, conexion: ConexionJugador) -> None:
+        """Registra una conexión ya aceptada. El accept() se hace en el
+        endpoint antes de validar token/sala, para que un cierre por sesión
+        inválida use un código de cierre real (con el socket ya abierto) en
+        vez de un rechazo de handshake, que los navegadores no propagan.
+        """
         self._sala(sala_id).conexiones.append(conexion)
 
     def desconectar(self, sala_id: str, conexion: ConexionJugador) -> None:

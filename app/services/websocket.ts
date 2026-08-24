@@ -3,6 +3,11 @@ import { WS_BASE_URL } from './config';
 export type MensajeWs = { tipo: string; datos: Record<string, unknown> };
 type Escuchador = (mensaje: MensajeWs) => void;
 
+// Códigos que el backend usa para cerrar el socket cuando la sesión ya no es
+// válida (token caducado/incorrecto o la sala ya no existe): no tiene sentido
+// reintentar reconectar en bucle, hay que avisar y volver al inicio.
+const CODIGOS_SESION_INVALIDA = new Set([4401, 4404]);
+
 export class ClienteSala {
   private socket: WebSocket | null = null;
   private escuchadores = new Set<Escuchador>();
@@ -33,8 +38,14 @@ export class ClienteSala {
       this.intentosReconexion = 0;
     };
 
-    this.socket.onclose = () => {
+    this.socket.onclose = (evento) => {
       if (this.cerradoManualmente) return;
+
+      if (CODIGOS_SESION_INVALIDA.has(evento.code)) {
+        this.escuchadores.forEach((fn) => fn({ tipo: '_sesion_invalida', datos: {} }));
+        return;
+      }
+
       const espera = Math.min(1000 * 2 ** this.intentosReconexion, 10000);
       this.intentosReconexion += 1;
       setTimeout(() => this.conectar(), espera);

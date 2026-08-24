@@ -1,14 +1,24 @@
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../navigation/types';
+import { useSalaStore } from '../store/salaStore';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Home'>;
 
 export default function HomeScreen({ navigation }: Props) {
+  const mensajeSesion = useSalaStore((s) => s.mensajeSesion);
+  const limpiarMensajeSesion = useSalaStore((s) => s.limpiarMensajeSesion);
+
   return (
     <View style={styles.contenedor}>
       <Text style={styles.titulo}>RPG Narrativo</Text>
       <Text style={styles.subtitulo}>¿Cómo quieres jugar?</Text>
+
+      {mensajeSesion && (
+        <TouchableOpacity style={styles.avisoSesion} onPress={limpiarMensajeSesion}>
+          <Text style={styles.avisoSesionTexto}>{mensajeSesion}</Text>
+        </TouchableOpacity>
+      )}
 
       <TouchableOpacity
         style={styles.boton}
@@ -40,6 +50,17 @@ const styles = StyleSheet.create({
   },
   titulo: { fontSize: 32, fontWeight: '700', color: '#f3e9ff', marginBottom: 4 },
   subtitulo: { fontSize: 16, color: '#c9b8e0', marginBottom: 24 },
+  avisoSesion: {
+    width: '100%',
+    maxWidth: 360,
+    backgroundColor: '#2b2a1f',
+    borderWidth: 1,
+    borderColor: '#d0b86f',
+    borderRadius: 10,
+    padding: 12,
+    marginBottom: 8,
+  },
+  avisoSesionTexto: { color: '#f0e6c9', fontSize: 13, textAlign: 'center' },
   boton: {
     width: '100%',
     maxWidth: 360,

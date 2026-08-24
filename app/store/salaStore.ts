@@ -1,4 +1,6 @@
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { create } from 'zustand';
+import { createJSONStorage, persist } from 'zustand/middleware';
 import { ClienteSala, type MensajeWs } from '../services/websocket';
 import type { EstadoPublico, EventoLog, Personaje, Sala } from '../types';
 
@@ -25,6 +27,7 @@ interface SalaState {
   conectado: boolean;
   cliente: ClienteSala | null;
   ultimaTirada: { dado?: number; total?: number; exito: boolean; quien: string } | null;
+  mensajeSesion: string | null;
 
   iniciarComoMaster: (sala: Sala, token: string) => void;
   iniciarComoJugador: (sala: Sala, token: string, personaje: Personaje) => void;
@@ -32,6 +35,7 @@ interface SalaState {
   desconectar: () => void;
   enviar: (tipo: string, datos?: Record<string, unknown>) => void;
   reiniciar: () => void;
+  limpiarMensajeSesion: () => void;
 }
 
 function nuevoEvento(texto: string): EventoLog {
@@ -42,61 +46,78 @@ function nuevoEvento(texto: string): EventoLog {
   };
 }
 
-export const useSalaStore = create<SalaState>((set, get) => ({
-  rol: null,
-  sala: null,
-  token: null,
-  personaje: null,
+const ESTADO_INICIAL_TRANSITORIO = {
   estado: null,
-  personajes: [],
-  log: [],
-  palabrasBloqueadas: {},
-  confirmacionesGrupales: {},
-  propuestasIntercambio: [],
+  personajes: [] as Personaje[],
+  log: [] as EventoLog[],
+  palabrasBloqueadas: {} as Record<string, string>,
+  confirmacionesGrupales: {} as Record<string, { confirmados: number; total: number }>,
+  propuestasIntercambio: [] as PropuestaIntercambio[],
   conectado: false,
   cliente: null,
   ultimaTirada: null,
+};
 
-  iniciarComoMaster: (sala, token) => set({ rol: 'master', sala, token }),
-  iniciarComoJugador: (sala, token, personaje) =>
-    set({ rol: 'jugador', sala, token, personaje }),
-
-  conectar: () => {
-    const { sala, token, cliente } = get();
-    if (!sala || !token || cliente) return;
-
-    const nuevoCliente = new ClienteSala(sala.codigo, token);
-    nuevoCliente.suscribir((mensaje) => procesarMensaje(mensaje, set, get));
-    nuevoCliente.conectar();
-    set({ cliente: nuevoCliente, conectado: true });
-  },
-
-  desconectar: () => {
-    get().cliente?.desconectar();
-    set({ cliente: null, conectado: false });
-  },
-
-  enviar: (tipo, datos = {}) => get().cliente?.enviar(tipo, datos),
-
-  reiniciar: () => {
-    get().cliente?.desconectar();
-    set({
+export const useSalaStore = create<SalaState>()(
+  persist(
+    (set, get) => ({
       rol: null,
       sala: null,
       token: null,
       personaje: null,
-      estado: null,
-      personajes: [],
-      log: [],
-      palabrasBloqueadas: {},
-      confirmacionesGrupales: {},
-      propuestasIntercambio: [],
-      conectado: false,
-      cliente: null,
-      ultimaTirada: null,
-    });
-  },
-}));
+      mensajeSesion: null,
+      ...ESTADO_INICIAL_TRANSITORIO,
+
+      iniciarComoMaster: (sala, token) => set({ rol: 'master', sala, token }),
+      iniciarComoJugador: (sala, token, personaje) =>
+        set({ rol: 'jugador', sala, token, personaje }),
+
+      conectar: () => {
+        const { sala, token, cliente } = get();
+        if (!sala || !token || cliente) return;
+
+        const nuevoCliente = new ClienteSala(sala.codigo, token);
+        nuevoCliente.suscribir((mensaje) => procesarMensaje(mensaje, set, get));
+        nuevoCliente.conectar();
+        set({ cliente: nuevoCliente, conectado: true });
+      },
+
+      desconectar: () => {
+        get().cliente?.desconectar();
+        set({ cliente: null, conectado: false });
+      },
+
+      enviar: (tipo, datos = {}) => get().cliente?.enviar(tipo, datos),
+
+      reiniciar: () => {
+        get().cliente?.desconectar();
+        set({
+          rol: null,
+          sala: null,
+          token: null,
+          personaje: null,
+          mensajeSesion: null,
+          ...ESTADO_INICIAL_TRANSITORIO,
+        });
+      },
+
+      limpiarMensajeSesion: () => set({ mensajeSesion: null }),
+    }),
+    {
+      name: 'rpg-sesion',
+      storage: createJSONStorage(() => AsyncStorage),
+      // Solo persistimos lo necesario para retomar la sesión al reabrir la
+      // app; todo lo demás (log, estado de la partida, cliente WS...) se
+      // vuelve a pedir al servidor al reconectar.
+      partialize: (state) => ({
+        rol: state.rol,
+        sala: state.sala,
+        token: state.token,
+        personaje: state.personaje,
+      }),
+    }
+  )
+);
 
 function actualizarInventario(
   personajes: Personaje[],
@@ -116,6 +137,18 @@ function procesarMensaje(
   const { tipo, datos } = mensaje;
 
   switch (tipo) {
+    case '_sesion_invalida': {
+      get().cliente?.desconectar();
+      set({
+        rol: null,
+        sala: null,
+        token: null,
+        personaje: null,
+        mensajeSesion: 'Tu sesión anterior ya no es válida (la sala pudo cerrarse o expirar).',
+        ...ESTADO_INICIAL_TRANSITORIO,
+      });
+      break;
+    }
     case 'estado_inicial': {
       const { personajes, sala: _s, ...estado } = datos as any;
       const listaPersonajes: Personaje[] = personajes ?? [];

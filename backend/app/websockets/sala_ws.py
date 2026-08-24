@@ -545,6 +545,13 @@ MANEJADORES = {
 
 @router.websocket("/ws/sala/{codigo}")
 async def sala_websocket(websocket: WebSocket, codigo: str, token: str = Query(...)):
+    # Se acepta primero y se valida después: un close() antes del accept()
+    # es un rechazo de handshake, y los navegadores no propagan el código de
+    # cierre real de un rechazo (lo normalizan a 1006), así que el cliente no
+    # puede distinguir "token inválido"/"sala borrada" de un simple corte de
+    # red. Con el socket ya abierto, el código de cierre sí llega tal cual.
+    await websocket.accept()
+
     try:
         payload = decodificar_token(token)
     except Exception:
@@ -563,7 +570,7 @@ async def sala_websocket(websocket: WebSocket, codigo: str, token: str = Query(.
     )
 
     try:
-        await gestor.conectar(str(sala.id), conexion)
+        gestor.conectar(str(sala.id), conexion)
         sala.ultima_actividad_en = datetime.now(timezone.utc)
         db.commit()
         await gestor.enviar_a(

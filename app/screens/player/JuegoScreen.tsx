@@ -40,6 +40,12 @@ export default function JuegoScreen({ navigation }: Props) {
     Animated.timing(opacidadDado, { toValue: 0, duration: 2500, useNativeDriver: true }).start();
   }, [ultimaTirada]);
 
+  useEffect(() => {
+    if (!sala || !personaje) {
+      navigation.reset({ index: 0, routes: [{ name: 'Home' }] });
+    }
+  }, [sala, personaje]);
+
   if (!sala || !personaje) return null;
 
   const nodo = estado?.nodo;
@@ -49,7 +55,7 @@ export default function JuegoScreen({ navigation }: Props) {
 
   function salir() {
     reiniciar();
-    navigation.popToTop();
+    navigation.reset({ index: 0, routes: [{ name: 'Home' }] });
   }
 
   return (
