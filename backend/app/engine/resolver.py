@@ -141,7 +141,16 @@ def aplicar_resultado(
     """Aplica flags/objetos/agotamiento tras resolver una tirada y determina
     el nodo destino. Devuelve un resumen de los cambios aplicados.
     """
-    cambios: dict = {"flags_aplicados": {}, "objeto_otorgado": None}
+    cambios: dict = {"flags_aplicados": {}, "objeto_otorgado": None, "dano_aplicado": 0}
+
+    clave_dano = "dano_exito" if exito else "dano_fallo"
+    dano = palabra_clave.get(clave_dano)
+    if dano:
+        cantidad = dano.get("cantidad", 0)
+        personaje.vida_actual = max(0, personaje.vida_actual - cantidad)
+        if personaje.vida_actual == 0:
+            personaje.estado = "inconsciente"
+        cambios["dano_aplicado"] = cantidad
 
     flags = dict(estado.flags or {})
     clave_flags = "flags_set_exito" if exito else "flags_set_fallo"

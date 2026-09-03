@@ -186,11 +186,13 @@ function procesarMensaje(
         palabra_clave?: string;
         exito: boolean;
         tirada?: { dado?: number; total?: number };
+        cambios?: { dano_aplicado?: number };
       };
       const quien = d.personaje_nombre ?? 'El grupo';
       const resultado = d.exito ? 'ÉXITO' : 'FALLO';
+      const dano = d.cambios?.dano_aplicado ? ` (-${d.cambios.dano_aplicado} PV)` : '';
       set((s) => ({
-        log: [nuevoEvento(`${quien} intenta "${d.palabra_clave}" → ${resultado}`), ...s.log],
+        log: [nuevoEvento(`${quien} intenta "${d.palabra_clave}" → ${resultado}${dano}`), ...s.log],
         ultimaTirada: {
           dado: d.tirada?.dado,
           total: d.tirada?.total,

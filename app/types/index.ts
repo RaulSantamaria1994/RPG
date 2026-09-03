@@ -92,6 +92,8 @@ export interface PalabraClave {
   dificultad_apoyo?: number;
   npc_modificador?: number;
   regla_grupal?: 'mejor_resultado' | 'todos_aciertan';
+  dano_exito?: { cantidad: number };
+  dano_fallo?: { cantidad: number };
 }
 
 export interface Nodo {

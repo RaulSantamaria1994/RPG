@@ -265,6 +265,10 @@ async def _resolver_individual(
                 },
             },
         )
+        if cambios.get("dano_aplicado"):
+            await gestor.broadcast(
+                str(sala.id), {"tipo": "personaje_actualizado", "datos": _personaje_publico(personaje)}
+            )
 
         await _avanzar_y_notificar(db, sala, cambios["nodo_destino"])
     except (ErrorInteraccion, ManaInsuficiente) as exc:

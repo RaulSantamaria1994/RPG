@@ -187,6 +187,7 @@ export default function JuegoScreen({ navigation }: Props) {
                           {p.atributo ? ETIQUETA_ATRIBUTO[p.atributo] : '?'} (tu{' '}
                           {p.atributo ? ETIQUETA_ATRIBUTO[p.atributo] : '?'}: {p.atributo ? personaje[p.atributo] : '?'})
                           {p.modo_interaccion === 'grupal' ? ' — cuenta la mejor tirada del grupo, según la regla.' : '.'}
+                          {p.dano_fallo ? ` Si falla, ${p.dano_fallo.cantidad} de daño.` : ''}
                         </Text>
                       ) : (
                         <Text style={styles.requisitoTexto}>

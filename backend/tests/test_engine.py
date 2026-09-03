@@ -1,5 +1,8 @@
 from app.engine.dice import resolver_tirada, resolver_tirada_opuesta
+from app.engine.resolver import aplicar_resultado
 from app.engine.validator import validar_historia
+from app.models.estado_sala import EstadoSala
+from app.models.personaje import Personaje
 
 
 def test_validar_historia_cuervo_negro_es_valida(contenido_cuervo_negro):
@@ -78,3 +81,87 @@ def test_resolver_tirada_opuesta_gana_mayor_total(monkeypatch):
     monkeypatch.setattr("secrets.randbelow", lambda n: next(valores))
     resultado = resolver_tirada_opuesta(modificador_jugador=0, modificador_rival=0)
     assert resultado["exito"] is True
+
+
+def _personaje_de_prueba(**overrides) -> Personaje:
+    base = dict(
+        sala_id=None,
+        jugador_nombre="a",
+        nombre="a",
+        fuerza=1,
+        astucia=1,
+        voluntad=1,
+        agilidad=1,
+        habilidad_pasiva="x",
+        vida_max=10,
+        vida_actual=10,
+        mana_max=5,
+        mana_actual=5,
+        es_master=False,
+        inventario=[],
+        hechizos_conocidos=[],
+        rasgos=[],
+        estado="activo",
+    )
+    base.update(overrides)
+    return Personaje(**base)
+
+
+def _estado_de_prueba() -> EstadoSala:
+    return EstadoSala(sala_id=None, nodo_actual_id="n1", flags={}, palabras_clave_usadas=[], inventario_grupo=[])
+
+
+def test_aplicar_resultado_dano_fallo_resta_vida():
+    personaje = _personaje_de_prueba()
+    estado = _estado_de_prueba()
+    palabra = {
+        "texto": "t",
+        "dificultad": 12,
+        "atributo": "astucia",
+        "nodo_exito": "a",
+        "nodo_fallo": "b",
+        "dano_fallo": {"cantidad": 3},
+    }
+
+    cambios = aplicar_resultado("n1", palabra, False, estado, personaje)
+
+    assert cambios["dano_aplicado"] == 3
+    assert personaje.vida_actual == 7
+    assert personaje.estado == "activo"
+
+
+def test_aplicar_resultado_dano_fallo_no_baja_de_cero_y_deja_inconsciente():
+    personaje = _personaje_de_prueba(vida_actual=2)
+    estado = _estado_de_prueba()
+    palabra = {
+        "texto": "t",
+        "dificultad": 12,
+        "atributo": "astucia",
+        "nodo_exito": "a",
+        "nodo_fallo": "b",
+        "dano_fallo": {"cantidad": 5},
+    }
+
+    cambios = aplicar_resultado("n1", palabra, False, estado, personaje)
+
+    assert cambios["dano_aplicado"] == 5
+    assert personaje.vida_actual == 0
+    assert personaje.estado == "inconsciente"
+
+
+def test_aplicar_resultado_exito_no_aplica_dano_fallo():
+    personaje = _personaje_de_prueba()
+    estado = _estado_de_prueba()
+    palabra = {
+        "texto": "t",
+        "dificultad": 12,
+        "atributo": "astucia",
+        "nodo_exito": "a",
+        "nodo_fallo": "b",
+        "dano_fallo": {"cantidad": 3},
+    }
+
+    cambios = aplicar_resultado("n1", palabra, True, estado, personaje)
+
+    assert cambios["dano_aplicado"] == 0
+    assert personaje.vida_actual == 10
