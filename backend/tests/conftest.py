@@ -21,6 +21,7 @@ from app.main import app  # noqa: E402
 from app.models.historia import Historia  # noqa: E402
 
 SEED_PATH = Path(__file__).resolve().parents[1] / "app" / "seeds" / "cuervo_negro.json"
+SEED_PATH_ALA_NORTE = Path(__file__).resolve().parents[1] / "app" / "seeds" / "ala_norte.json"
 
 
 @pytest.fixture(scope="session", autouse=True)
@@ -68,6 +69,29 @@ def historia_cuervo_negro(db, contenido_cuervo_negro):
         titulo=contenido_cuervo_negro["titulo"],
         version=1,
         contenido=contenido_cuervo_negro,
+        validada=True,
+    )
+    db.add(historia)
+    db.commit()
+    db.refresh(historia)
+    return historia
+
+
+@pytest.fixture()
+def contenido_ala_norte() -> dict:
+    return json.loads(SEED_PATH_ALA_NORTE.read_text(encoding="utf-8"))
+
+
+@pytest.fixture()
+def historia_ala_norte(db, contenido_ala_norte):
+    resultado = validar_historia(contenido_ala_norte)
+    assert resultado.valida, resultado.errores
+
+    historia = Historia(
+        historia_id=contenido_ala_norte["historia_id"],
+        titulo=contenido_ala_norte["titulo"],
+        version=1,
+        contenido=contenido_ala_norte,
         validada=True,
     )
     db.add(historia)

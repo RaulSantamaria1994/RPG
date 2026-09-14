@@ -5,8 +5,100 @@
   "muerte_permanente": false,
   "nodo_inicial": "n001",
   "hechizos": [],
-  "habilidades_pasivas_personalizado": [],
-  "personajes_pregenerados": [],
+  "habilidades_pasivas_personalizado": [
+    {
+      "id": "instinto_de_uci",
+      "nombre": "Instinto de UCI",
+      "descripcion": "Ventaja en la primera tirada de voluntad de cada nodo: ha visto peores noches que esta y sigue sabiendo qué hacer con las manos."
+    },
+    {
+      "id": "reflejos_de_rescate",
+      "nombre": "Reflejos de rescate",
+      "descripcion": "Ventaja en la primera tirada de fuerza de cada nodo: años forzando puertas y cargando peso en el peor momento posible."
+    },
+    {
+      "id": "ojo_de_periodista",
+      "nombre": "Ojo de periodista",
+      "descripcion": "Ventaja en la primera tirada de astucia de cada nodo: sabe cuándo una historia no cuadra antes de saber por qué."
+    },
+    {
+      "id": "templanza",
+      "nombre": "Templanza",
+      "descripcion": "Ventaja en la primera tirada de voluntad de cada combate: no es la primera vez que tiene que hablarle a alguien mientras todo se cae."
+    },
+    {
+      "id": "paso_ligero",
+      "nombre": "Paso ligero",
+      "descripcion": "Ventaja en la primera tirada de agilidad de cada nodo."
+    }
+  ],
+  "personajes_pregenerados": [
+    {
+      "id": "thalia_ticona",
+      "nombre": "Dra. Thalia Ticona",
+      "trasfondo": "Boliviana, médico adjunta de la UCI desde hace seis años, después de venir a España a hacer el MIR. Es quien os ha llamado esta noche, y quien mejor conoce cada rincón del hospital — incluidos los que no debería. No es la primera vez que algo la convence de que hay más entre estas paredes de lo que cabe en un informe médico, ni la primera vez que os llama a vosotros para comprobarlo.",
+      "atributos": {
+        "fuerza": 1,
+        "astucia": 3,
+        "voluntad": 5,
+        "agilidad": 3
+      },
+      "habilidad_pasiva": "instinto_de_uci",
+      "vida_max": 16
+    },
+    {
+      "id": "hugo_bravo",
+      "nombre": "Hugo Bravo",
+      "trasfondo": "Ex-bombero, dejó el cuerpo después de un incendio que no debería haber podido apagar solo y que, según él, no ardía como el fuego normal arde. Desde entonces reconoce cuándo una emergencia es \"de las otras\", y no se lo piensa dos veces antes de forzar una puerta que nadie más quiere tocar.",
+      "atributos": {
+        "fuerza": 5,
+        "astucia": 2,
+        "voluntad": 2,
+        "agilidad": 3
+      },
+      "habilidad_pasiva": "reflejos_de_rescate",
+      "vida_max": 24
+    },
+    {
+      "id": "marina_solis",
+      "nombre": "Marina Solís",
+      "trasfondo": "Periodista de sucesos, especializada en lo que los periódicos serios no publican: desapariciones que se archivan demasiado rápido, incendios con informes contradictorios, pacientes con seis nombres distintos. Lleva años detrás de historias que nadie más quiere firmar, y sabe reconocer un patrón en cuanto lo ve.",
+      "atributos": {
+        "fuerza": 1,
+        "astucia": 5,
+        "voluntad": 2,
+        "agilidad": 4
+      },
+      "habilidad_pasiva": "ojo_de_periodista",
+      "vida_max": 16
+    },
+    {
+      "id": "elena_duarte",
+      "nombre": "Elena Duarte",
+      "trasfondo": "Ex-negociadora de una unidad de crisis, ahora psicóloga de emergencias. Sabe hablarle a alguien al borde de algo — un tejado, una crisis, una cama de hospital que no debería tener quien la ocupa despierto. No siempre sabe con qué está hablando. Habla igual.",
+      "atributos": {
+        "fuerza": 2,
+        "astucia": 2,
+        "voluntad": 5,
+        "agilidad": 3
+      },
+      "habilidad_pasiva": "templanza",
+      "vida_max": 18
+    },
+    {
+      "id": "noa_ferreira",
+      "nombre": "Noa Ferreira",
+      "trasfondo": "Antigua trepadora de tejados y cerraduras, hoy pone ese talento al servicio de cosas que no roba: entrar donde nadie la ha invitado, sin que nadie se entere, por razones que ya no tienen que ver con el dinero. Conoce los pasillos de servicio de media ciudad mejor que sus propios pasillos.",
+      "atributos": {
+        "fuerza": 2,
+        "astucia": 3,
+        "voluntad": 2,
+        "agilidad": 5
+      },
+      "habilidad_pasiva": "paso_ligero",
+      "vida_max": 18
+    }
+  ],
   "nodos": {
     "n001": {
       "tipo": "narrativo",
