@@ -66,8 +66,11 @@ def _tiene_ventaja(palabra_clave: dict, personaje: Personaje, estado: EstadoSala
     objeto_ventaja = palabra_clave.get("ventaja_si_objeto")
     if not objeto_ventaja:
         return False
+    # Igual que verificar_requisitos con requiere_objeto: un objeto de grupo
+    # (destino "grupo") también debe contar, no solo el inventario personal.
     ids_inventario = {obj.get("objeto_id") for obj in (personaje.inventario or [])}
-    return objeto_ventaja in ids_inventario
+    ids_grupo = {obj.get("objeto_id") for obj in (estado.inventario_grupo or [])}
+    return objeto_ventaja in ids_inventario | ids_grupo
 
 
 def resolver_via_atributo(

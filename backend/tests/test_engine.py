@@ -1,5 +1,5 @@
 from app.engine.dice import resolver_tirada, resolver_tirada_opuesta
-from app.engine.resolver import aplicar_resultado
+from app.engine.resolver import _tiene_ventaja, aplicar_resultado
 from app.engine.validator import validar_historia
 from app.models.estado_sala import EstadoSala
 from app.models.personaje import Personaje
@@ -165,3 +165,20 @@ def test_aplicar_resultado_exito_no_aplica_dano_fallo():
 
     assert cambios["dano_aplicado"] == 0
     assert personaje.vida_actual == 10
+
+
+def test_tiene_ventaja_reconoce_objeto_en_inventario_de_grupo():
+    personaje = _personaje_de_prueba()
+    estado = _estado_de_prueba()
+    estado.inventario_grupo = [{"objeto_id": "prueba", "nombre": "Prueba del patrón"}]
+    palabra = {"texto": "t", "ventaja_si_objeto": "prueba"}
+
+    assert _tiene_ventaja(palabra, personaje, estado) is True
+
+
+def test_tiene_ventaja_falso_sin_el_objeto_en_ningun_inventario():
+    personaje = _personaje_de_prueba()
+    estado = _estado_de_prueba()
+    palabra = {"texto": "t", "ventaja_si_objeto": "prueba"}
+
+    assert _tiene_ventaja(palabra, personaje, estado) is False

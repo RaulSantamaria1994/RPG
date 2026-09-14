@@ -89,6 +89,36 @@ def test_flujo_nodo_tirada_nodo_via_atributo(client, historia_cuervo_negro, d20_
         assert siguiente["datos"]["nodo"]["tipo"] == "interactivo"
 
 
+def test_palabra_clave_individual_sin_dificultad_no_tira_dado(
+    client, historia_cuervo_negro
+):
+    """'preguntar al tabernero por rumores' es individual y no tiene
+    atributo/dificultad: debe resolverse como éxito automático, igual que ya
+    pasa con las palabras clave grupales sin dificultad."""
+    sala = _crear_sala(client, historia_cuervo_negro)
+    codigo = sala["sala"]["codigo"]
+    creado = _crear_personaje_pregenerado(client, codigo, "kara_la_espadachina")
+    token = creado["token"]
+
+    with client.websocket_connect(f"/ws/sala/{codigo}?token={token}") as ws:
+        ws.receive_json()  # estado_inicial
+        ws.receive_json()  # jugador_conectado
+
+        ws.send_json(
+            {"tipo": "interactuar", "datos": {"palabra_clave": "preguntar al tabernero por rumores"}}
+        )
+        assert ws.receive_json()["tipo"] == "palabra_clave_bloqueada"
+
+        resultado = ws.receive_json()
+        assert resultado["tipo"] == "tirada_resultado"
+        assert resultado["datos"]["exito"] is True
+        assert resultado["datos"]["tirada"] == {"exito": True, "sin_tirada": True}
+
+        actualizado = ws.receive_json()
+        assert actualizado["tipo"] == "nodo_actualizado"
+        assert actualizado["datos"]["nodo_actual_id"] == "n001_info"
+
+
 def test_flujo_fallo_lleva_a_nodo_de_fallo_y_agota_palabra_clave(
     client, historia_cuervo_negro, d20_siempre_uno
 ):

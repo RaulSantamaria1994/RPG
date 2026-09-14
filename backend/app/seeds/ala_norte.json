@@ -1,0 +1,897 @@
+{
+  "historia_id": "ala_norte",
+  "titulo": "El ala norte",
+  "version": 1,
+  "muerte_permanente": false,
+  "nodo_inicial": "n001",
+  "hechizos": [],
+  "habilidades_pasivas_personalizado": [],
+  "personajes_pregenerados": [],
+  "nodos": {
+    "n001": {
+      "tipo": "narrativo",
+      "es_final": false,
+      "nodo_siguiente": "n001b",
+      "texto": "Pasan las tres de la madrugada y el hospital respira despacio, como todo lo que está a punto de dejar de hacerlo. En la Unidad de Cuidados Intensivos, las máquinas marcan el pulso de ocho vidas suspendidas entre quedarse y no quedarse. La doctora Ticona lleva catorce horas de guardia y aún queda mucha noche.\n\nOs ha llamado ella. No al hospital, a vosotros. Un mensaje corto, a las dos y veinte de la madrugada: \"Necesito que vengáis. No puedo explicarlo por teléfono. Y no puedo pedírselo a nadie de aquí sin que me manden a Psiquiatría a mí también.\"\n\nCuando llegáis, la encontráis en la sala de personal, con dos vasos de café a sus pies en el suelo y las manos todavía temblando un poco. No es una mujer que tiemble fácilmente — se ha enfrentado al lado más crudo y frío de la vida humana, viendo morir a personas sin poder hacer gran cosa. Pero esta noche ha visto algo distinto.\n\n—El paciente del box 4 —dice, sin preámbulos—. Once minutos parado. Sin pulso, sin nada. Y ha vuelto. Eso pasa, a veces, si llegas rápido. Lo que no pasa es que vuelva... sabiendo cosas. Hablando en un idioma que nadie en este hospital reconoce. Dibujando esto —saca una servilleta del bolsillo y la muestra; el trazo tiembla, pero la forma es precisa, imposible, algo que ningún paciente sedado debería poder trazar con esa exactitud— en la palma de su propia mano, con una aguja que robó sin que nadie la viera entrar en el almacén.\n\nBaja la cabeza con los ojos abiertos de par en par.\n\n—¡El diablo! —murmura, más para sí misma que para vosotros—. Necesito que alguien que no lleve bata me diga que no me estoy volviendo loca."
+    },
+    "n001b": {
+      "tipo": "narrativo",
+      "es_final": false,
+      "nodo_siguiente": "n002",
+      "texto": "Thalia os hace un gesto para que la sigáis. Cruza el control de enfermería sin mirar a nadie a los ojos — a estas horas, con el relevo aún a cuatro horas de llegar, solo hay una auxiliar de guardia, dormitando sobre el mostrador con el volumen del monitor central bajado hasta casi silenciarlo.\n\n—El box 4 está al fondo. Lo he dejado sedado, no se preocupen, no va a... —se detiene, como si no supiera cómo terminar esa frase con propiedad—. No va a hacer nada. Pero antes de que lo vean, necesito saber qué clase de ayuda son. Si vienen a rezar, a analizar, o a rezar mientras analizan.\n\nLa seguís por el pasillo. Las luces de emergencia parpadean cada pocos metros, como si el propio edificio dudara de si quiere iluminar lo que hay al final.\n\nJunto al ascensor de servicio, la luz azulada de una pantalla de vigilancia recorta la silueta de un guardia que bosteza sin ganas frente a una docena de cámaras mudas. Colgada de un carro de mantenimiento, a un par de metros de él, hay una tarjeta con una etiqueta hecha a mano: \"Pasillos de servicio — solo personal autorizado\".",
+      "palabras_clave": [
+        {
+          "texto": "colarse sin que el guardia se dé cuenta",
+          "tipo_interaccion": "sigilo",
+          "atributo": "agilidad",
+          "dificultad": 15,
+          "nodo_exito": "n002",
+          "nodo_fallo": "n002",
+          "objeto_otorga_exito": {
+            "objeto_id": "llave_atajo",
+            "nombre": "Tarjeta de los pasillos de servicio",
+            "destino": "grupo"
+          }
+        }
+      ]
+    },
+    "n002": {
+      "tipo": "interactivo",
+      "es_final": false,
+      "texto": "Al final del pasillo, una puerta corredera de cristal esmerilado separa el box 4 del resto de la UCI. A través de él solo se distingue una silueta inmóvil y, más arriba, la línea verde de un monitor que traza un ritmo perfectamente estable — demasiado estable, como si algo hubiera aprendido a fingir un pulso en vez de tenerlo.\n\nNadie da el primer paso.\n\nPodéis entrar ahora mismo, sin más preámbulo. Podéis intentar averiguar algo antes, preguntando por la planta a quien quiera escuchar. Podéis tirar del documento de ingreso y de las cámaras del pasillo. Podéis quedaros aquí y probar a hablarle, a través del cristal, antes de decidir que es una amenaza. Y si alguno se hizo con esa tarjeta, hay una forma de rodear todo esto por los pasillos de servicio, sin que nadie en el hospital se entere.\n\n—El documento de ingreso se lo puedo conseguir yo en dos minutos, tengo acceso —dice Thalia, sin apartar los ojos de la puerta—. Lo de los pasillos de servicio no lo he probado nunca, y llevo aquí seis años. Lo que decidan, decídanlo rápido. Cuanto más tiempo pase alguien mirando esa puerta, más ganas le entran de abrirla solo.\n\n¿Qué hacéis?",
+      "palabras_clave": [
+        {
+          "texto": "Entrar ya en el box 4",
+          "tipo_interaccion": "decidir",
+          "modo_interaccion": "grupal",
+          "nodo_exito": "nA1"
+        },
+        {
+          "texto": "Peinar la planta antes de entrar",
+          "tipo_interaccion": "decidir",
+          "modo_interaccion": "grupal",
+          "nodo_exito": "nB1"
+        },
+        {
+          "texto": "Revisar cámaras y el documento de ingreso",
+          "tipo_interaccion": "decidir",
+          "modo_interaccion": "grupal",
+          "nodo_exito": "nC1"
+        },
+        {
+          "texto": "Colarse por los pasillos de servicio",
+          "tipo_interaccion": "decidir",
+          "modo_interaccion": "grupal",
+          "requiere_objeto": "llave_atajo",
+          "nodo_exito": "nD1"
+        },
+        {
+          "texto": "Intentar hablar con él, aunque sea a través del cristal",
+          "tipo_interaccion": "decidir",
+          "modo_interaccion": "grupal",
+          "nodo_exito": "nE1"
+        }
+      ]
+    },
+    "nA1": {
+      "tipo": "interactivo",
+      "es_final": false,
+      "texto": "La puerta se desliza con un siseo neumático que suena más fuerte de lo que debería a estas horas. El box 4 huele a antiséptico y a algo más, algo con un regusto metálico que no debería estar ahí.\n\nEl paciente —un hombre de mediana edad, según la placa de la cama, aunque ya nada en él parece del todo \"de mediana edad\" ni, a estas alturas, del todo \"hombre\"— tiene los ojos abiertos y fijos en el techo. No parpadea. El monitor sigue marcando ese ritmo perfecto y mecánico, mientras su pecho se mueve a destiempo, como si algo más respirara por él desde dentro.\n\nNo hay tiempo de pensarlo mucho. Alguien tiene que acercarse.",
+      "palabras_clave": [
+        {
+          "texto": "acercarse a la cama",
+          "tipo_interaccion": "examinar",
+          "atributo": "astucia",
+          "dificultad": 15,
+          "nodo_exito": "cA1",
+          "nodo_fallo": "cA1",
+          "dano_fallo": {
+            "cantidad": 3
+          }
+        }
+      ]
+    },
+    "cA1": {
+      "tipo": "combate",
+      "es_final": false,
+      "texto": "Todo pasa demasiado rápido para pensarlo. El brazo de Andrés —porque todavía hay que llamarlo Andrés, aunque cada segundo cueste más creerlo— cruza el aire en un ángulo que ningún hombro debería permitir, y la correa de sujeción se abre como si nunca hubiera estado cerrada.\n\nNo grita. Eso es, quizá, lo peor: el silencio absoluto con el que se mueve, como si llevara toda la vida practicando ser otra cosa y esta fuera, por fin, la primera noche que le dejan intentarlo de verdad.\n\nDefendeos.",
+      "enemigos": [
+        {
+          "enemigo_id": "andres_cA1",
+          "nombre": "Lo que queda de Andrés",
+          "vida": 12,
+          "atributos": {
+            "fuerza": 5,
+            "agilidad": 3,
+            "defensa": 12
+          },
+          "ataques": [
+            {
+              "nombre": "Zarpazo imposible",
+              "dano": 5,
+              "modificador": 5
+            }
+          ]
+        }
+      ],
+      "dificultad_huida": 16,
+      "nodo_victoria": "nA2",
+      "nodo_huida": "nB1",
+      "nodo_derrota": "nB1"
+    },
+    "nA2": {
+      "tipo": "interactivo",
+      "es_final": false,
+      "texto": "Andrés deja de moverse casi con la misma brusquedad con la que empezó. Cae contra el colchón, respirando otra vez como una persona — entrecortado, real, humano. Vive. Eso, al menos, no lo habéis roto.\n\nLa puerta se abre de golpe. Es el guardia del pasillo, con la mano ya en la radio y los ojos yendo de vosotros al paciente atado con una expresión que no sabe todavía si es de alivio o de terror.\n\n—¿Qué mierda...? —empieza, y se detiene solo porque Thalia se interpone antes de que termine la frase.\n\n—Necesito que no llame a nadie todavía —dice ella, con las manos aún temblando por la pelea—. Le voy a contar lo que sé. Todo. Y usted nos va a contar lo que ha visto en esas cámaras estas últimas semanas, porque algo me dice que no es la primera vez.\n\nEl guardia mira al paciente atado, después a Thalia, y algo en su cara cede.\n\n—Llevo tres semanas sin dormir bien por esto —admite, y os pasa un botiquín de primeros auxilios del carrito, casi sin pensarlo, como si necesitara tener las manos ocupadas en algo—. No se lo he contado a nadie. Vosotros tampoco podéis.",
+      "palabras_clave": [
+        {
+          "texto": "aceptar el trato",
+          "tipo_interaccion": "decidir",
+          "modo_interaccion": "grupal",
+          "nodo_exito": "nAc",
+          "flags_set_exito": {
+            "flag_aliado_a": true
+          },
+          "objeto_otorga_exito": {
+            "objeto_id": "botiquin",
+            "nombre": "Botiquín de primeros auxilios",
+            "destino": "personaje",
+            "efecto": {
+              "tipo": "curar_vida",
+              "cantidad": 8
+            },
+            "consumible": true
+          }
+        }
+      ]
+    },
+    "nAc": {
+      "tipo": "interactivo",
+      "es_final": false,
+      "texto": "Volvéis a sujetarlo para atarle las muñecas, esta vez más fuerte. Es mientras alguien todavía le tiene la mano izquierda entre las suyas, a medio pasar la correa, cuando Andrés abre los ojos del todo —no la mirada vidriosa y ausente de antes, sino algo lúcido, aterrado, humano— y se la agarra con una fuerza que no debería tener después de lo que acaba de pasar.\n\n—No dejéis que vuelva a dormirme —dice, con una voz que es completamente suya, quebrada—. Cuando cierro los ojos estoy en... en un sitio con demasiadas puertas. Y algo cuenta cuántas veces he vuelto. Ya sabe mi nombre. —Traga saliva—. Va a aprenderse los vuestros.\n\nLa mano se afloja. El paciente por fin se relaja, pero hay algo antinatural en su calma, como si esperara algo.\n\nOs quedáis en silencio unos minutos, impactados por lo que acaba de ocurrir. No sois capaces de decir nada. Os habíais enfrentado a cosas terribles antes, pero esto...\n\nEl tono de llamada de un teléfono corta el silencio como un cuchillo. Es el busca de Thalia.\n\n—¿Hola? —contesta. Una voz al otro lado habla con tono metódico, ininteligible para vosotros. —Entendido. Voy enseguida.\n\nThalia cuelga y suspira, cansada. Parece que es hora de continuar.\n\n—Hay un paciente en el box 7 con las constantes alteradas —os informa—. La residente dice que hay algo raro.",
+      "palabras_clave": [
+        {
+          "texto": "Quedaros con lo que ha dicho",
+          "tipo_interaccion": "decidir",
+          "modo_interaccion": "grupal",
+          "nodo_exito": "nAc2",
+          "objeto_otorga_exito": {
+            "objeto_id": "prueba",
+            "nombre": "Prueba del patrón",
+            "destino": "grupo"
+          }
+        }
+      ]
+    },
+    "nAc2": {
+      "tipo": "interactivo",
+      "es_final": false,
+      "texto": "No hay tiempo de discutirlo. Si es verdad lo que ha dicho Andrés —que cuenta cuántas veces ha vuelto, que va a aprenderse los nombres— entonces quien esté en el box 7 está a punto de vivir exactamente lo mismo que él, sin nadie que sepa ya lo que hay que hacer. Y Thalia ya va hacia allá.\n\nEl pasillo se hace más largo de lo que debería sentirse.",
+      "palabras_clave": [
+        {
+          "texto": "Correr al box 7",
+          "tipo_interaccion": "correr",
+          "atributo": "agilidad",
+          "dificultad": 16,
+          "nodo_exito": "cA2",
+          "nodo_fallo": "nC1",
+          "dano_fallo": {
+            "cantidad": 4
+          },
+          "objeto_otorga_exito": {
+            "objeto_id": "botiquin",
+            "nombre": "Botiquín de primeros auxilios",
+            "destino": "personaje",
+            "efecto": {
+              "tipo": "curar_vida",
+              "cantidad": 8
+            },
+            "consumible": true
+          }
+        }
+      ]
+    },
+    "cA2": {
+      "tipo": "combate",
+      "es_final": false,
+      "texto": "El box 7 se queda tranquilo detrás de vosotros — un paciente estable, una residente que os mira con una mezcla de alivio y sospecha que no tenéis tiempo de gestionar. Salís al pasillo.\n\nY ahí está. De pie, donde hace un segundo no había nadie, junto a la puerta de un almacén que sabéis que estaba cerrado con llave.\n\nTiene la cara de Andrés. Casi toda. Lo suficiente como para que el cerebro tarde un instante de más en darse cuenta de que los ángulos están mal, de que la sonrisa no debería llegar tan arriba, de que os está mirando a cada uno por turnos, como si os contara.\n\n—Hola —dice, y sabe vuestros nombres. Todos. Los pronuncia mal, con el acento equivocado en cada sílaba, pero los sabe.\n\nDefendeos.",
+      "enemigos": [
+        {
+          "enemigo_id": "eco_andres_cA2",
+          "nombre": "Algo con la cara de Andrés",
+          "vida": 15,
+          "atributos": {
+            "fuerza": 6,
+            "agilidad": 4,
+            "defensa": 13
+          },
+          "ataques": [
+            {
+              "nombre": "Una sonrisa que no debería moverse así",
+              "dano": 6,
+              "modificador": 6
+            }
+          ]
+        }
+      ],
+      "dificultad_huida": 18,
+      "nodo_victoria": "n_conv",
+      "nodo_huida": "nB1",
+      "nodo_derrota": "nB1"
+    },
+    "nB1": {
+      "tipo": "interactivo",
+      "es_final": false,
+      "texto": "Sea porque lo decidisteis así desde el principio, sea porque el box 4 os enseñó que entrar sin pensar tiene un precio que no queréis volver a pagar, la idea es la misma ahora: antes de tocar nada, hay que saber con qué estáis lidiando.\n\nLa auxiliar de guardia sigue donde la visteis antes, medio dormida sobre el mostrador de control, con el volumen del monitor central bajado hasta casi silenciarlo. Se sobresalta al veros acercaros.\n\n—¿Puedo ayudaros en algo? —pregunta, ya más despierta, con la mano cerca del teléfono, como si dudara si debería llamar a alguien.",
+      "palabras_clave": [
+        {
+          "texto": "ganarse su confianza",
+          "tipo_interaccion": "convencer",
+          "atributo": "voluntad",
+          "dificultad": 14,
+          "nodo_exito": "nBs",
+          "nodo_fallo": "cB1"
+        }
+      ]
+    },
+    "nBs": {
+      "tipo": "interactivo",
+      "es_final": false,
+      "texto": "Mira hacia la puerta, después hacia los monitores apagados, y baja la voz de todos modos, como si las paredes también pudieran oírla.\n\n—No es la primera vez —dice—. Llevamos dos meses así. Tres casos antes que este, todos en turno de noche, todos pacientes que \"murieron\" un momento y volvieron. A todos los trasladaron o les dieron el alta rápido, sin hacer ruido. Nadie quería mirarlo demasiado de cerca.\n\nDuda un segundo, como si lo que va a decir le costara más que el resto.\n\n—Los tres estaban en habitaciones del ala norte. La que llevan años diciendo que van a reformar y nunca reforman. Hay una pared allí que no debería estar donde está, según los planos viejos. Yo no he entrado. No pienso hacerlo.",
+      "palabras_clave": [
+        {
+          "texto": "quedarse con lo que ha dicho",
+          "tipo_interaccion": "escuchar",
+          "repetible": false,
+          "nodo_exito": "nB2",
+          "flags_set_exito": {
+            "conoce_ala_norte": true
+          }
+        }
+      ]
+    },
+    "cB1": {
+      "tipo": "combate",
+      "es_final": false,
+      "texto": "El despacho de guardia es pequeño: un escritorio con más papeles que espacio libre, una foto de familia de un médico que esta noche no está, un ordenador que tarda una eternidad en arrancar.\n\nLa ficha de Andrés se abre por fin. Hay algo raro en ella — entradas duplicadas, una fecha de ingreso que no cuadra con ninguna otra, un campo de \"alergias\" que alguien rellenó y luego borró sin conseguirlo del todo. Nadie tiene tiempo de fijarse bien, porque el ruido de la puerta del despacho abriéndose rompe vuestra concentración.\n\nDos siluetas con bata de hospital entran de golpe, desorientadas, los ojos fijos en la luz del monitor como polillas. No deberían estar despiertas. Puede que no deberían estar aquí, en ninguna planta, en ningún registro.\n\nNo parecen peligrosas. Pero se interponen, y hay que apartarlas para seguir.",
+      "enemigos": [
+        {
+          "enemigo_id": "paciente_cB1_1",
+          "nombre": "Un paciente que no debería estar despierto",
+          "vida": 4,
+          "atributos": {
+            "fuerza": 1,
+            "agilidad": 1,
+            "defensa": 9
+          },
+          "ataques": [
+            {
+              "nombre": "Empujón desorientado",
+              "dano": 2,
+              "modificador": 2
+            }
+          ]
+        },
+        {
+          "enemigo_id": "paciente_cB1_2",
+          "nombre": "Un paciente que no debería estar despierto",
+          "vida": 4,
+          "atributos": {
+            "fuerza": 1,
+            "agilidad": 1,
+            "defensa": 9
+          },
+          "ataques": [
+            {
+              "nombre": "Empujón desorientado",
+              "dano": 2,
+              "modificador": 2
+            }
+          ]
+        }
+      ],
+      "dificultad_huida": 10,
+      "dificultad_negociacion": 10,
+      "nodo_victoria": "nB2",
+      "nodo_negociacion": "nB2",
+      "nodo_huida": "nC1",
+      "nodo_derrota": "nC1"
+    },
+    "nB2": {
+      "tipo": "interactivo",
+      "es_final": false,
+      "texto": "En el pasillo, alguien os está esperando — o los está esperando, más bien, porque lleva ahí más tiempo del que finge. Es la residente de guardia. Tiene ojeras que no son solo de esta noche.\n\n—No hacía falta que me lo contaran —dice, casi antes de que le preguntéis nada—. Llevo apuntando cosas raras desde hace un mes. Nadie me cree porque solo llevo aquí un año. Pero tengo fotos. Tengo horas. Tengo... —duda— una carpeta entera que no sé si debería enseñaros o quemar.\n\nOs la enseña. Y os pasa, casi como una disculpa, un botiquín de reserva del control de residentes: —Por si seguís con esto. Va a haceros falta.",
+      "palabras_clave": [
+        {
+          "texto": "Aceptar su ayuda",
+          "tipo_interaccion": "decidir",
+          "modo_interaccion": "grupal",
+          "nodo_exito": "nBr",
+          "flags_set_exito": {
+            "flag_aliado_b": true
+          },
+          "objeto_otorga_exito": {
+            "objeto_id": "botiquin",
+            "nombre": "Botiquín de primeros auxilios",
+            "destino": "personaje",
+            "efecto": {
+              "tipo": "curar_vida",
+              "cantidad": 8
+            },
+            "consumible": true
+          }
+        }
+      ]
+    },
+    "nBr": {
+      "tipo": "interactivo",
+      "es_final": false,
+      "texto": "La residente os señala la habitación de guardia antes de irse a fingir que nunca ha hablado con vosotros. —Cinco minutos —dice—. Los que pueda cubriros.\n\nDentro hay dos catres, una cafetera que lleva encendida más horas de las que debería, y silencio de verdad por primera vez en toda la noche. Es el tipo de silencio que se nota, después de tanto ruido de monitores y pasos.\n\n—Aprovechen —dice Thalia, ya sacando el botiquín—. En la UCI aprendí que estos minutos no vuelven.\n\nMientras los demás recuperan el aliento, alguien se fija en un armario de suministros que nadie ha cerrado con llave.",
+      "palabras_clave": [
+        {
+          "texto": "registrar el armario",
+          "tipo_interaccion": "examinar",
+          "atributo": "astucia",
+          "dificultad": 13,
+          "nodo_exito": "nBc",
+          "nodo_fallo": "nBc",
+          "objeto_otorga_exito": {
+            "objeto_id": "favor",
+            "nombre": "Vial de adrenalina",
+            "destino": "personaje"
+          }
+        }
+      ]
+    },
+    "nBc": {
+      "tipo": "interactivo",
+      "es_final": false,
+      "texto": "La carpeta de la residente tiene un número de expediente subrayado tres veces. Lleva a vosotros al archivo de historiales, dos plantas por debajo, donde el hospital guarda lo que ya no necesita recordar.\n\n—Esto no debería tardar tanto —dice Thalia, pasando cajas de carpetas con fechas que no cuadran con ningún orden que reconozcáis—. Aquí todo está digitalizado desde hace años. Lo que sea que estamos buscando, alguien lo sacó del sistema a propósito y lo dejó aquí, en papel, donde nadie mira.\n\nLa encontráis al fondo, mal archivada entre expedientes que no tienen nada que ver: una carpeta fina, con el sello de una inspección de hace once años, marcada \"Ala norte — cierre parcial, uso restringido\". Dentro hay un informe incompleto, tachado en más de la mitad, y un dibujo hecho a mano por algún inspector que no se molestó en disimular el pulso tembloroso.\n\nEs el mismo trazo. La misma forma imposible que Thalia os enseñó en la servilleta, hace unas horas, en la sala de personal.\n\nThalia se queda mirando el dibujo más tiempo del que hace falta para entenderlo.\n\n—¡El diablo! —dice, en voz baja, y esta vez no suena a maldición, sino a confirmación de algo que llevaba tiempo temiendo—. Esto no es nuevo. Esto ya pasó antes, y alguien decidió que era mejor archivarlo que resolverlo.\n\nOs guardáis la carpeta. Ya no es solo lo que habéis visto esta noche — ahora tenéis algo que lo demuestra.",
+      "palabras_clave": [
+        {
+          "texto": "guardar la carpeta",
+          "tipo_interaccion": "decidir",
+          "modo_interaccion": "grupal",
+          "nodo_exito": "nBs2",
+          "objeto_otorga_exito": {
+            "objeto_id": "prueba",
+            "nombre": "Prueba del patrón",
+            "destino": "grupo"
+          }
+        }
+      ]
+    },
+    "nBs2": {
+      "tipo": "narrativo",
+      "es_final": false,
+      "nodo_siguiente": "nB3",
+      "texto": "Al volver hacia las plantas de arriba, pasáis de nuevo junto al control de vigilancia — el mismo guardia que bostezaba frente a las cámaras al principio de la noche, junto al carro de mantenimiento. Sigue ahí, aunque ahora parece menos aburrido y más despierto de lo que debería a estas horas.\n\nCon la carpeta del archivo todavía en las manos, alguien podría intentar sonsacarle algo — once años dan para que un guardia con antigüedad haya visto pasar más de una cosa que nadie quiso explicar.",
+      "palabras_clave": [
+        {
+          "texto": "sonsacarle al guardia",
+          "tipo_interaccion": "convencer",
+          "atributo": "voluntad",
+          "dificultad": 13,
+          "nodo_exito": "nB3",
+          "nodo_fallo": "nB3",
+          "objeto_otorga_exito": {
+            "objeto_id": "favor",
+            "nombre": "Radio de seguridad",
+            "destino": "personaje"
+          }
+        }
+      ]
+    },
+    "nB3": {
+      "tipo": "interactivo",
+      "es_final": false,
+      "texto": "El busca de Thalia vuelve a sonar. No hace falta que lo diga en voz alta — lo leéis en su cara antes de que hable.\n\n—Es él —dice—. El box 4. Empeorando otra vez.\n\nPero esta vez es distinto de cuando salisteis de la sala de personal. Lleváis una carpeta que demuestra que esto ya pasó antes. Sabéis que hay algo en el ala norte que nadie quiere mirar de frente. Tenéis a alguien más de vuestro lado dentro del hospital, y puede que un par de cosas útiles en los bolsillos, ganadas a pulso, no por suerte.\n\nA diferencia de quien fue directo al box 4 nada más llegar, vosotros no vais a ciegas.\n\n—No sé si eso es mejor o peor —dice Thalia, ya caminando—. Pero es lo que hay. Vamos.",
+      "palabras_clave": [
+        {
+          "texto": "Volver con lo que sabéis",
+          "tipo_interaccion": "decidir",
+          "modo_interaccion": "grupal",
+          "nodo_exito": "cB2"
+        }
+      ]
+    },
+    "cB2": {
+      "tipo": "combate",
+      "es_final": false,
+      "texto": "El pasillo hacia el box 4 pasa junto a la entrada sellada del ala norte. Y allí, donde un segundo antes no había nadie, hay alguien esperando.\n\nNo es Andrés. Es una cara que ninguno de vosotros ha visto antes de esta noche, y que sin embargo reconocéis todos a la vez: el mismo rostro tembloroso del dibujo de la carpeta, el del inspector que hace once años escribió media página de un informe y no se atrevió a terminarlo. Va vestido con un uniforme que ya no se fabrica.\n\nOs mira. No con la hostilidad calculada de lo que salió del box 7 en otras noches — esto parece casi tan asustado como el papel que dejó atrás.\n\n—Ya lo escribieron —dice Thalia en voz baja, más para sí misma—. Y aun así volvió a pasar.\n\nEsta vez no os pilla desprevenidos. Sabéis qué es. Sabéis, más o menos, qué quiere.",
+      "enemigos": [
+        {
+          "enemigo_id": "eco_inspector",
+          "nombre": "El eco del inspector",
+          "vida": 8,
+          "atributos": {
+            "fuerza": 3,
+            "agilidad": 2,
+            "defensa": 10
+          },
+          "ataques": [
+            {
+              "nombre": "Un vistazo que no debería doler",
+              "dano": 3,
+              "modificador": 3
+            }
+          ]
+        }
+      ],
+      "dificultad_huida": 12,
+      "dificultad_negociacion": 12,
+      "nodo_victoria": "n_conv",
+      "nodo_negociacion": "n_conv",
+      "nodo_huida": "nC1",
+      "nodo_derrota": "nC1"
+    },
+    "nC1": {
+      "tipo": "interactivo",
+      "es_final": false,
+      "texto": "Sea porque decidisteis desde el principio que ir a lo seguro era hacer las cosas por la vía oficial, sea porque una alarma que saltó en otra parte del hospital os empujó hasta aquí sin que os dieran a elegir, sea porque la ruta que probasteis antes os echó de vuelta a esta zona, termináis en el mismo sitio: la oficina de seguridad, junto a administración, donde los monitores de las cámaras parpadean en blanco y negro y nadie grita nunca, aunque todos vigilan.\n\nEl responsable de seguridad de esta noche no es el guardia joven del pasillo. Es un hombre mayor, de los que llevan toda la vida en el hospital y conocen cada turno, cada atajo y cada rumor que circula por él. Os mira con la calma de quien ya ha visto demasiadas urgencias reales como para asustarse de una que empieza sin sangre.\n\n—El documento de ingreso puedo dárselo, doctora, no hay problema —le dice a Thalia, aunque sin dejar de miraros al resto—. Las cámaras del pasillo del box 4 ya es otra cosa. Eso necesito saber para qué es, y para quién.",
+      "palabras_clave": [
+        {
+          "texto": "justificar por qué necesitáis esos archivos",
+          "tipo_interaccion": "convencer",
+          "atributo": "astucia",
+          "dificultad": 13,
+          "nodo_exito": "nCs",
+          "nodo_fallo": "cC1"
+        }
+      ]
+    },
+    "nCs": {
+      "tipo": "interactivo",
+      "es_final": false,
+      "texto": "Os deja el documento de ingreso y, de mala gana, rebobina la grabación del pasillo del box 4 hasta la hora en que todo empezó.\n\nEn la pantalla, en blanco y negro, el paciente se incorpora solo, sin ayuda, once minutos después de que la línea del monitor se aplanara según el informe. Camina hasta la puerta. La abre. Y entonces la cámara, durante cuatro segundos exactos, no graba nada — no un fallo técnico, no un corte, sino cuatro segundos de un pasillo vacío que todos sabéis que no estaba vacío.\n\n—Eso ya lo había visto —dice el de seguridad, sin ninguna gracia en la voz—. Llevo apuntando la hora cada vez que pasa. Siempre son cuatro segundos. Nunca más, nunca menos.\n\nY luego el documento de ingreso: el nombre del paciente aparece registrado en el sistema del hospital seis veces distintas en los últimos veinte años, con seis identidades distintas, seis números de la seguridad social que, al comprobarlos, no existen.\n\n—¡El diablo! —murmura Thalia—. Esto es un patrón.",
+      "palabras_clave": [
+        {
+          "texto": "quedarse con lo que habéis visto",
+          "tipo_interaccion": "examinar",
+          "nodo_exito": "nC2",
+          "flags_set_exito": {
+            "conoce_patron": true
+          }
+        }
+      ]
+    },
+    "cC1": {
+      "tipo": "combate",
+      "es_final": false,
+      "texto": "—No sé quiénes creen que son, pero esto no funciona así —dice el de seguridad, cruzándose de brazos frente a las cámaras—. Necesito una orden, una firma, algo. No un \"confíe en nosotros\".\n\nDiscutís. Él no cede. Y entonces uno de los monitores que tiene detrás, el que enfoca la propia oficina de seguridad donde estáis ahora mismo, muestra algo que no debería estar ahí: una silueta, de pie, justo detrás de vosotros.\n\nNadie se ha movido. Nadie ha entrado por la puerta.\n\nOs giráis.\n\nEstá ahí.",
+      "enemigos": [
+        {
+          "enemigo_id": "eco_camara",
+          "nombre": "Lo que llevaba grabándose sin que nadie mirara",
+          "vida": 9,
+          "atributos": {
+            "fuerza": 3,
+            "agilidad": 3,
+            "defensa": 11
+          },
+          "ataques": [
+            {
+              "nombre": "Una quietud que se rompe de golpe",
+              "dano": 4,
+              "modificador": 4
+            }
+          ]
+        }
+      ],
+      "dificultad_huida": 14,
+      "dificultad_negociacion": 14,
+      "nodo_victoria": "nC2",
+      "nodo_negociacion": "nC2",
+      "nodo_huida": "nD1",
+      "nodo_derrota": "nD1"
+    },
+    "nC2": {
+      "tipo": "interactivo",
+      "es_final": false,
+      "texto": "Sea porque le convencisteis, sea porque lo que salió de detrás de él le convenció a él primero, el de seguridad ya no discute. Sale un momento y vuelve con un sobre: copias impresas de los fotogramas del pasillo, del documento de ingreso, de las seis identidades que no deberían existir.\n\n—No sé qué vais a hacer con esto —dice, y por primera vez en toda la conversación no suena tranquilo—. Yo lo único que sé es que llevo apuntando la hora de esos cuatro segundos desde hace meses, y nunca se lo había contado a nadie. Lleváoslo. A lo mejor a vosotros os sirve de algo más que a mí.",
+      "palabras_clave": [
+        {
+          "texto": "Aceptar las copias",
+          "tipo_interaccion": "decidir",
+          "modo_interaccion": "grupal",
+          "nodo_exito": "nCopc",
+          "objeto_otorga_exito": {
+            "objeto_id": "prueba",
+            "nombre": "Prueba del patrón",
+            "destino": "grupo"
+          }
+        }
+      ]
+    },
+    "nCopc": {
+      "tipo": "narrativo",
+      "es_final": false,
+      "nodo_siguiente": "cC2",
+      "texto": "El de seguridad os acompaña hacia la salida de su oficina, todavía con el sobre de copias fresco en vuestras manos. Antes de despediros, se detiene junto a una taquilla metálica llena de equipo de ronda: linternas, radios, un botiquín de pared que lleva años sin abrirse.\n\n—Si de verdad vais a seguir con esto —dice, sin mirar a nadie en concreto—, necesitaréis algo más que buena suerte.\n\nCon las copias, y quizá con algo más en las manos, volvéis hacia el pasillo del box 4. Ya no hay mucho más que investigar. Solo queda ir.",
+      "palabras_clave": [
+        {
+          "texto": "pedirle prestado el maletín de rondas",
+          "tipo_interaccion": "convencer",
+          "atributo": "astucia",
+          "dificultad": 13,
+          "nodo_exito": "cC2",
+          "nodo_fallo": "cC2",
+          "objeto_otorga_exito": {
+            "objeto_id": "favor",
+            "nombre": "Linterna térmica",
+            "destino": "personaje"
+          }
+        }
+      ]
+    },
+    "cC2": {
+      "tipo": "combate",
+      "es_final": false,
+      "texto": "El pasillo del box 4 os recibe casi como lo dejasteis, salvo por algo que espera frente a la puerta, a medio camino entre estar y no estar. No tiene una cara fija. Tiene varias, pasando una detrás de otra demasiado rápido para fijarse en ninguna — y, aun así, todas conocidas: son las mismas que ya visteis impresas en el documento de ingreso, seis identidades distintas turnándose en el mismo rostro, como si no hubiera decidido con cuál quedarse.\n\n—¡Ay, Dios! —dice Thalia—. Mirad eso. Tenemos que hacer algo, pero ya.\n\nDefendeos.",
+      "enemigos": [
+        {
+          "enemigo_id": "seis_nombres",
+          "nombre": "El que ha tenido seis nombres",
+          "vida": 10,
+          "atributos": {
+            "fuerza": 4,
+            "agilidad": 3,
+            "defensa": 11
+          },
+          "ataques": [
+            {
+              "nombre": "Un nombre que no es el suyo",
+              "dano": 4,
+              "modificador": 4
+            }
+          ]
+        }
+      ],
+      "dificultad_huida": 13,
+      "dificultad_negociacion": 13,
+      "nodo_victoria": "n_conv",
+      "nodo_negociacion": "n_conv",
+      "nodo_huida": "nD1",
+      "nodo_derrota": "nD1"
+    },
+    "nD1": {
+      "tipo": "interactivo",
+      "es_final": false,
+      "texto": "La tarjeta de acceso, si alguien se la guardó, abre la puerta metálica sin ninguna ceremonia. Si no, ha sido la propia alarma la que os ha abierto camino: en cuanto salta, el hospital libera automáticamente los cierres magnéticos de las puertas restringidas de esta zona — una salida de emergencia no puede depender de que alguien lleve encima la tarjeta correcta, es así en todos los edificios con esta normativa. Nadie lo pensó para esto. Pero funciona igual. De un modo o de otro, cruzáis el umbral que separa la UCI del resto del hospital — la zona que los letreros llaman \"solo personal autorizado\" y que, a estas horas, no vigila nadie.\n\nAquí no hay luz fluorescente, ni el zumbido constante de los monitores, ni una sola persona a la que preguntarle nada. Solo tuberías al descubierto, cajas eléctricas con las tapas mal encajadas, y un silencio distinto al de arriba: no es calma, es vacío.\n\n—Yo esto no lo había pisado nunca —dice Thalia, con la voz más baja de lo normal—. Ni sabía que existía.\n\nNadie va a avisaros si dais un paso en falso. Nadie va a venir si algo sale mal. Solo estáis vosotros, y lo que hayáis traído.\n\nA pocos metros, una plancha del suelo técnico cede ligeramente bajo el peso de quien va delante — mal encajada, con un hueco debajo lo bastante grande como para tragarse un tobillo si nadie mira dónde pisa.",
+      "palabras_clave": [
+        {
+          "texto": "avanzar con cuidado",
+          "tipo_interaccion": "sigilo",
+          "atributo": "agilidad",
+          "dificultad": 14,
+          "nodo_exito": "nD2",
+          "nodo_fallo": "nD2",
+          "dano_fallo": {
+            "cantidad": 3
+          }
+        }
+      ]
+    },
+    "nD2": {
+      "tipo": "interactivo",
+      "es_final": false,
+      "texto": "El túnel se estrecha y después se abre, de golpe, en una sala de válvulas más alta de lo que cualquier sala de válvulas necesita ser. Las tuberías que suben por la pared del fondo no bajan de ningún sitio que reconozcáis — suben derechas hacia el techo, y el techo, según el rótulo oxidado de la pared, pertenece al ala norte.\n\nAlguien ha estado aquí antes que vosotros, y no hace mucho: hay marcas de tiza en el hormigón, medidas tomadas y vueltas a tomar, una fecha garabateada y tachada tres veces como si quien la escribió no se fiara ni de su propia letra.\n\nSi alguien hizo ruido antes, ahora es cuando se nota: en algún punto de la oscuridad, más allá de donde llega la luz de los móviles, algo se ha detenido a escuchar exactamente igual que vosotros.",
+      "palabras_clave": [
+        {
+          "texto": "examinar las marcas",
+          "tipo_interaccion": "examinar",
+          "atributo": "astucia",
+          "dificultad": 13,
+          "nodo_exito": "cD1",
+          "nodo_fallo": "cD1",
+          "objeto_otorga_exito": {
+            "objeto_id": "prueba",
+            "nombre": "Prueba del patrón",
+            "destino": "grupo"
+          }
+        }
+      ]
+    },
+    "cD1": {
+      "tipo": "combate",
+      "es_final": false,
+      "texto": "No hay pasillo al final del túnel, ni puerta, ni nada que se moleste en parecer parte del hospital. Solo una abertura en el hormigón, demasiado regular para ser un desprendimiento, demasiado irregular para ser obra de nadie con planos.\n\nY algo sale de ahí.\n\nNo tiene la cara de Andrés, ni la de ningún inspector, ni seis identidades turnándose. No tiene cara. En las otras rutas, lo que os habéis encontrado se molestó en parecer alguien — aquí, bajo el hospital, donde nadie del hospital ha bajado nunca, no le hace falta fingir nada.\n\n—¡El diablo! —dice Thalia, y por primera vez en toda la noche no suena a maldición familiar, sino a algo mucho más cerca del miedo real.\n\nNadie va a venir. Nadie sabe que estáis aquí. Defendeos.",
+      "enemigos": [
+        {
+          "enemigo_id": "sin_cara",
+          "nombre": "Lo que no necesita cara",
+          "vida": 14,
+          "atributos": {
+            "fuerza": 5,
+            "agilidad": 3,
+            "defensa": 13
+          },
+          "ataques": [
+            {
+              "nombre": "Algo que no debería tener forma de mano",
+              "dano": 6,
+              "modificador": 5
+            }
+          ]
+        }
+      ],
+      "dificultad_huida": 17,
+      "nodo_victoria": "n_conv",
+      "nodo_huida": "nE1",
+      "nodo_derrota": "nE1"
+    },
+    "nE1": {
+      "tipo": "interactivo",
+      "es_final": false,
+      "texto": "Sea porque decidisteis desde el principio que la única salida real era intentar hablar con lo que hay en el box 4, sea porque ya no os queda nada más que intentar —ni fuerzas para pelear, ni rutas que probar, ni nadie a quien pedir ayuda—, termináis aquí: de pie frente al cristal esmerilado del box 4, con Thalia a vuestro lado y el paciente inmóvil al otro lado, mirando al techo con esa calma que ya sabéis que no es calma.\n\n—Nunca le he hablado directamente —dice Thalia—. Ni una vez, en todas las horas que lleva aquí. Le hablo *sobre* él, con el resto del equipo. Nunca *a* él.\n\nAlguien tiene que ser el primero. No hay tirada previa, no hay estrategia que valga más que otra: solo lo que se diga, y cómo.",
+      "palabras_clave": [
+        {
+          "texto": "hablarle a través del cristal",
+          "tipo_interaccion": "hablar",
+          "atributo": "voluntad",
+          "dificultad": 15,
+          "nodo_exito": "nEs",
+          "nodo_fallo": "cE1"
+        }
+      ]
+    },
+    "nEs": {
+      "tipo": "interactivo",
+      "es_final": false,
+      "texto": "Los ojos del paciente se apartan del techo. Por primera vez en toda la noche, algo os mira a vosotros, y no a través de vosotros.\n\nNo dice nada al principio. Solo respira distinto — más lento, más consciente, como si llevara mucho tiempo esperando que alguien hiciera exactamente esto.\n\n—Puertas —dice al fin, con la voz de un hombre de mediana edad que ya no suena del todo a un hombre de mediana edad—. Demasiadas puertas. Entro por una, salgo por otra que no es la mía. Vuelvo a intentarlo. Otra puerta. Otro nombre. Otra cara que no me queda bien durante mucho tiempo.\n\nThalia da un paso hacia el cristal, olvidando por un momento que hay cristal.\n\n—¿Cuánto tiempo llevas haciendo esto? —pregunta, en voz baja.\n\n—No lo cuento en tiempo —contesta—. Lo cuento en puertas.\n\nSe queda mirándoos, a cada uno, como pesando algo.\n\n—No he venido a hacer daño. He venido buscando una puerta que sea la correcta. Esta vez, esta noche, pensé que quizás... —se detiene, y algo en su cara, por un instante, parece casi avergonzado—. Pensé que quizás esta fuera.",
+      "palabras_clave": [
+        {
+          "texto": "seguir escuchando",
+          "tipo_interaccion": "escuchar",
+          "nodo_exito": "nE2",
+          "flags_set_exito": {
+            "flag_contacto_real": true
+          }
+        }
+      ]
+    },
+    "nE2": {
+      "tipo": "interactivo",
+      "es_final": false,
+      "texto": "—Necesito que alguien me ayude a encontrarla —dice—. La puerta correcta. No puedo hacerlo yo, desde dentro. He probado. Cada vez que lo intento solo, vuelvo a equivocarme de nombre.\n\nNadie promete nada todavía. Pero tampoco nadie llama a seguridad, ni busca algo con qué defenderse. Por primera vez en toda la noche, la pregunta no es cómo detener lo que hay en el box 4, sino qué hacer con lo que acaba de pedir.\n\n—Yo lo he visto morir \"de verdad\" antes —dice Thalia, muy despacio, sin dejar de mirar al paciente—. Esto no se parece a nada de lo que sé hacer. Pero ustedes deciden. Yo los acompaño en lo que sea.",
+      "palabras_clave": [
+        {
+          "texto": "Ofrecerle ayuda, con cautela",
+          "tipo_interaccion": "decidir",
+          "modo_interaccion": "grupal",
+          "nodo_exito": "n_conv",
+          "flags_set_exito": {
+            "flag_contacto_confianza": true
+          }
+        }
+      ]
+    },
+    "cE1": {
+      "tipo": "combate",
+      "es_final": false,
+      "texto": "Lo que sea que os escuchaba se aparta del cristal de golpe, y el monitor cambia de ritmo, agudo, irregular. La palabra equivocada, el tono equivocado, algo se ha cerrado donde por un instante estuvo a punto de abrirse.\n\n—¡El diablo! —dice Thalia, ya moviéndose hacia el panel de alarma y deteniéndose a medio camino—. No, esperen. Si lo tratamos como una amenaza ahora, lo confirmamos. Dejen que lo intente yo.\n\nLa puerta corredera se abre sola.\n\nNo es un ataque como los de las otras rutas — no hay garras, no hay una sonrisa que no debería moverse así. Es más parecido a alguien que se defiende de algo que cree que viene a hacerle daño, con la fuerza de quien ya no distingue quién empezó.\n\nDefendeos, si hace falta. O intentad, todavía, que no haga falta.",
+      "enemigos": [
+        {
+          "enemigo_id": "paciente_asustado",
+          "nombre": "El paciente del box 4, asustado",
+          "vida": 9,
+          "atributos": {
+            "fuerza": 3,
+            "agilidad": 2,
+            "defensa": 10
+          },
+          "ataques": [
+            {
+              "nombre": "Un forcejeo que no quiere serlo",
+              "dano": 4,
+              "modificador": 3
+            }
+          ]
+        }
+      ],
+      "dificultad_huida": 12,
+      "dificultad_negociacion": 11,
+      "nodo_victoria": "n_conv",
+      "nodo_negociacion": "cE1n",
+      "nodo_huida": "n_final_tragico",
+      "nodo_derrota": "n_final_tragico"
+    },
+    "cE1n": {
+      "tipo": "interactivo",
+      "es_final": false,
+      "texto": "Dejáis de forcejear en cuanto entendéis que no hace falta forzar nada más. El paciente se queda quieto, todavía asustado, pero ya no atacando.\n\n—Perdón —dice Thalia, muy despacio, con las manos donde él pueda verlas—. Perdón, de verdad. No veníamos a hacerle daño. Lo hicimos mal la primera vez.\n\nNo es lo mismo que la conversación que podríais haber tenido. Pero es algo.",
+      "palabras_clave": [
+        {
+          "texto": "quedaros con esa tregua",
+          "tipo_interaccion": "decidir",
+          "modo_interaccion": "grupal",
+          "nodo_exito": "n_conv",
+          "flags_set_exito": {
+            "flag_contacto_tenue": true
+          }
+        }
+      ]
+    },
+    "n_conv": {
+      "tipo": "narrativo",
+      "es_final": false,
+      "nodo_siguiente": "n_prep",
+      "texto": "Sea porque lo vencisteis, sea porque lo convencisteis, sea porque simplemente sobrevivisteis a lo que fuera que pasó en el box 4 esta noche, hay un momento, después, en el que nadie dice nada. Ni Thalia, ni vosotros. Solo el sonido normal del hospital volviendo despacio a su sitio: un carro que rueda por el pasillo, una máquina que pita donde tiene que pitar.\n\nThalia se sienta en el suelo, contra la pared, algo que seguramente no ha hecho en años de bata. Se queda así un momento, sin decir nada, hasta que por fin habla.\n\n—Debería sentirme aliviada —dice—. Y no lo estoy. ¿Por qué no lo estoy?\n\nPorque, si os fijáis, algo no encaja. El box 4 está tranquilo. El paciente —quien sea, lo que sea, que haya quedado en esa cama— respira ahora con un ritmo que por fin parece suyo. Pero en alguna parte de lo que habéis visto esta noche —una carpeta, una grabación, una voz al otro lado de un cristal, unas marcas de tiza bajo tierra, un guardia que lleva meses sin dormir bien— hay un hilo que no habéis cortado. Todo apunta, de un modo u otro, al mismo sitio: una zona del hospital que nadie quiere nombrar en voz alta.\n\nEl ala norte.\n\n—Llevan años diciendo que la van a reformar —dice Thalia, poniéndose en pie otra vez, con las piernas menos firmes de lo que le gustaría admitir—. Nunca lo hacen. Ahora creo que empiezo a entender por qué.\n\nNadie propone ir. Pero tampoco nadie propone irse a casa."
+    },
+    "n_prep": {
+      "tipo": "narrativo",
+      "es_final": false,
+      "nodo_siguiente": "n_prep2",
+      "texto": "La puerta que separa el ala norte del resto de la planta no tiene ninguna cerradura especial, ningún cartel de advertencia distinto a los demás. Solo tiene polvo — años de él, sin una sola marca de manos que la hayan abierto desde fuera en mucho tiempo. Hoy sí las tiene.\n\nAl otro lado, los pasillos siguen el mismo trazado que el resto del hospital, con la misma numeración de habitaciones en las puertas. Pero algo en la distancia no cuadra: tardáis en llegar al final más de lo que la planta, por fuera, parece medir. Una de las puertas tiene un número que no debería repetirse en ningún otro sitio del edificio. Otra, más adelante, no tiene número en absoluto.\n\n—Esto no está en ningún plano que yo haya visto —dice Thalia, y por primera vez en toda la noche no suena asustada, suena casi fascinada, del modo en que solo se puede estar fascinado por algo que todavía no ha decidido hacerte daño.\n\nAl fondo, donde el pasillo debería terminar en una pared —y de hecho hay una pared, justo donde los planos dicen que la hay—, la pared no está del todo cerrada. Hay un hueco, irregular, oscuro, del tamaño exacto de una puerta que nadie construyó.\n\nLo que sea que habéis estado persiguiendo toda la noche, bajo un nombre o bajo otro, está al otro lado.\n\nAquí es donde termina la parte de la noche que podíais elegir cómo vivir. Lo que decidáis ahora —enfrentarlo, negociarlo, ayudarlo, cerrarle la puerta en la cara, o simplemente marcharos y dejarlo donde está— es la última decisión real que os queda."
+    },
+    "n_prep2": {
+      "tipo": "interactivo",
+      "es_final": false,
+      "texto": "Cruzáis. No hay un umbral que cruzar exactamente — más bien una sensación, como cuando el oído se destapa de golpe, de que un segundo antes estabais en un sitio y ahora estáis en otro que ocupa el mismo espacio.\n\nNo hay box 4 aquí. No hay UCI, ni pasillos, ni ala norte. Hay una habitación que no termina de tener paredes fijas, y en el centro, algo que ya conocéis por un nombre o por otro —Andrés, el inspector, el patrón, la cosa sin cara, la voz del otro lado del cristal— y que aquí, por fin, no finge ser ninguna cosa en concreto.\n\n—Habéis llegado —dice, o algo parecido a decir—. Todos los que llegan, deciden. Es lo único que puedo ofreceros a cambio de haber llegado: la posibilidad de decidir de verdad, una vez, esta noche.\n\nThalia os mira, uno por uno, antes de mirar a la cosa.\n\n—¿Qué hacéis? —pregunta, y esta vez la pregunta es literalmente vuestra.",
+      "palabras_clave": [
+        {
+          "texto": "Cerrar la puerta a la fuerza, sea como sea",
+          "tipo_interaccion": "decidir",
+          "modo_interaccion": "grupal",
+          "nodo_exito": "n_cierre"
+        },
+        {
+          "texto": "Ofrecerle el pacto, con la prueba en la mano",
+          "tipo_interaccion": "decidir",
+          "modo_interaccion": "grupal",
+          "requiere_objeto": "prueba",
+          "nodo_exito": "n_pacto"
+        },
+        {
+          "texto": "Ofrecerle el pacto, con lo que ya empezó a construirse",
+          "tipo_interaccion": "decidir",
+          "modo_interaccion": "grupal",
+          "requiere_flag": "flag_contacto_tenue",
+          "nodo_exito": "n_pacto"
+        },
+        {
+          "texto": "Ayudarle a cruzar, de verdad",
+          "tipo_interaccion": "decidir",
+          "modo_interaccion": "grupal",
+          "requiere_flag": "flag_contacto_confianza",
+          "nodo_exito": "n_liberador"
+        },
+        {
+          "texto": "Quemar lo que sabéis y no volver a hablar de esto",
+          "tipo_interaccion": "decidir",
+          "modo_interaccion": "grupal",
+          "requiere_flag": "conoce_patron",
+          "nodo_exito": "n_silencio"
+        },
+        {
+          "texto": "Dar media vuelta, ahora que todavía podéis",
+          "tipo_interaccion": "decidir",
+          "modo_interaccion": "grupal",
+          "nodo_exito": "n_ambiguo"
+        }
+      ]
+    },
+    "n_ambiguo": {
+      "tipo": "narrativo",
+      "es_final": true,
+      "tipo_final": "ambiguo",
+      "texto": "Nadie lo dice en voz alta, pero todos dais el mismo paso, al mismo tiempo, hacia atrás.\n\nLa cosa no os detiene. Ni siquiera parece sorprendida — como si esto también contara como una respuesta, una que ya hubiera recibido antes, de otros, en otras noches parecidas a esta.\n\n—Está bien —dice, y la voz suena, por primera y única vez, casi aliviada de que alguien no decida por ella—. Está bien. Otra vez será.\n\nEl hueco en la pared se cierra a vuestra espalda con la misma naturalidad con la que se abrió: sin ruido, sin drama, como si nunca hubiera sido gran cosa.\n\nDe vuelta en el ala norte, el polvo ha vuelto a cubrir el suelo, como si esas últimas horas no le hubieran dejado ni rastro. Volvéis sobre vuestros pasos hasta la parte del hospital que reconocéis. El turno de noche sigue su curso, ajeno a todo. En un par de horas amanecerá.\n\nThalia no dice nada hasta que llegáis al aparcamiento. Entonces se detiene, mira hacia atrás, hacia el edificio, y solo entonces vuelve a hablar.\n\n—¡El diablo! —murmura, más para sí misma que para nadie—. No hemos resuelto nada. ¿Verdad?\n\nNadie contesta, porque no hay una buena respuesta. El box 4 está tranquilo esta noche. Eso es verdad. También es verdad que, en algún punto de un hospital que sigue en pie, hay una puerta que nadie ha cerrado del todo, esperando a que alguien más decida cruzarla."
+    },
+    "n_liberador": {
+      "tipo": "narrativo",
+      "es_final": true,
+      "tipo_final": "heroico",
+      "texto": "Nadie levanta las manos. Nadie retrocede. Os quedáis, y eso —os dais cuenta después— es lo único que hacía falta desde el principio.\n\n—No sé cómo se ayuda a algo así —dice Thalia, en voz baja, sin apartar la vista—. Pero sé cómo se acompaña a alguien que tiene miedo de morir solo. Llevo catorce años haciendo exactamente eso, todas las noches.\n\nSe acerca. Nadie se lo impide.\n\nNo hay ritual, no hay palabras exactas que digan qué puerta es la correcta. Solo alguien —Thalia, o quien haya llegado hasta aquí dispuesto a hacerlo— sentándose junto a lo que hay en el centro de la habitación sin paredes fijas, de la misma forma en que se sienta junto a un paciente que se apaga, sin prisa por que termine, solo para que no termine solo.\n\n—Ah —dice la cosa, y por primera vez en toda la noche no suena a nada humano, ni a nada terrible tampoco. Suena, simplemente, aliviada—. Esta era. Esta era la puerta.\n\nNo hay luz cegadora, no hay un estallido. Solo deja de estar ahí, con la misma discreción con la que entrasteis vosotros a esta habitación que no debería existir.\n\nEl hueco en la pared, al salir, ya no está. No cerrado: no ha estado nunca.\n\nThalia tarda en hablar. Cuando lo hace, es con la voz de quien acaba de perder a un paciente y salvarlo a la vez, las dos cosas ciertas al mismo tiempo.\n\n—¡El diablo! —dice, y por primera vez esta noche, la muletilla suena casi a una plegaria—. Espero que, donde sea que haya ido, esté mejor.\n\nAmanece poco después. El turno de noche termina como termina cualquier otro: con relevo, con café, con el hospital respirando otra vez su ritmo normal. Nadie más sabrá nunca lo que pasó en el ala norte esta noche. Vosotros sí."
+    },
+    "n_silencio": {
+      "tipo": "narrativo",
+      "es_final": true,
+      "tipo_final": "sombrío",
+      "texto": "Nadie lo discute mucho tiempo. Es Thalia quien lo dice primero, y lo dice como quien ya lo ha pensado hace rato y solo esperaba que alguien más lo dijera en voz alta.\n\n—Si contamos esto, ¿qué cambia? Lo contaron hace once años. Está archivado. Nadie hizo nada entonces. ¿Por qué esta vez sería distinto?\n\nLa cosa no discute tampoco. Casi parece que lo esperaba.\n\n—Otros llegaron a la misma conclusión —dice, sin rastro de burla, solo cansancio compartido—. Es más fácil así. Para todos.\n\nRompéis lo que hay que romper. Guardáis silencio sobre lo que hay que callar. Al salir, el hueco de la pared se cierra detrás de vosotros con la misma facilidad con la que lo haría una puerta que nunca ha sido gran cosa.\n\nEl turno de noche termina. Alguien tendrá que rellenar un informe sobre el paciente del box 4, y ese informe dirá lo que siempre dicen: estable, sin incidencias, alta en unos días.\n\nThalia firma el suyo sin releerlo.\n\n—¡El diablo! —murmura, ya en el aparcamiento, sin que suene a nada en concreto esta vez, ni a maldición ni a alivio—. Supongo que así es como se hace siete veces.\n\nAmanece. El hospital sigue en pie, exactamente como debe seguir. En algún archivo, más adelante, alguien volverá a encontrar una carpeta fina que nadie querrá leer entera."
+    },
+    "n_pacto": {
+      "tipo": "interactivo",
+      "es_final": false,
+      "texto": "Sea porque alguien saca la carpeta, el sobre, las copias —lo que sea que hayáis reunido esta noche como prueba de que esto no es la primera vez, ni la sexta, ni probablemente la última—, sea porque lo único que tenéis para ofrecer es lo que ya empezó a construirse hace un rato, al otro lado de un cristal, cuando alguien no huyó del primer contacto real de toda la noche, se lo ponéis delante a la cosa, de un modo o de otro.\n\n—Sabemos lo que eres —dice Thalia, con una calma que le está costando sostener—. O al menos sabemos que no eres nuevo. Proponemos un trato: una puerta, limpia, la que sea que necesites. A cambio, esta gente, este hospital, no vuelven a formar parte de tu cuenta.\n\nLa cosa se queda mirando lo que le mostráis —papel, o solo la memoria de una conversación a través de un cristal— más tiempo del que os gustaría.\n\n—Un trato requiere que ambas partes puedan cumplirlo —dice, al fin—. Vosotros podéis ofrecer silencio. Yo puedo ofrecer... intención. Pero llevo mucho tiempo equivocándome de puerta incluso con buena intención. Vamos a intentarlo. No prometo que salga bien.",
+      "palabras_clave": [
+        {
+          "texto": "sellar el trato",
+          "tipo_interaccion": "convencer",
+          "atributo": "voluntad",
+          "dificultad": 15,
+          "ventaja_si_objeto": "prueba",
+          "nodo_exito": "n_pacto_final",
+          "nodo_fallo": "n_sacrificio"
+        }
+      ]
+    },
+    "n_pacto_final": {
+      "tipo": "narrativo",
+      "es_final": true,
+      "tipo_final": "agridulce",
+      "texto": "Algo cambia en el aire de la habitación sin paredes fijas — no un ruido, no una luz, más bien la sensación de una promesa asentándose donde antes solo había intención.\n\n—Trato hecho —dice la cosa, y por primera vez suena a algo parecido a un alivio cansado, no a triunfo—. Esta puerta, esta noche. Este hospital, nunca más. Tenéis mi palabra, si es que eso significa algo viniendo de mí.\n\n—Significa lo mismo que viniendo de cualquiera —contesta Thalia—. Se cumple, o no volvemos a confiar en nada de lo que diga.\n\nLa cosa no contesta a eso. Solo se va, sin espectáculo, dejando el hueco en la pared cerrándose despacio detrás de ella, como una herida que por fin decide curar en vez de seguir abierta.\n\nDe vuelta en el ala norte, todo vuelve a su sitio: el polvo, el silencio, la numeración normal de las puertas. Salís del hospital cuando ya casi amanece.\n\nNadie dice gran cosa en el camino a casa. Es Thalia quien rompe el silencio, ya en el coche, mirando por la ventanilla.\n\n—¡El diablo! —murmura, sin fuerza esta vez, solo cansancio—. Espero no tener que volver a hacer un trato con algo así en mi vida.\n\nEl box 4 está tranquilo. El hospital está a salvo. Ninguno de vosotros sabe, ni lo sabrá nunca del todo, qué hospital será el siguiente en tener una puerta que no debería estar donde está."
+    },
+    "n_sacrificio": {
+      "tipo": "interactivo",
+      "es_final": false,
+      "texto": "—Casi —dice la cosa, y por una vez no suena aliviada de nada—. Casi aguanta. Pero un trato a medias es peor que ninguno: me deja a medio camino, y a medio camino es donde más daño hago sin querer hacerlo.\n\nSe queda mirando al grupo, uno por uno, del mismo modo en que lo hizo al principio.\n\n—Hace falta algo más que papel y buenas palabras. Hace falta alguien dispuesto a cruzar de verdad, a quedarse el tiempo que haga falta para que la puerta aguante cerrada del todo. No os pido que muráis. Os pido algo que se parece más a no volver, al menos no del todo, no como quien entró.\n\nNadie tiene que decidir por nadie. Pero alguien tiene que decidir.",
+      "palabras_clave": [
+        {
+          "texto": "ofrecerse a acompañarla",
+          "tipo_interaccion": "decidir",
+          "nodo_exito": "n_final_sacrificio",
+          "nodo_fallo": "n_final_sacrificio"
+        },
+        {
+          "texto": "negarse, todos juntos",
+          "tipo_interaccion": "decidir",
+          "modo_interaccion": "grupal",
+          "nodo_exito": "n_final_tragico"
+        }
+      ]
+    },
+    "n_final_sacrificio": {
+      "tipo": "narrativo",
+      "es_final": true,
+      "tipo_final": "sacrificio",
+      "texto": "No hace falta que lo diga dos veces. Quien se ofrece da un paso adelante antes de que nadie más pueda hacerlo, como si llevara toda la noche sabiendo que iba a ser así.\n\n—¿Estás segura? —pregunta Thalia, y la pregunta no suena a protocolo médico, suena a algo mucho más personal.\n\n—No —contesta quien se queda—. Pero lo hago igual.\n\nNo hay una despedida larga. La cosa no da tiempo, o quizás es la propia decisión la que no lo permite: cuanto más se piensa, más fácil es arrepentirse, y algunas puertas solo aguantan cerradas si nadie duda al otro lado.\n\n—Gracias —dice la cosa, y por primera vez en toda la noche suena completamente sincera—. Prometo que esta vez sí voy a contar bien las puertas.\n\nEl resto sale de la habitación sin paredes fijas con una persona menos de las que entraron. El hueco se cierra detrás de vosotros, y esta vez sí que cierra del todo — no queda ni rastro, ni siquiera para quien sepa dónde mirar.\n\nAmanece. El turno de noche termina, con una ausencia que nadie en el hospital sabrá explicar, ni buscará explicar, porque en algún punto de esta noche los registros también se han acomodado a la nueva versión de los hechos.\n\n—¡El diablo! —dice Thalia, ya en la calle, con la voz rota de un modo que no tiene nada que ver con las otras veces que lo ha dicho esta noche—. Espero que valga la pena, donde sea que esté ahora.\n\nNadie contesta. Nadie puede."
+    },
+    "n_final_tragico": {
+      "tipo": "narrativo",
+      "es_final": true,
+      "tipo_final": "trágico",
+      "texto": "Sea porque no conseguisteis hacer entender lo que intentabais decir y lo pagasteis caro, sea porque, al final, nadie estuvo dispuesto a pagar lo que hacía falta, el resultado es el mismo: la puerta no se cierra bien.\n\nNo pasa de golpe. Eso es, quizás, lo peor. La cosa no se enfada, no ataca, no persigue. Simplemente deja de distinguir, por fin y del todo, entre vosotros y las puertas que lleva toda su existencia contando.\n\n—Once —dice, o algo que suena a eso, contando en un idioma que empieza a sonar cada vez menos a idioma—. Doce. Trece.\n\nVolvéis al hospital, sí. Todos, o casi todos, caminando, respirando, con nombre propio todavía. Pero algo en el modo en que contáis esta noche, después, no acaba de cuadrarle a nadie que lo escuche. Una fecha que no coincide. Un detalle que cambia cada vez que se repite la historia. Un silencio, justo antes de cierta pregunta, que dura un segundo de más.\n\nThalia no dice \"¡el diablo!\" esta vez. Se queda callada, mirándoos, como si por primera vez en toda la noche no estuviera del todo segura de a quién tiene delante.\n\nEl box 4 queda vacío al amanecer. En el sistema, dentro de unos años, alguien que aún no ha nacido encontrará un nombre —el vuestro, o parecido al vuestro— archivado entre otros seis que tampoco deberían estar ahí."
+    },
+    "n_cierre": {
+      "tipo": "combate",
+      "es_final": false,
+      "texto": "No hay trato que ofrecer, ni palabras que valgan ya la pena intentar. Lo decidisteis al entrar: esto se cierra por la fuerza, o no se cierra.\n\nLa cosa lo entiende antes de que nadie lo diga en voz alta. Deja de sostener ninguna forma concreta —ni Andrés, ni el inspector, ni las seis identidades, ni la ausencia de cara de los túneles— y, por un instante, es todas ellas a la vez, superpuestas, como si el propio concepto de \"una sola cosa\" fuera demasiado pequeño para contenerla ahora que ya no tiene que fingir que no lo es.\n\n—¡El diablo! —grita Thalia, y esta vez sí es la maldición de siempre, la de verdad, la que se dice cuando ya no hay tiempo para nada más elaborado.\n\nDefendeos. Es la única puerta que os queda por decidir.",
+      "enemigos": [
+        {
+          "enemigo_id": "jefe_mano",
+          "nombre": "Una mano que fue de Andrés",
+          "vida": 12,
+          "atributos": {
+            "fuerza": 5,
+            "agilidad": 3,
+            "defensa": 14
+          },
+          "ataques": [
+            {
+              "nombre": "Zarpazo imposible",
+              "dano": 5,
+              "modificador": 5
+            }
+          ]
+        },
+        {
+          "enemigo_id": "jefe_voz",
+          "nombre": "Una voz que fue de seis personas distintas",
+          "vida": 10,
+          "atributos": {
+            "fuerza": 4,
+            "agilidad": 3,
+            "defensa": 13
+          },
+          "ataques": [
+            {
+              "nombre": "Un nombre que no es el suyo",
+              "dano": 4,
+              "modificador": 4
+            }
+          ]
+        }
+      ],
+      "dificultad_huida": 17,
+      "nodo_victoria": "n_cierre_final",
+      "nodo_huida": "n_ambiguo",
+      "nodo_derrota": "n_final_tragico"
+    },
+    "n_cierre_final": {
+      "tipo": "narrativo",
+      "es_final": true,
+      "tipo_final": "heroico",
+      "texto": "Deja de moverse todo a la vez, como si todas las caras que llevaba puestas se apagaran en el mismo instante. Por un segundo, justo antes de desaparecer del todo, vuelve a tener una sola forma, la más antigua de todas, la que ninguno de vosotros ha visto todavía: nadie sabrá nunca a quién perteneció esa cara.\n\nY luego no hay nada. Solo la habitación sin paredes fijas, más pequeña de lo que parecía, volviéndose una habitación normal, con paredes normales, en un ala normal de un hospital normal.\n\nEl hueco de la pared se sella detrás de vosotros con un sonido seco, definitivo, como una puerta de verdad al cerrarse por última vez.\n\nSalís cargando a quien haya que cargar. Nadie ha muerto, esta vez —eso es verdad, y hay que aferrarse a ello—, pero tampoco nadie sale exactamente igual a como entró.\n\nThalia se sienta en el suelo del pasillo, ya en la zona normal del hospital, y se queda ahí un momento antes de levantarse.\n\n—¡El diablo! —dice, sin la fuerza de antes, más agotada que triunfante—. Lo paramos. ¿Verdad? Dime que lo paramos.\n\nNadie tiene una respuesta mejor que \"esta noche, sí\". Amanece. El box 4 queda vacío, tranquilo, sin nadie dentro por primera vez en semanas. Es una victoria. Se siente como una, casi."
+    }
+  }
+}

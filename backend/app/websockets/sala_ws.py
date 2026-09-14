@@ -242,6 +242,10 @@ async def _resolver_individual(
         elif palabra.get("modo_interaccion") == "opuesta":
             npc_mod = palabra.get("npc_modificador", 0)
             tirada_payload = resolver_tirada_opuesta(getattr(personaje, palabra["atributo"]), npc_mod)
+        elif not palabra.get("dificultad"):
+            # Decisión de personaje sin tirada: quien confirma, decide. Mismo
+            # atajo que ya existe en _resolver_grupal para "grupal, sin dificultad".
+            tirada_payload = {"exito": True, "sin_tirada": True}
         else:
             resultado = resolver_via_atributo(palabra, personaje, estado, desventaja)
             tirada_payload = resultado.to_dict()
