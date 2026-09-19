@@ -39,7 +39,8 @@ async function peticion<T>(
         `No hay respuesta de ${API_BASE_URL} tras ${TIEMPO_ESPERA_MS / 1000}s. Comprueba que el backend esté encendido y accesible desde este dispositivo.`
       );
     }
-    throw new ErrorApi(`No se pudo contactar con ${API_BASE_URL}.`);
+    const detalle = e instanceof Error ? `${e.name}: ${e.message}` : String(e);
+    throw new ErrorApi(`No se pudo contactar con ${API_BASE_URL}. (${detalle})`);
   } finally {
     clearTimeout(limite);
   }
