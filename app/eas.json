@@ -17,8 +17,8 @@
         "buildType": "apk"
       },
       "env": {
-        "EXPO_PUBLIC_API_URL": "https://psi-opposite-wish-logs.trycloudflare.com",
-        "EXPO_PUBLIC_API_WS_URL": "wss://psi-opposite-wish-logs.trycloudflare.com"
+        "EXPO_PUBLIC_API_URL": "https://solid-turns-todd-salmon.trycloudflare.com",
+        "EXPO_PUBLIC_API_WS_URL": "wss://solid-turns-todd-salmon.trycloudflare.com"
       }
     },
     "production": {
