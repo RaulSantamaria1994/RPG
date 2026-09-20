@@ -92,7 +92,9 @@ def _dano_base(personaje: Personaje) -> int:
     return max(1, personaje.fuerza // 2 + 2)
 
 
-def resolver_ataque_enemigo(combate: dict, enemigo_id: str, personaje: Personaje) -> dict:
+def resolver_ataque_enemigo(
+    combate: dict, enemigo_id: str, personaje: Personaje, muerte_permanente: bool = False
+) -> dict:
     enemigo = _enemigo(combate, enemigo_id)
     ataques = enemigo.get("ataques") or [{"nombre": "Ataque", "dano": 2, "modificador": 2}]
     ataque = ataques[0]
@@ -107,7 +109,7 @@ def resolver_ataque_enemigo(combate: dict, enemigo_id: str, personaje: Personaje
         dano_aplicado = ataque.get("dano", 2)
         personaje.vida_actual = max(0, personaje.vida_actual - dano_aplicado)
         if personaje.vida_actual == 0:
-            personaje.estado = "inconsciente"
+            personaje.estado = "muerto" if muerte_permanente else "inconsciente"
 
     return {
         "tirada": resultado.to_dict(),

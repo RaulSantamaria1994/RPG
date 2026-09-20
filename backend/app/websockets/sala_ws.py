@@ -49,8 +49,58 @@ def _personajes_no_master(db, sala_id) -> list[Personaje]:
 def _personajes_confirmables(db, sala_id) -> list[Personaje]:
     """Personajes que cuentan para tiradas grupales y para el orden de
     iniciativa de un combate nuevo: todos menos quienes el máster haya
-    marcado como ausentes."""
-    return [p for p in _personajes_no_master(db, sala_id) if p.estado != "ausente"]
+    marcado como ausentes, o quienes ya hayan muerto de forma permanente."""
+    return [p for p in _personajes_no_master(db, sala_id) if p.estado not in ("ausente", "muerto")]
+
+
+def _usa_muerte_permanente(sala: Sala) -> bool:
+    """La muerte definitiva solo se activa si el máster la eligió al crear
+    la sala Y la historia define a dónde saltar cuando muere el último
+    personaje con vida (no todas las historias tienen ese epílogo escrito)."""
+    return bool(sala.muerte_permanente) and bool(sala.historia.contenido.get("nodo_muerte_total"))
+
+
+def _texto_epilogo_tetrico(sala: Sala, personaje: Personaje) -> str:
+    contenido = sala.historia.contenido
+    epilogos = contenido.get("desenlaces_tetricos") or {}
+    clave = personaje.personaje_pregenerado_id
+    return (
+        (clave and epilogos.get(clave))
+        or contenido.get("desenlace_tetrico_generico")
+        or f"{personaje.nombre} cae, y su historia termina aquí."
+    )
+
+
+async def _procesar_posible_muerte(db, sala: Sala, personaje: Personaje) -> bool:
+    """Si `personaje` acaba de morir de forma permanente, notifica su
+    desenlace personal (el resto del grupo sigue jugando) o, si era el
+    último con vida, hace saltar la partida entera al epílogo de muerte
+    total. Devuelve True si la partida ya se resolvió por esa vía, para
+    que el llamador no siga avanzando nodos por su cuenta."""
+    if personaje.estado != "muerto":
+        return False
+
+    otros_vivos = any(
+        p.estado != "muerto"
+        for p in _personajes_no_master(db, sala.id)
+        if p.id != personaje.id
+    )
+    if otros_vivos:
+        await gestor.broadcast(
+            str(sala.id),
+            {
+                "tipo": "personaje_muerto",
+                "datos": {
+                    "personaje_id": str(personaje.id),
+                    "personaje_nombre": personaje.nombre,
+                    "epilogo": _texto_epilogo_tetrico(sala, personaje),
+                },
+            },
+        )
+        return False
+
+    await _avanzar_y_notificar(db, sala, sala.historia.contenido["nodo_muerte_total"])
+    return True
 
 
 def _estado_publico(sala: Sala) -> dict:
@@ -138,6 +188,7 @@ async def _avanzar_turnos_invalidos(db, sala: Sala) -> None:
         return
 
     personajes = {str(p.id): p for p in _personajes_no_master(db, sala.id)}
+    muerte_permanente = _usa_muerte_permanente(sala)
 
     while not combate["terminado"]:
         entrada = combate["orden_iniciativa"][combate["turno_index"]]
@@ -169,12 +220,17 @@ async def _avanzar_turnos_invalidos(db, sala: Sala) -> None:
                 combate["resultado"] = "derrota"
                 break
 
-            resultado = combate_engine.resolver_ataque_enemigo(combate, id_turno, objetivo)
+            resultado = combate_engine.resolver_ataque_enemigo(
+                combate, id_turno, objetivo, muerte_permanente=muerte_permanente
+            )
             flag_modified(estado, "combate")
             db.commit()
             await gestor.broadcast(
                 str(sala.id), {"tipo": "combate_resultado", "datos": {"origen": "enemigo", **resultado}}
             )
+
+            if await _procesar_posible_muerte(db, sala, objetivo):
+                return
 
             if all(p.estado != "activo" for p in personajes.values()):
                 combate["terminado"] = True
@@ -252,7 +308,9 @@ async def _resolver_individual(
 
         exito = tirada_payload["exito"]
 
-        cambios = aplicar_resultado(nodo_id, palabra, exito, estado, personaje)
+        cambios = aplicar_resultado(
+            nodo_id, palabra, exito, estado, personaje, muerte_permanente=_usa_muerte_permanente(sala)
+        )
         db.commit()
 
         await gestor.broadcast(
@@ -273,6 +331,9 @@ async def _resolver_individual(
             await gestor.broadcast(
                 str(sala.id), {"tipo": "personaje_actualizado", "datos": _personaje_publico(personaje)}
             )
+
+        if await _procesar_posible_muerte(db, sala, personaje):
+            return
 
         await _avanzar_y_notificar(db, sala, cambios["nodo_destino"])
     except (ErrorInteraccion, ManaInsuficiente) as exc:
@@ -358,7 +419,9 @@ async def _resolver_grupal(
         exito = True
         tirada_payload = {"exito": True, "sin_tirada": True}
 
-    cambios = aplicar_resultado(nodo_id, palabra, exito, estado, personaje)
+    cambios = aplicar_resultado(
+        nodo_id, palabra, exito, estado, personaje, muerte_permanente=_usa_muerte_permanente(sala)
+    )
     db.commit()
 
     await gestor.broadcast(
@@ -373,6 +436,14 @@ async def _resolver_grupal(
             },
         },
     )
+    if cambios.get("dano_aplicado"):
+        await gestor.broadcast(
+            str(sala.id), {"tipo": "personaje_actualizado", "datos": _personaje_publico(personaje)}
+        )
+
+    if await _procesar_posible_muerte(db, sala, personaje):
+        return
+
     await _avanzar_y_notificar(db, sala, cambios["nodo_destino"])
 
 
@@ -395,6 +466,8 @@ async def _manejar_interactuar(db, sala: Sala, conexion: ConexionJugador, datos:
             raise ErrorInteraccion(
                 "Estás marcado como ausente: pide al máster que te reactive para poder actuar."
             )
+        if personaje.estado == "muerto":
+            raise ErrorInteraccion("Tu personaje ha caído: ya no puede actuar.")
         verificar_requisitos(nodo_id, palabra, estado, personaje)
     except (ErrorInteraccion, KeyError) as exc:
         await _enviar_error(conexion, str(exc) if isinstance(exc, ErrorInteraccion) else "Datos incompletos.")
@@ -447,7 +520,9 @@ async def _manejar_override_resultado(db, sala: Sala, conexion: ConexionJugador,
         return
 
     exito = bool(datos.get("exito", True))
-    cambios = aplicar_resultado(nodo_id, palabra, exito, estado, personaje)
+    cambios = aplicar_resultado(
+        nodo_id, palabra, exito, estado, personaje, muerte_permanente=_usa_muerte_permanente(sala)
+    )
     db.commit()
 
     await gestor.broadcast(
@@ -457,6 +532,14 @@ async def _manejar_override_resultado(db, sala: Sala, conexion: ConexionJugador,
             "datos": {"palabra_clave": palabra["texto"], "exito": exito, "override_master": True},
         },
     )
+    if cambios.get("dano_aplicado"):
+        await gestor.broadcast(
+            str(sala.id), {"tipo": "personaje_actualizado", "datos": _personaje_publico(personaje)}
+        )
+
+    if await _procesar_posible_muerte(db, sala, personaje):
+        return
+
     await _avanzar_y_notificar(db, sala, cambios["nodo_destino"])
 
 
@@ -471,6 +554,9 @@ async def _manejar_marcar_ausente(db, sala: Sala, conexion: ConexionJugador, dat
         return
     if personaje is None or personaje.sala_id != sala.id:
         await _enviar_error(conexion, "Ese personaje no existe en esta sala.")
+        return
+    if personaje.estado == "muerto":
+        await _enviar_error(conexion, "Ese personaje ha muerto de forma permanente.")
         return
 
     personaje.estado = "ausente"
@@ -492,6 +578,9 @@ async def _manejar_marcar_activo(db, sala: Sala, conexion: ConexionJugador, dato
         return
     if personaje is None or personaje.sala_id != sala.id:
         await _enviar_error(conexion, "Ese personaje no existe en esta sala.")
+        return
+    if personaje.estado == "muerto":
+        await _enviar_error(conexion, "Ese personaje ha muerto de forma permanente.")
         return
 
     personaje.estado = "activo"

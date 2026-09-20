@@ -139,23 +139,32 @@ export default function MasterSalaScreen({ navigation }: Props) {
           <Text style={styles.seccionTitulo}>Jugadores</Text>
           {personajes.map((p) => (
             <View key={p.id} style={styles.jugadorFila}>
-              <Text style={[styles.jugadorTexto, p.estado === 'ausente' && styles.jugadorAusente]}>
+              <Text
+                style={[
+                  styles.jugadorTexto,
+                  p.estado === 'ausente' && styles.jugadorAusente,
+                  p.estado === 'muerto' && styles.jugadorMuerto,
+                ]}
+              >
                 {p.nombre} ({p.jugador_nombre}) — PV {p.vida_actual}/{p.vida_max} · Maná{' '}
                 {p.mana_actual}/{p.mana_max}
                 {p.estado === 'ausente' ? ' · ausente' : ''}
+                {p.estado === 'muerto' ? ' · murió' : ''}
               </Text>
-              <TouchableOpacity
-                style={styles.botonAusente}
-                onPress={() =>
-                  enviar(p.estado === 'ausente' ? 'marcar_activo' : 'marcar_ausente', {
-                    personaje_id: p.id,
-                  })
-                }
-              >
-                <Text style={styles.botonAusenteTexto}>
-                  {p.estado === 'ausente' ? 'Reactivar' : 'Marcar ausente'}
-                </Text>
-              </TouchableOpacity>
+              {p.estado !== 'muerto' && (
+                <TouchableOpacity
+                  style={styles.botonAusente}
+                  onPress={() =>
+                    enviar(p.estado === 'ausente' ? 'marcar_activo' : 'marcar_ausente', {
+                      personaje_id: p.id,
+                    })
+                  }
+                >
+                  <Text style={styles.botonAusenteTexto}>
+                    {p.estado === 'ausente' ? 'Reactivar' : 'Marcar ausente'}
+                  </Text>
+                </TouchableOpacity>
+              )}
             </View>
           ))}
         </View>
@@ -267,6 +276,7 @@ const styles = StyleSheet.create({
   },
   jugadorTexto: { color: '#d8cbe8', flex: 1 },
   jugadorAusente: { color: '#e0a9a9', fontStyle: 'italic' },
+  jugadorMuerto: { color: '#8a7090', textDecorationLine: 'line-through' },
   botonAusente: {
     backgroundColor: '#2f2540',
     borderWidth: 1,

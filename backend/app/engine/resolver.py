@@ -140,9 +140,13 @@ def aplicar_resultado(
     exito: bool,
     estado: EstadoSala,
     personaje: Personaje,
+    muerte_permanente: bool = False,
 ) -> dict:
     """Aplica flags/objetos/agotamiento tras resolver una tirada y determina
     el nodo destino. Devuelve un resumen de los cambios aplicados.
+
+    Si `muerte_permanente` está activo y el daño deja al personaje a 0 de
+    vida, su estado pasa a "muerto" (definitivo) en vez de "inconsciente".
     """
     cambios: dict = {"flags_aplicados": {}, "objeto_otorgado": None, "dano_aplicado": 0}
 
@@ -152,7 +156,7 @@ def aplicar_resultado(
         cantidad = dano.get("cantidad", 0)
         personaje.vida_actual = max(0, personaje.vida_actual - cantidad)
         if personaje.vida_actual == 0:
-            personaje.estado = "inconsciente"
+            personaje.estado = "muerto" if muerte_permanente else "inconsciente"
         cambios["dano_aplicado"] = cantidad
 
     flags = dict(estado.flags or {})

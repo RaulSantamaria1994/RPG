@@ -78,8 +78,19 @@ def validar_historia(contenido: dict) -> ResultadoValidacion:
     edges = {nid: {r for r in refs if r in nodos} for nid, refs in edges.items()}
 
     # 2. Nodos huérfanos (inalcanzables desde nodo_inicial)
+    # 'nodo_muerte_total', si existe, es una raíz aparte: no se llega a él
+    # desde ningún nodo_exito/nodo_fallo normal, sino desde el motor de
+    # muerte permanente cuando el último personaje con vida muere.
+    raices = [nodo_inicial]
+    nodo_muerte_total = contenido.get("nodo_muerte_total")
+    if nodo_muerte_total:
+        if nodo_muerte_total not in nodos:
+            errores.append(f"'nodo_muerte_total' referencia a nodo inexistente '{nodo_muerte_total}'.")
+        else:
+            raices.append(nodo_muerte_total)
+
     alcanzables: set[str] = set()
-    pendientes = [nodo_inicial]
+    pendientes = list(raices)
     while pendientes:
         actual = pendientes.pop()
         if actual in alcanzables:

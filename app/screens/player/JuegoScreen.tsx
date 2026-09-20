@@ -32,6 +32,7 @@ export default function JuegoScreen({ navigation }: Props) {
   const confirmacionesGrupales = useSalaStore((s) => s.confirmacionesGrupales);
   const propuestasIntercambio = useSalaStore((s) => s.propuestasIntercambio);
   const ultimaTirada = useSalaStore((s) => s.ultimaTirada);
+  const epilogoPersonal = useSalaStore((s) => s.epilogoPersonal);
   const conectar = useSalaStore((s) => s.conectar);
   const desconectar = useSalaStore((s) => s.desconectar);
   const enviar = useSalaStore((s) => s.enviar);
@@ -75,6 +76,7 @@ export default function JuegoScreen({ navigation }: Props) {
   const esMiTurno =
     enCombate && estado!.combate!.orden_iniciativa[estado!.combate!.turno_index] === `personaje:${personaje.id}`;
   const soyAusente = personaje.estado === 'ausente';
+  const soyMuerto = personaje.estado === 'muerto';
 
   function salir() {
     reiniciar();
@@ -125,9 +127,19 @@ export default function JuegoScreen({ navigation }: Props) {
           </View>
         )}
 
+        {soyMuerto && (
+          <View style={styles.muerteBanner}>
+            <Text style={styles.muerteBannerTitulo}>Tu historia termina aquí</Text>
+            <Text style={styles.muerteBannerTexto}>
+              {epilogoPersonal?.texto ??
+                'Tu personaje ha caído. El resto del grupo sigue adelante sin ti.'}
+            </Text>
+          </View>
+        )}
+
         <Text style={styles.nodoTexto}>{nodo?.texto}</Text>
 
-        {nodo?.tipo === 'interactivo' && !enCombate && !soyAusente && (
+        {nodo?.tipo === 'interactivo' && !enCombate && !soyAusente && !soyMuerto && (
           <View style={{ gap: 8 }}>
             {nodo.palabras_clave?.map((p) => {
               const clave = `${estado?.nodo_actual_id}:${p.texto}`;
@@ -237,7 +249,7 @@ export default function JuegoScreen({ navigation }: Props) {
           </View>
         )}
 
-        {nodo?.tipo === 'narrativo' && (
+        {nodo?.tipo === 'narrativo' && !soyMuerto && (
           <TouchableOpacity style={styles.botonContinuar} onPress={() => enviar('continuar')}>
             <Text style={styles.botonContinuarTexto}>Continuar</Text>
           </TouchableOpacity>
@@ -534,6 +546,16 @@ const styles = StyleSheet.create({
     borderColor: '#a05f5f',
   },
   ausenteBannerTexto: { color: '#f0d0d0', fontSize: 13 },
+  muerteBanner: {
+    backgroundColor: '#1a1420',
+    borderRadius: 8,
+    padding: 14,
+    borderWidth: 1,
+    borderColor: '#5f4f75',
+    gap: 6,
+  },
+  muerteBannerTitulo: { color: '#c9b8e0', fontSize: 15, fontWeight: '700' },
+  muerteBannerTexto: { color: '#a390bd', fontSize: 13, lineHeight: 19 },
   nodoTexto: { color: '#f3e9ff', fontSize: 16, lineHeight: 22 },
   panelRequisito: {
     backgroundColor: '#1f1830',

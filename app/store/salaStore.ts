@@ -13,6 +13,12 @@ export interface PropuestaIntercambio {
   destino_personaje_id: string;
 }
 
+export interface EpilogoPersonal {
+  personaje_id: string;
+  personaje_nombre: string;
+  texto: string;
+}
+
 interface SalaState {
   rol: 'master' | 'jugador' | null;
   sala: Sala | null;
@@ -28,6 +34,7 @@ interface SalaState {
   cliente: ClienteSala | null;
   ultimaTirada: { dado?: number; total?: number; exito: boolean; quien: string } | null;
   mensajeSesion: string | null;
+  epilogoPersonal: EpilogoPersonal | null;
 
   iniciarComoMaster: (sala: Sala, token: string) => void;
   iniciarComoJugador: (sala: Sala, token: string, personaje: Personaje) => void;
@@ -56,6 +63,7 @@ const ESTADO_INICIAL_TRANSITORIO = {
   conectado: false,
   cliente: null,
   ultimaTirada: null,
+  epilogoPersonal: null as EpilogoPersonal | null,
 };
 
 export const useSalaStore = create<SalaState>()(
@@ -237,17 +245,29 @@ function procesarMensaje(
     }
     case 'personaje_actualizado': {
       const d = datos as unknown as Personaje;
+      const textoEstado =
+        d.estado === 'ausente'
+          ? `${d.nombre} ha sido marcado ausente`
+          : d.estado === 'muerto'
+            ? null // el evento 'personaje_muerto' ya deja constancia en el log
+            : `${d.nombre} vuelve a estar activo`;
       set((s) => ({
         personajes: s.personajes.some((p) => p.id === d.id)
           ? s.personajes.map((p) => (p.id === d.id ? { ...p, ...d } : p))
           : [...s.personajes, d],
         personaje: s.personaje?.id === d.id ? { ...s.personaje, ...d } : s.personaje,
-        log: [
-          nuevoEvento(
-            d.estado === 'ausente' ? `${d.nombre} ha sido marcado ausente` : `${d.nombre} vuelve a estar activo`
-          ),
-          ...s.log,
-        ],
+        log: textoEstado ? [nuevoEvento(textoEstado), ...s.log] : s.log,
+      }));
+      break;
+    }
+    case 'personaje_muerto': {
+      const d = datos as { personaje_id: string; personaje_nombre: string; epilogo: string };
+      set((s) => ({
+        log: [nuevoEvento(`💀 ${d.personaje_nombre} ha caído`), ...s.log],
+        epilogoPersonal:
+          s.personaje?.id === d.personaje_id
+            ? { personaje_id: d.personaje_id, personaje_nombre: d.personaje_nombre, texto: d.epilogo }
+            : s.epilogoPersonal,
       }));
       break;
     }
