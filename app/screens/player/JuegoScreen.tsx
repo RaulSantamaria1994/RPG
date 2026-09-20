@@ -249,10 +249,17 @@ export default function JuegoScreen({ navigation }: Props) {
           </View>
         )}
 
-        {nodo?.tipo === 'narrativo' && !soyMuerto && (
-          <TouchableOpacity style={styles.botonContinuar} onPress={() => enviar('continuar')}>
-            <Text style={styles.botonContinuarTexto}>Continuar</Text>
+        {estado?.finalizada ? (
+          <TouchableOpacity style={styles.botonContinuar} onPress={salir}>
+            <Text style={styles.botonContinuarTexto}>Volver al menú</Text>
           </TouchableOpacity>
+        ) : (
+          nodo?.tipo === 'narrativo' &&
+          !soyMuerto && (
+            <TouchableOpacity style={styles.botonContinuar} onPress={() => enviar('continuar')}>
+              <Text style={styles.botonContinuarTexto}>Continuar</Text>
+            </TouchableOpacity>
+          )
         )}
 
         {enCombate && (
