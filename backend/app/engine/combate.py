@@ -1,4 +1,10 @@
-"""Resolución de combate por rondas, sin mapa/grid: tiradas narrativas.
+"""Resolución de combate reactivo, sin mapa/grid: tiradas narrativas.
+
+Los enemigos no tienen turno propio: cuando un jugador actúa (ataca, huye,
+negocia, usa un objeto o lanza un hechizo) y esa acción no termina el
+combate, el enemigo implicado (el atacado, o uno vivo al azar si la acción
+no apuntaba a ninguno) responde de inmediato con su propio ataque contra
+ese mismo jugador. Solo los jugadores tienen un orden de turno entre ellos.
 
 El estado de combate vive en `EstadoSala.combate` (JSON) con esta forma:
 
@@ -7,13 +13,15 @@ El estado de combate vive en `EstadoSala.combate` (JSON) con esta forma:
     {"enemigo_id": "lobo_1", "nombre": "Lobo", "vida": 8, "vida_max": 8,
      "atributos": {"fuerza": 3, "agilidad": 2}, "ataques": [...], "derrotado": False}
   ],
-  "orden_iniciativa": ["personaje:<id>", "enemigo:lobo_1", ...],
+  "orden_iniciativa": ["personaje:<id>", ...],  # solo jugadores
   "turno_index": 0,
   "ronda": 1,
   "terminado": False,
   "resultado": null  # "victoria" | "derrota" | "huida" | "negociacion"
 }
 """
+
+import secrets
 
 from app.engine.dice import resolver_tirada, tirar_d20
 from app.models.personaje import Personaje
@@ -34,9 +42,6 @@ def iniciar_combate(nodo: dict, personajes: list[Personaje]) -> dict:
     for personaje in personajes:
         iniciativa = tirar_d20() + personaje.agilidad
         participantes.append((f"personaje:{personaje.id}", iniciativa))
-    for enemigo in enemigos:
-        iniciativa = tirar_d20() + enemigo.get("atributos", {}).get("agilidad", 0)
-        participantes.append((f"enemigo:{enemigo['enemigo_id']}", iniciativa))
 
     participantes.sort(key=lambda p: p[1], reverse=True)
 
@@ -55,6 +60,16 @@ def iniciar_combate(nodo: dict, personajes: list[Personaje]) -> dict:
 
 def enemigo_en_combate(combate: dict, enemigo_id: str) -> dict | None:
     return next((e for e in combate["enemigos"] if e["enemigo_id"] == enemigo_id), None)
+
+
+def elegir_enemigo_reactivo(combate: dict) -> dict | None:
+    """Enemigo que responde cuando la acción del jugador no apuntaba a
+    ninguno en concreto (huir, negociar, usar un objeto, curarse): uno al
+    azar de entre los que siguen en pie, o None si ya no queda ninguno."""
+    vivos = [e for e in combate["enemigos"] if not e["derrotado"]]
+    if not vivos:
+        return None
+    return vivos[secrets.randbelow(len(vivos))]
 
 
 def _enemigo(combate: dict, enemigo_id: str) -> dict:

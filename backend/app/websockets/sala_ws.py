@@ -1,7 +1,8 @@
 """Endpoint WebSocket de sala: un socket por jugador conectado, un canal de
 difusión por sala. Aquí vive el flujo central del spec: nodo -> interacción
 -> tirada -> nodo, con foco/bloqueo de palabras clave, tiradas combinadas,
-combate por rondas y overrides del máster.
+combate reactivo (el enemigo responde a la acción del jugador, sin turno
+propio) y overrides del máster.
 """
 
 import uuid
@@ -168,19 +169,12 @@ async def _avanzar_y_notificar(db, sala: Sala, nodo_id: str) -> None:
         await _avanzar_turnos_invalidos(db, sala)
 
 
-def _elegir_objetivo(personajes: list[Personaje]) -> Personaje | None:
-    activos = [p for p in personajes if p.estado == "activo"]
-    if not activos:
-        return None
-    return min(activos, key=lambda p: p.vida_actual)
-
-
 async def _avanzar_turnos_invalidos(db, sala: Sala) -> None:
-    """Resuelve automáticamente los turnos que no requieren acción de un
-    jugador real: ataques de enemigos, enemigos derrotados, enemigos
-    aturdidos y turnos de personajes inactivos (ausentes o inconscientes).
-    Se detiene en cuanto llega a un turno de un personaje que sí puede
-    actuar, o cuando el combate termina.
+    """Salta los turnos de personajes inactivos (ausentes, inconscientes o
+    muertos) hasta llegar a uno que pueda actuar. Los enemigos ya no tienen
+    turno propio: responden de inmediato a la acción del jugador implicado
+    (ver `_reaccion_enemigo`), así que aquí solo se ordena el turno entre
+    jugadores. Si ninguno puede actuar, el combate se da por perdido.
     """
     estado = sala.estado_sala
     combate = estado.combate
@@ -188,62 +182,17 @@ async def _avanzar_turnos_invalidos(db, sala: Sala) -> None:
         return
 
     personajes = {str(p.id): p for p in _personajes_no_master(db, sala.id)}
-    muerte_permanente = _usa_muerte_permanente(sala)
+    total = len(combate["orden_iniciativa"])
 
-    while not combate["terminado"]:
-        entrada = combate["orden_iniciativa"][combate["turno_index"]]
-        tipo_turno, id_turno = entrada.split(":", 1)
-
-        if tipo_turno == "enemigo":
-            enemigo = combate_engine.enemigo_en_combate(combate, id_turno)
-            if enemigo is None or enemigo["derrotado"]:
-                combate_engine.avanzar_turno(combate)
-                continue
-
-            if enemigo.get("aturdido"):
-                enemigo["aturdido"] = False
-                flag_modified(estado, "combate")
-                db.commit()
-                await gestor.broadcast(
-                    str(sala.id),
-                    {
-                        "tipo": "combate_resultado",
-                        "datos": {"origen": "enemigo", "accion": "aturdido", "enemigo_id": id_turno},
-                    },
-                )
-                combate_engine.avanzar_turno(combate)
-                continue
-
-            objetivo = _elegir_objetivo(list(personajes.values()))
-            if objetivo is None:
-                combate["terminado"] = True
-                combate["resultado"] = "derrota"
-                break
-
-            resultado = combate_engine.resolver_ataque_enemigo(
-                combate, id_turno, objetivo, muerte_permanente=muerte_permanente
-            )
-            flag_modified(estado, "combate")
-            db.commit()
-            await gestor.broadcast(
-                str(sala.id), {"tipo": "combate_resultado", "datos": {"origen": "enemigo", **resultado}}
-            )
-
-            if await _procesar_posible_muerte(db, sala, objetivo):
-                return
-
-            if all(p.estado != "activo" for p in personajes.values()):
-                combate["terminado"] = True
-                combate["resultado"] = "derrota"
-                break
-
-            combate_engine.avanzar_turno(combate)
-        else:
-            personaje = personajes.get(id_turno)
-            if personaje is None or personaje.estado != "activo":
-                combate_engine.avanzar_turno(combate)
-                continue
-            break  # turno válido de un jugador activo: se espera su acción
+    for _ in range(total):
+        id_turno = combate["orden_iniciativa"][combate["turno_index"]].split(":", 1)[1]
+        personaje = personajes.get(id_turno)
+        if personaje is not None and personaje.estado == "activo":
+            break
+        combate_engine.avanzar_turno(combate)
+    else:
+        combate["terminado"] = True
+        combate["resultado"] = "derrota"
 
     flag_modified(estado, "combate")
     db.commit()
@@ -261,6 +210,75 @@ async def _avanzar_turnos_invalidos(db, sala: Sala) -> None:
             await _broadcast_nodo(sala)
     else:
         await _broadcast_nodo(sala)
+
+
+async def _reaccion_enemigo(
+    db, sala: Sala, combate: dict, estado, personaje: Personaje, enemigo_id: str | None
+) -> bool:
+    """Tras una acción de combate del jugador que no haya terminado el
+    combate, el enemigo implicado (o uno vivo al azar si la acción no
+    apuntaba a ninguno) le devuelve el golpe de inmediato — no espera a
+    ningún turno propio. Si está aturdido, consume el aturdimiento y no
+    ataca esta vez. Devuelve True si la partida ya quedó resuelta (muerte
+    total o derrota del grupo) y el llamador no debe seguir avanzando el
+    turno por su cuenta.
+    """
+    if combate.get("terminado"):
+        return False
+
+    if enemigo_id:
+        enemigo = combate_engine.enemigo_en_combate(combate, enemigo_id)
+        if enemigo is not None and enemigo["derrotado"]:
+            enemigo = None
+    else:
+        enemigo = combate_engine.elegir_enemigo_reactivo(combate)
+
+    if enemigo is None:
+        return False
+
+    if enemigo.get("aturdido"):
+        enemigo["aturdido"] = False
+        flag_modified(estado, "combate")
+        db.commit()
+        await gestor.broadcast(
+            str(sala.id),
+            {
+                "tipo": "combate_resultado",
+                "datos": {"origen": "enemigo", "accion": "aturdido", "enemigo_id": enemigo["enemigo_id"]},
+            },
+        )
+        return False
+
+    resultado = combate_engine.resolver_ataque_enemigo(
+        combate, enemigo["enemigo_id"], personaje, muerte_permanente=_usa_muerte_permanente(sala)
+    )
+    flag_modified(estado, "combate")
+    db.commit()
+    await gestor.broadcast(
+        str(sala.id), {"tipo": "combate_resultado", "datos": {"origen": "enemigo", **resultado}}
+    )
+    await gestor.broadcast(
+        str(sala.id), {"tipo": "personaje_actualizado", "datos": _personaje_publico(personaje)}
+    )
+
+    if await _procesar_posible_muerte(db, sala, personaje):
+        return True
+
+    activos = [p for p in _personajes_no_master(db, sala.id) if p.estado == "activo"]
+    if not activos:
+        combate["terminado"] = True
+        combate["resultado"] = "derrota"
+        flag_modified(estado, "combate")
+        db.commit()
+        nodo_actual = sala.historia.contenido["nodos"][estado.nodo_actual_id]
+        destino = nodo_actual.get("nodo_derrota")
+        if destino:
+            await _avanzar_y_notificar(db, sala, destino)
+        else:
+            await _broadcast_nodo(sala)
+        return True
+
+    return False
 
 
 async def _resolver_individual(
@@ -620,6 +638,8 @@ async def _manejar_combate_accion(db, sala: Sala, conexion: ConexionJugador, dat
             db.commit()
             await _avanzar_y_notificar(db, sala, nodo_actual.get("nodo_victoria"))
             return
+        if await _reaccion_enemigo(db, sala, combate, estado, personaje, datos["enemigo_id"]):
+            return
     elif accion == "huir":
         resultado = resolver_tirada(personaje.agilidad, dificultad=combate.get("dificultad_huida", 12))
         await gestor.broadcast(
@@ -633,6 +653,8 @@ async def _manejar_combate_accion(db, sala: Sala, conexion: ConexionJugador, dat
             db.commit()
             await _avanzar_y_notificar(db, sala, nodo_actual["nodo_huida"])
             return
+        if await _reaccion_enemigo(db, sala, combate, estado, personaje, None):
+            return
     elif accion == "negociar":
         resultado = resolver_tirada(personaje.astucia, dificultad=combate.get("dificultad_negociacion", 13))
         await gestor.broadcast(
@@ -645,6 +667,8 @@ async def _manejar_combate_accion(db, sala: Sala, conexion: ConexionJugador, dat
             flag_modified(estado, "combate")
             db.commit()
             await _avanzar_y_notificar(db, sala, nodo_actual["nodo_negociacion"])
+            return
+        if await _reaccion_enemigo(db, sala, combate, estado, personaje, None):
             return
     elif accion == "objeto":
         try:
@@ -684,6 +708,8 @@ async def _manejar_combate_accion(db, sala: Sala, conexion: ConexionJugador, dat
                 },
             },
         )
+        if await _reaccion_enemigo(db, sala, combate, estado, personaje, None):
+            return
     elif accion == "hechizo":
         try:
             hechizo_id = datos["hechizo_id"]
@@ -709,11 +735,14 @@ async def _manejar_combate_accion(db, sala: Sala, conexion: ConexionJugador, dat
         personaje.mana_actual -= hechizo["coste_mana"]
         resultado_tirada = resolver_tirada(personaje.voluntad, hechizo["dificultad"])
         efecto_aplicado = None
+        objetivo_enemigo_id = None
+
+        if hechizo["efecto"] in ("dano_directo", "aturdir_enemigo"):
+            objetivo_enemigo_id = datos.get("objetivo_enemigo_id")
 
         if resultado_tirada.exito:
             if hechizo["efecto"] in ("dano_directo", "aturdir_enemigo"):
-                enemigo_id = datos.get("objetivo_enemigo_id")
-                enemigo = combate_engine.enemigo_en_combate(combate, enemigo_id or "")
+                enemigo = combate_engine.enemigo_en_combate(combate, objetivo_enemigo_id or "")
                 if enemigo is None:
                     await _enviar_error(conexion, "Ese enemigo no está en el combate.")
                     return
@@ -722,10 +751,10 @@ async def _manejar_combate_accion(db, sala: Sala, conexion: ConexionJugador, dat
                     enemigo["vida"] = max(0, enemigo["vida"] - dano)
                     if enemigo["vida"] == 0:
                         enemigo["derrotado"] = True
-                    efecto_aplicado = {"tipo": "dano", "enemigo_id": enemigo_id, "dano": dano}
+                    efecto_aplicado = {"tipo": "dano", "enemigo_id": objetivo_enemigo_id, "dano": dano}
                 else:
                     enemigo["aturdido"] = True
-                    efecto_aplicado = {"tipo": "aturdido", "enemigo_id": enemigo_id}
+                    efecto_aplicado = {"tipo": "aturdido", "enemigo_id": objetivo_enemigo_id}
             else:  # restaura_vida_o_mana
                 objetivo_id = datos.get("objetivo_personaje_id")
                 try:
@@ -759,11 +788,19 @@ async def _manejar_combate_accion(db, sala: Sala, conexion: ConexionJugador, dat
                 },
             },
         )
-        if combate_engine.evaluar_fin_combate(combate) == "victoria":
+        if hechizo["efecto"] == "dano_directo" and combate_engine.evaluar_fin_combate(combate) == "victoria":
             flag_modified(estado, "combate")
             db.commit()
             await _avanzar_y_notificar(db, sala, nodo_actual.get("nodo_victoria"))
             return
+
+        # El aturdimiento exitoso es justo lo que evita que ese enemigo
+        # responda: no tendría sentido consumirlo en el mismo instante en
+        # que se aplica.
+        aturdido_con_exito = resultado_tirada.exito and hechizo["efecto"] == "aturdir_enemigo"
+        if not aturdido_con_exito:
+            if await _reaccion_enemigo(db, sala, combate, estado, personaje, objetivo_enemigo_id):
+                return
     else:
         await _enviar_error(conexion, f"Acción de combate '{accion}' no reconocida.")
         return
@@ -771,7 +808,6 @@ async def _manejar_combate_accion(db, sala: Sala, conexion: ConexionJugador, dat
     combate_engine.avanzar_turno(combate)
     flag_modified(estado, "combate")
     db.commit()
-    await _broadcast_nodo(sala)
     await _avanzar_turnos_invalidos(db, sala)
 
 

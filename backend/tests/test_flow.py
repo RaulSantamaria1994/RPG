@@ -241,15 +241,18 @@ def test_combate_por_rondas_aplica_dano_y_avanza_turnos(
         assert primer_resultado["datos"]["origen"] == "jugador"
         assert primer_resultado["datos"]["dano_aplicado"] == 4  # fuerza(5)//2 + 2
 
-        # Tras el ataque del jugador, los dos enemigos actúan automáticamente
-        # antes de que vuelva a ser su turno.
-        tipos_recibidos = []
-        for _ in range(3):
-            msg = ws.receive_json()
-            tipos_recibidos.append(msg["tipo"])
+        # El combate es reactivo: el enemigo atacado responde de inmediato,
+        # sin esperar un turno propio (el otro enemigo, al que nadie ha
+        # atacado, no hace nada).
+        reaccion = ws.receive_json()
+        assert reaccion["tipo"] == "combate_resultado"
+        assert reaccion["datos"]["origen"] == "enemigo"
 
-        assert tipos_recibidos.count("combate_resultado") == 2
-        assert "nodo_actualizado" in tipos_recibidos
+        actualizado = ws.receive_json()
+        assert actualizado["tipo"] == "personaje_actualizado"
+
+        siguiente = ws.receive_json()
+        assert siguiente["tipo"] == "nodo_actualizado"
 
     resp = client.get(f"/salas/{codigo}/estado", headers={"Authorization": f"Bearer {master_token}"})
     estado = resp.json()["estado"]

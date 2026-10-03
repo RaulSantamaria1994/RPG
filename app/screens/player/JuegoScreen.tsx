@@ -86,12 +86,18 @@ export default function JuegoScreen({ navigation }: Props) {
   return (
     <View style={styles.contenedor}>
       <View style={styles.cabecera}>
-        <View>
+        <View style={{ flex: 1 }}>
           <Text style={styles.nombrePersonaje}>{personaje.nombre}</Text>
           <Text style={styles.ficha}>
             PV {personaje.vida_actual}/{personaje.vida_max} · Maná {personaje.mana_actual}/
             {personaje.mana_max}
           </Text>
+          <View style={styles.filaAtributos}>
+            <Text style={styles.atributoChip}>FUE {personaje.fuerza}</Text>
+            <Text style={styles.atributoChip}>AST {personaje.astucia}</Text>
+            <Text style={styles.atributoChip}>VOL {personaje.voluntad}</Text>
+            <Text style={styles.atributoChip}>AGI {personaje.agilidad}</Text>
+          </View>
         </View>
         <TouchableOpacity onPress={salir}>
           <Text style={styles.salir}>Salir</Text>
@@ -519,13 +525,26 @@ const styles = StyleSheet.create({
   cabecera: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     padding: 16,
     borderBottomWidth: 1,
     borderBottomColor: '#3d2f57',
   },
   nombrePersonaje: { color: '#fff', fontSize: 18, fontWeight: '700' },
   ficha: { color: '#c9b8e0', fontSize: 12 },
+  filaAtributos: { flexDirection: 'row', gap: 6, marginTop: 6, flexWrap: 'wrap' },
+  atributoChip: {
+    color: '#d8cbe8',
+    fontSize: 11,
+    fontWeight: '600',
+    backgroundColor: '#2f2540',
+    borderWidth: 1,
+    borderColor: '#453a5c',
+    borderRadius: 6,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    overflow: 'hidden',
+  },
   salir: { color: '#ff8a8a' },
   dadoFlotante: {
     position: 'absolute',
