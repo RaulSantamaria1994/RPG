@@ -1,0 +1,583 @@
+{
+  "historia_id": "frecuencia_negra",
+  "titulo": "Frecuencia Negra",
+  "version": 1,
+  "muerte_permanente": false,
+  "nodo_inicial": "n001",
+  "nodo_muerte_total": "n_final_muerte_total",
+  "desenlace_tetrico_generico": "No hay un momento exacto en el que puedas decir que empezó a ir mal, solo el instante, demasiado tarde, en que la estática dentro de la Torre Argenta deja de sonar a ruido de fondo y empieza a sonar a tu nombre. Nadie grita, nadie corre: simplemente dejas de responder, y el resto del grupo sigue adelante con un hueco en la formación que nadie sabrá explicar del todo. Tu historia termina aquí.",
+  "desenlaces_tetricos": {
+    "mateo_ferreira": "Has cerrado casos que otros daban por imposibles a base de no soltar nunca la presa, de seguir tirando del hilo cuando todo el mundo con sentido común ya lo habría cortado. Esta vez el hilo tira de vuelta. No hay esposas que poner, no hay informe que redactar, solo la misma sensación de las novatadas de academia —la de estar completamente fuera de tu profundidad— que llevabas treinta años sin sentir. Intentas, por pura costumbre, memorizar un detalle más antes de que la estática se lo lleve todo. El resto del grupo sigue adelante sin quien siempre encontraba el cabo suelto.",
+    "lucia_advincula": "Llevas meses construyendo un artículo que tu redactor jefe nunca iba a publicar, uniendo nombres y fechas que nadie más quería mirar dos veces. Por fin tienes la exclusiva de tu vida, y la ironía no se te escapa ni en el último momento: no vas a poder escribirla. La grabadora sigue encendida en tu bolsillo, registrando fielmente hasta el final, como ha hecho siempre, aunque esta vez nadie va a transcribir la cinta. El resto del grupo sigue adelante sin quien siempre sabía qué pregunta hacer.",
+    "imelda_roig": "Dejaste de creer hace años, pero nunca dejaste de practicar, por si acaso, por si un día el 'por si acaso' resultaba ser cierto. Lo es. Las palabras del ritual te salen solas, en el orden correcto, con la voz correcta, y por primera vez en mucho tiempo casi vuelves a creer en ellas —un segundo antes de entender que esta vez las está recitando otra voz, no la tuya, desde dentro de tu propia garganta. El resto del grupo sigue adelante sin quien siempre sabía qué rezo decir aunque ya no rezara.",
+    "zeque_moran": "Conoces cada salida de esta ciudad, cada tejado, cada tubería, cada ventana que cede con un buen golpe en la esquina correcta. Has salido de sitios peores que este, o eso te dices mientras buscas con los ojos una salida que esta vez no está en ninguna parte, por mucho que la busques. La torre no tiene tejados que trepar ni tuberías que seguir hacia afuera, solo pasillos que se repiten y una estática que ya sabe tu nombre. El resto del grupo sigue adelante sin quien siempre encontraba el camino más corto.",
+    "noor_haddad": "Has firmado más certificados de defunción de los que puedes recordar, y siempre supiste distinguir un cuerpo vacío de uno que todavía, técnicamente, no lo es. Por eso reconoces exactamente el momento en que dejas de estar en la segunda categoría para pasar a la primera, con la misma precisión clínica que has aplicado a todos los demás. No hay nadie aquí para firmar tu informe. El resto del grupo sigue adelante sin quien siempre sabía, con certeza, cuándo alguien ya no iba a volver."
+  },
+  "hechizos": [
+    {
+      "hechizo_id": "estatica_protectora",
+      "nombre": "Estática protectora",
+      "categoria": "combate",
+      "coste_mana": 3,
+      "dificultad": 12,
+      "descripcion": "Un siseo de interferencia que llena el aire y aturde al oyente equivocado.",
+      "efecto": "aturdir_enemigo"
+    },
+    {
+      "hechizo_id": "ultimo_mensaje",
+      "nombre": "Último mensaje",
+      "categoria": "curacion",
+      "coste_mana": 4,
+      "dificultad": 10,
+      "descripcion": "Un susurro familiar entre la estática te da fuerzas para seguir.",
+      "efecto": "restaura_vida_o_mana"
+    }
+  ],
+  "habilidades_pasivas_personalizado": [
+    {
+      "id": "puno_de_ley",
+      "nombre": "Puño de ley",
+      "descripcion": "Ventaja en la primera tirada de Fuerza de cada nodo."
+    },
+    {
+      "id": "instinto_de_reportera",
+      "nombre": "Instinto de reportera",
+      "descripcion": "Ventaja en la primera tirada de Astucia para examinar pistas o documentos."
+    },
+    {
+      "id": "voluntad_de_hierro",
+      "nombre": "Voluntad de hierro",
+      "descripcion": "Ventaja en la primera tirada de Voluntad de cada nodo."
+    },
+    {
+      "id": "paso_de_gato",
+      "nombre": "Paso de gato",
+      "descripcion": "Ventaja en la primera tirada de Agilidad de cada nodo."
+    },
+    {
+      "id": "ojo_clinico",
+      "nombre": "Ojo clínico",
+      "descripcion": "Ventaja en la primera tirada social (hablar/convencer) de cada nodo."
+    }
+  ],
+  "personajes_pregenerados": [
+    {
+      "id": "mateo_ferreira",
+      "nombre": "Mateo Ferreira, el Exinspector",
+      "trasfondo": "Expulsado de la policía de Puerto Umbría por métodos poco ortodoxos, lleva años investigando por su cuenta los casos que nadie más quiere tocar. Esta vez, el desaparecido era su informante.",
+      "atributos": {
+        "fuerza": 5,
+        "astucia": 3,
+        "voluntad": 2,
+        "agilidad": 2
+      },
+      "habilidad_pasiva": "puno_de_ley",
+      "vida_max": 24,
+      "mana_max": 4,
+      "hechizos_conocidos": []
+    },
+    {
+      "id": "lucia_advincula",
+      "nombre": "Lucía Advíncula, la Periodista",
+      "trasfondo": "Reportera de sucesos del Puerto Umbría Semanal, lleva meses tirando del hilo de las desapariciones nocturnas. Nadie en la redacción le cree, así que ha dejado de contarles nada.",
+      "atributos": {
+        "fuerza": 1,
+        "astucia": 5,
+        "voluntad": 2,
+        "agilidad": 3
+      },
+      "habilidad_pasiva": "instinto_de_reportera",
+      "vida_max": 16,
+      "mana_max": 10,
+      "hechizos_conocidos": [
+        "luz_fantasma"
+      ]
+    },
+    {
+      "id": "imelda_roig",
+      "nombre": "Imelda Roig, la Descreída",
+      "trasfondo": "Ex sacerdotisa de un culto menor disuelto hace años, conserva los rituales aunque ya no cree en ellos. Dice que los usa 'por si acaso'.",
+      "atributos": {
+        "fuerza": 2,
+        "astucia": 2,
+        "voluntad": 5,
+        "agilidad": 2
+      },
+      "habilidad_pasiva": "voluntad_de_hierro",
+      "vida_max": 14,
+      "mana_max": 18,
+      "hechizos_conocidos": [
+        "estatica_protectora",
+        "ultimo_mensaje",
+        "mano_calmada"
+      ]
+    },
+    {
+      "id": "zeque_moran",
+      "nombre": "Ezequiel \"Zeque\" Morán, el Trepador",
+      "trasfondo": "Creció entre los tejados del barrio del puerto haciendo recados para quien pagara mejor. Conoce cada tubería y cada ventana rota de Puerto Umbría, incluida la Torre Argenta.",
+      "atributos": {
+        "fuerza": 2,
+        "astucia": 3,
+        "voluntad": 1,
+        "agilidad": 5
+      },
+      "habilidad_pasiva": "paso_de_gato",
+      "vida_max": 18,
+      "mana_max": 6,
+      "hechizos_conocidos": []
+    },
+    {
+      "id": "noor_haddad",
+      "nombre": "Dra. Noor Haddad, la Forense",
+      "trasfondo": "Ha visto más cuerpos sin explicación en el último mes que en diez años de carrera. Esta vez tiene la corazonada de que uno de ellos podría no estar realmente muerto.",
+      "atributos": {
+        "fuerza": 1,
+        "astucia": 4,
+        "voluntad": 4,
+        "agilidad": 2
+      },
+      "habilidad_pasiva": "ojo_clinico",
+      "vida_max": 16,
+      "mana_max": 12,
+      "hechizos_conocidos": [
+        "mano_calmada"
+      ]
+    }
+  ],
+  "nodos": {
+    "n001": {
+      "tipo": "interactivo",
+      "texto": "El piso de Lucía huele a café frío y cinta magnética quemada. Sobre la mesa, un cassette repite el mismo tramo de estática una y otra vez: la grabación que dejó Andrés antes de desaparecer anoche, después de sintonizar una frecuencia que no debería existir. En la ventana, el vecino de enfrente no deja de mirar hacia la calle.",
+      "palabras_clave": [
+        {
+          "texto": "examinar la cinta encontrada",
+          "tipo_interaccion": "examinar",
+          "atributo": "astucia",
+          "dificultad": 11,
+          "nodo_exito": "n001a",
+          "nodo_fallo": "n001b"
+        },
+        {
+          "texto": "hablar con el vecino asustado",
+          "tipo_interaccion": "hablar",
+          "atributo": "astucia",
+          "dificultad": 12,
+          "nodo_exito": "n001c",
+          "nodo_fallo": "n001d"
+        },
+        {
+          "texto": "preguntar por la emisora pirata",
+          "tipo_interaccion": "hablar",
+          "repetible": true,
+          "nodo_exito": "n001_info"
+        }
+      ],
+      "es_final": false
+    },
+    "n001_info": {
+      "tipo": "narrativo",
+      "texto": "Nadie en el barrio admite escuchar la señal, pero todos saben de qué hablas: dicen que solo se oye pasada la medianoche, y que quien la sintoniza dos noches seguidas no vuelve a casa la tercera.",
+      "nodo_siguiente": "n001",
+      "es_final": false
+    },
+    "n001a": {
+      "tipo": "narrativo",
+      "texto": "Bajo la estática hay un patrón: no es ruido, es una voz cantando al revés. Reconocéis el compás de un vals antiguo, deformado hasta la náusea.",
+      "nodo_siguiente": "n002",
+      "es_final": false
+    },
+    "n001b": {
+      "tipo": "narrativo",
+      "texto": "Rebobináis la cinta una y otra vez, pero solo oís ruido blanco. Sea lo que sea, no está hecho para oídos impacientes.",
+      "nodo_siguiente": "n002",
+      "es_final": false
+    },
+    "n001c": {
+      "tipo": "narrativo",
+      "texto": "El vecino, tembloroso, susurra un nombre antes de cerrar la ventana de golpe: Torre Argenta, la vieja emisora del acantilado, abandonada desde los años cincuenta. \"Desde que se cayó dicen que nadie, pero yo la veo encendida todas las noches.\"",
+      "nodo_siguiente": "n002",
+      "es_final": false
+    },
+    "n001d": {
+      "tipo": "narrativo",
+      "texto": "El vecino niega con la cabeza y corre la cortina. No vais a sacarle nada más esta noche.",
+      "nodo_siguiente": "n002",
+      "es_final": false
+    },
+    "n002": {
+      "tipo": "narrativo",
+      "texto": "Metéis la cinta en una bolsa de pruebas improvisada y salís hacia el acantilado, donde se alza —apenas visible entre la niebla portuaria— la silueta oxidada de la Torre Argenta.",
+      "nodo_siguiente": "n003",
+      "es_final": false
+    },
+    "n003": {
+      "tipo": "interactivo",
+      "texto": "La verja perimetral está cerrada con una cadena mohosa. Más allá, el sendero se bifurca: un camino directo hasta la puerta principal, y una senda estrecha que bordea el acantilado hasta la parte trasera del edificio.",
+      "palabras_clave": [
+        {
+          "texto": "forzar la verja oxidada",
+          "tipo_interaccion": "forzar",
+          "atributo": "fuerza",
+          "dificultad": 14,
+          "modo_interaccion": "apoyo",
+          "atributo_apoyo": "astucia",
+          "dificultad_apoyo": 11,
+          "nodo_exito": "n003a",
+          "nodo_fallo": "n003b",
+          "fallo_con_coste": true,
+          "flags_set_fallo": {
+            "alerta_guardias": true
+          }
+        },
+        {
+          "texto": "rodear por el sendero del acantilado",
+          "tipo_interaccion": "sigilo",
+          "atributo": "agilidad",
+          "dificultad": 13,
+          "nodo_exito": "n003c",
+          "nodo_fallo": "n003d",
+          "objeto_otorga_exito": {
+            "objeto_id": "botiquin_abandonado",
+            "nombre": "Botiquín abandonado",
+            "destino": "grupo",
+            "efecto": {
+              "tipo": "curar_vida",
+              "cantidad": 8
+            },
+            "consumible": true
+          },
+          "dano_fallo": {
+            "cantidad": 2
+          }
+        }
+      ],
+      "es_final": false
+    },
+    "n003a": {
+      "tipo": "narrativo",
+      "texto": "Entre dos, cedéis la cadena oxidada sin apenas hacer ruido. La verja se abre con un chirrido corto.",
+      "nodo_siguiente": "n004",
+      "es_final": false
+    },
+    "n003b": {
+      "tipo": "narrativo",
+      "texto": "La cadena cede de golpe con un chasquido metálico que resuena en el acantilado. En algún lugar del interior, unos pasos se detienen y vuelven a moverse, ahora más deprisa.",
+      "nodo_siguiente": "n004",
+      "es_final": false
+    },
+    "n003c": {
+      "tipo": "narrativo",
+      "texto": "El sendero es traicionero pero tranquilo. A medio camino encontráis un botiquín abandonado, medio hundido en el barro: alguien lo perdió huyendo de aquí.",
+      "nodo_siguiente": "n004",
+      "es_final": false
+    },
+    "n003d": {
+      "tipo": "narrativo",
+      "texto": "Un tramo de tierra suelta cede bajo vuestros pies. Nadie cae al vacío, pero las rocas dejan su marca.",
+      "nodo_siguiente": "n004",
+      "es_final": false
+    },
+    "n004": {
+      "tipo": "narrativo",
+      "texto": "El vestíbulo de la Torre Argenta conserva los carteles descoloridos de la emisora: \"WRA — La Voz del Puerto, 1958\". El suelo cruje bajo capas de polvo y papel podrido. Al fondo, dos pasillos: uno hacia lo que fue el archivo de la emisora, otro hacia las escaleras de la torre.",
+      "nodo_siguiente": "n005",
+      "es_final": false
+    },
+    "n005": {
+      "tipo": "interactivo",
+      "texto": "El archivo está intacto, casi ordenado, como si alguien siguiera consultándolo. Carpetas con nombres y fechas se amontonan junto a una puerta entornada por la que llega, amortiguada, una melodía tarareada.",
+      "palabras_clave": [
+        {
+          "texto": "examinar las carpetas del archivo",
+          "tipo_interaccion": "examinar",
+          "atributo": "astucia",
+          "dificultad": 12,
+          "nodo_exito": "n005a",
+          "nodo_fallo": "n_combate1",
+          "objeto_otorga_exito": {
+            "objeto_id": "ficha_dalmau",
+            "nombre": "Ficha personal de Dalmau Ferrer",
+            "destino": "grupo"
+          }
+        },
+        {
+          "texto": "escuchar tras la puerta entornada",
+          "tipo_interaccion": "escuchar",
+          "atributo": "astucia",
+          "dificultad": 10,
+          "nodo_exito": "n005b",
+          "nodo_fallo": "n_combate1",
+          "flags_set_exito": {
+            "sabe_ritual": true
+          }
+        }
+      ],
+      "es_final": false
+    },
+    "n005a": {
+      "tipo": "narrativo",
+      "texto": "La ficha lleva el membrete original de la emisora: Dalmau Ferrer, ingeniero de sonido, dado de baja en 1958 \"por motivos personales\". Alguien ha escrito a mano, mucho después, una sola palabra al margen: \"Perdón\".",
+      "nodo_siguiente": "n006",
+      "es_final": false
+    },
+    "n005b": {
+      "tipo": "narrativo",
+      "texto": "La voz al otro lado no es de nadie vivo: recita, con calma antigua, los pasos de un ritual para \"mantener la señal, mantener la voz, mantener a mi niña despierta\".",
+      "nodo_siguiente": "n006",
+      "es_final": false
+    },
+    "n_combate1": {
+      "tipo": "combate",
+      "texto": "La puerta se abre de golpe. Dos Fieles del Eco, devotos de ojos vidriosos y auriculares fundidos a la piel de las sienes, os cierran el paso entre susurros de estática.",
+      "enemigos": [
+        {
+          "enemigo_id": "fiel_1",
+          "nombre": "Fiel del Eco",
+          "vida": 10,
+          "atributos": {
+            "fuerza": 2,
+            "agilidad": 2,
+            "defensa": 11
+          },
+          "ataques": [
+            {
+              "nombre": "Cuchillo de desguace",
+              "dano": 3,
+              "modificador": 2
+            }
+          ]
+        },
+        {
+          "enemigo_id": "fiel_2",
+          "nombre": "Fiel del Eco",
+          "vida": 10,
+          "atributos": {
+            "fuerza": 3,
+            "agilidad": 1,
+            "defensa": 10
+          },
+          "ataques": [
+            {
+              "nombre": "Tubo de cobre",
+              "dano": 4,
+              "modificador": 1
+            }
+          ]
+        }
+      ],
+      "nodo_victoria": "n006",
+      "nodo_derrota": "n_final_derrota",
+      "nodo_huida": "n_final_tragico",
+      "es_final": false
+    },
+    "n006": {
+      "tipo": "narrativo",
+      "texto": "Dejáis atrás el archivo. La estática ya no es ruido de fondo: palpita por las paredes como si la propia torre respirara al ritmo del vals invertido.",
+      "nodo_siguiente": "n007",
+      "es_final": false
+    },
+    "n007": {
+      "tipo": "interactivo",
+      "texto": "Las escaleras suben junto a la sala de generadores, donde un motor diésel mal cuidado alimenta, contra todo pronóstico, las luces de toda la torre. El grupo debe decidir cómo proceder.",
+      "palabras_clave": [
+        {
+          "texto": "forzar el generador atascado",
+          "tipo_interaccion": "forzar",
+          "atributo": "fuerza",
+          "dificultad": 13,
+          "nodo_exito": "n007a",
+          "nodo_fallo": "n007b"
+        },
+        {
+          "texto": "cortar la energía de la torre ahora",
+          "tipo_interaccion": "decidir",
+          "modo_interaccion": "grupal",
+          "nodo_exito": "n008",
+          "flags_set_exito": {
+            "corto_energia": true
+          }
+        },
+        {
+          "texto": "dejar la energía y subir con cautela",
+          "tipo_interaccion": "decidir",
+          "modo_interaccion": "grupal",
+          "nodo_exito": "n008",
+          "flags_set_exito": {
+            "espero_antes": true
+          }
+        }
+      ],
+      "es_final": false
+    },
+    "n007a": {
+      "tipo": "narrativo",
+      "texto": "El generador cede con un chasquido y un gemido de metal fatigado, pero sigue funcionando.",
+      "nodo_siguiente": "n008",
+      "es_final": false
+    },
+    "n007b": {
+      "tipo": "narrativo",
+      "texto": "El generador se atasca más, escupe una nube de humo negro y una chispa os hace retroceder, pero mantiene la corriente.",
+      "nodo_siguiente": "n008",
+      "es_final": false
+    },
+    "n008": {
+      "tipo": "narrativo",
+      "texto": "Subís el último tramo de escaleras hasta la sala de transmisión. La estática aquí ya no suena a ruido: suena a alguien respirando muy cerca del micrófono.",
+      "nodo_siguiente": "n009",
+      "es_final": false
+    },
+    "n009": {
+      "tipo": "interactivo",
+      "texto": "En el centro de la sala, rodeado de válvulas y cables que laten como venas, está Dalmau Ferrer: piel de papel, ojos vueltos hacia dentro, los dedos fundidos a los diales de la consola. A su alrededor, la estática se condensa en algo con forma de voz: la Locutora, su hija, atrapada en el aire desde hace setenta años.",
+      "palabras_clave": [
+        {
+          "texto": "razonar con Dalmau sobre su hija",
+          "tipo_interaccion": "convencer",
+          "modo_interaccion": "opuesta",
+          "atributo": "voluntad",
+          "npc_modificador": 3,
+          "nodo_exito": "n010_convence",
+          "nodo_fallo": "n_combate2"
+        },
+        {
+          "texto": "destruir la consola de transmisión a la fuerza",
+          "tipo_interaccion": "forzar",
+          "atributo": "fuerza",
+          "dificultad": 15,
+          "nodo_exito": "n010_destruye",
+          "nodo_fallo": "n_combate2",
+          "fallo_con_coste": true,
+          "dano_fallo": {
+            "cantidad": 3
+          }
+        },
+        {
+          "texto": "cortar la consola desde los fusibles ya preparados",
+          "tipo_interaccion": "forzar",
+          "atributo": "fuerza",
+          "dificultad": 11,
+          "requiere_flag": "corto_energia",
+          "nodo_exito": "n010_destruye",
+          "nodo_fallo": "n_combate2"
+        },
+        {
+          "texto": "usar el ritual inverso contra Dalmau",
+          "tipo_interaccion": "examinar",
+          "atributo": "astucia",
+          "dificultad": 13,
+          "requiere_flag": "sabe_ritual",
+          "requiere_objeto": "ficha_dalmau",
+          "nodo_exito": "n010_ritual",
+          "nodo_fallo": "n_combate2"
+        }
+      ],
+      "es_final": false
+    },
+    "n010_convence": {
+      "tipo": "narrativo",
+      "texto": "Dalmau os mira, por primera vez en setenta años, con los ojos de un hombre y no de una máquina. \"No puedo soltarla\", solloza, \"si la suelto, deja de existir\". Pero afloja los dedos de los diales, y la estática, despacio, empieza a ceder.",
+      "nodo_siguiente": "n_final_sombrio",
+      "es_final": false
+    },
+    "n010_destruye": {
+      "tipo": "narrativo",
+      "texto": "La consola estalla en una lluvia de chispas y cristal. Dalmau se desploma como una marioneta sin hilos, y con él, de golpe, la voz que llevaba setenta años transmitiendo.",
+      "nodo_siguiente": "n_final_agridulce",
+      "es_final": false
+    },
+    "n010_ritual": {
+      "tipo": "narrativo",
+      "texto": "Con la ficha de Dalmau en una mano y las palabras del ritual en la boca, invertís el pacto sobre quien lo hizo. Por un instante, la estática se ordena en una melodía limpia, humana, agradecida. Y luego, silencio: un silencio real, el primero en setenta años.",
+      "nodo_siguiente": "n_final_heroico",
+      "es_final": false
+    },
+    "n_combate2": {
+      "tipo": "combate",
+      "texto": "Dalmau grita una palabra que no es ninguna palabra, y la estática se le enrosca al cuerpo como un segundo pulso. La Locutora, furiosa y asustada a la vez, se lanza contra vosotros desde todos los altavoces a la vez.",
+      "enemigos": [
+        {
+          "enemigo_id": "dalmau_consumido",
+          "nombre": "Dalmau, consumido por la señal",
+          "vida": 16,
+          "atributos": {
+            "fuerza": 3,
+            "agilidad": 1,
+            "defensa": 12
+          },
+          "ataques": [
+            {
+              "nombre": "Manos de cable y cristal",
+              "dano": 4,
+              "modificador": 2
+            }
+          ]
+        },
+        {
+          "enemigo_id": "eco_viviente",
+          "nombre": "Eco viviente",
+          "vida": 12,
+          "atributos": {
+            "fuerza": 1,
+            "agilidad": 4,
+            "defensa": 13
+          },
+          "ataques": [
+            {
+              "nombre": "Chillido de estática",
+              "dano": 3,
+              "modificador": 3
+            }
+          ]
+        }
+      ],
+      "nodo_victoria": "n011",
+      "nodo_derrota": "n_final_derrota",
+      "nodo_huida": "n_final_tragico",
+      "es_final": false
+    },
+    "n011": {
+      "tipo": "narrativo",
+      "texto": "Dalmau cae y, con él, la consola que mantenía viva la señal. La estática se deshace en jirones, y por un segundo, antes de apagarse del todo, suena casi a una voz despidiéndose.",
+      "nodo_siguiente": "n_final_agridulce",
+      "es_final": false
+    },
+    "n_final_heroico": {
+      "tipo": "narrativo",
+      "texto": "La Torre Argenta queda en silencio esa misma noche, y lo sigue estando. Nadie vuelve a sintonizar la frecuencia a las 3:13, porque ya no hay nada emitiendo. Andrés no vuelve —nadie vuelve— pero, por primera vez en setenta años, nadie más desaparecerá escuchando un vals al revés.",
+      "es_final": true,
+      "tipo_final": "heroico"
+    },
+    "n_final_agridulce": {
+      "tipo": "narrativo",
+      "texto": "La señal se corta esa noche para siempre, y con ella la Torre Argenta vuelve a ser solo ruinas sobre un acantilado. Habéis detenido lo que fuera que ocurría ahí dentro, pero nadie de los que la Voz se llevó antes va a volver a casa.",
+      "es_final": true,
+      "tipo_final": "agridulce"
+    },
+    "n_final_sombrio": {
+      "tipo": "narrativo",
+      "texto": "Dalmau suelta los diales, pero la Locutora no se apaga: lleva demasiado tiempo siendo algo más que un eco de su padre. La torre se queda en silencio esa noche... pero vosotros sabéis que la estática sigue ahí, escuchando, decidiendo cuándo volver a cantar.",
+      "es_final": true,
+      "tipo_final": "sombrío"
+    },
+    "n_final_tragico": {
+      "tipo": "narrativo",
+      "texto": "Salís de la Torre Argenta sin respuestas y sin fuerzas para volver. Esa misma madrugada, a las 3:13, la frecuencia vuelve a emitir en algún lugar de Puerto Umbría. Alguien, en algún piso con la radio encendida, está a punto de escuchar un vals que no debería escuchar.",
+      "es_final": true,
+      "tipo_final": "trágico"
+    },
+    "n_final_derrota": {
+      "tipo": "narrativo",
+      "texto": "La estática os envuelve antes de que podáis reaccionar, y el mundo se reduce a un zumbido blanco que no termina nunca. En algún archivo de la Torre Argenta, alguien añade vuestros nombres a una carpeta ya muy llena.",
+      "es_final": true,
+      "tipo_final": "derrota"
+    },
+    "n_final_muerte_total": {
+      "tipo": "narrativo",
+      "texto": "La Torre Argenta se queda, una vez más, con todo el grupo que fue a buscar respuestas. La estática, satisfecha, vuelve a su rutina de setenta años: esperar a las 3:13, y a quien sintonice esta vez.",
+      "es_final": true,
+      "tipo_final": "muerte_total"
+    }
+  }
+}

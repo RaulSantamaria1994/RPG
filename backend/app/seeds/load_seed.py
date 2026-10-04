@@ -10,7 +10,7 @@ from app.engine.validator import validar_historia
 from app.models.historia import Historia
 
 SEEDS_DIR = Path(__file__).parent
-HISTORIAS_SEED = ["cuervo_negro.json", "ala_norte.json"]
+HISTORIAS_SEED = ["cuervo_negro.json", "ala_norte.json", "frecuencia_negra.json"]
 
 
 def cargar_historia(db, nombre_archivo: str) -> Historia:
