@@ -113,6 +113,7 @@ export interface EnemigoCombate {
   vida_max: number;
   derrotado: boolean;
   aturdido?: boolean;
+  atributos?: { defensa?: number; fuerza?: number; agilidad?: number };
 }
 
 export interface EstadoCombate {

@@ -219,7 +219,7 @@ function procesarMensaje(
         objeto?: { nombre: string };
         hechizo?: string;
         efecto?: { tipo: string; dano?: number; cantidad?: number; enemigo_id?: string } | null;
-        tirada?: { exito?: boolean };
+        tirada?: { exito?: boolean; dado?: number; total?: number };
       };
       let texto: string;
       if (d.origen === 'enemigo' && d.accion === 'aturdido') {
@@ -240,7 +240,18 @@ function procesarMensaje(
       } else {
         texto = `Un enemigo ataca: ${d.dano_aplicado ?? 0} de daño`;
       }
-      set((s) => ({ log: [nuevoEvento(texto), ...s.log] }));
+      set((s) => ({
+        log: [nuevoEvento(texto), ...s.log],
+        ultimaTirada:
+          d.origen === 'jugador' && d.tirada
+            ? {
+                dado: d.tirada.dado,
+                total: d.tirada.total,
+                exito: !!d.tirada.exito,
+                quien: s.personaje?.nombre ?? 'Tú',
+              }
+            : s.ultimaTirada,
+      }));
       break;
     }
     case 'personaje_actualizado': {

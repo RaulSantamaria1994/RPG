@@ -43,8 +43,12 @@ export default function JuegoScreen({ navigation }: Props) {
   const [hechizos, setHechizos] = useState<Hechizo[]>([]);
   const [seccionCombate, setSeccionCombate] = useState<'objeto' | 'hechizo' | null>(null);
   const [hechizoElegido, setHechizoElegido] = useState<string | null>(null);
+  const [lanzando, setLanzando] = useState(false);
+  const [caraDado, setCaraDado] = useState(20);
 
   const opacidadDado = useRef(new Animated.Value(0)).current;
+  const intervaloDado = useRef<ReturnType<typeof setInterval> | null>(null);
+  const timeoutDado = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     conectar();
@@ -59,9 +63,25 @@ export default function JuegoScreen({ navigation }: Props) {
 
   useEffect(() => {
     if (!ultimaTirada) return;
+    if (intervaloDado.current) {
+      clearInterval(intervaloDado.current);
+      intervaloDado.current = null;
+    }
+    if (timeoutDado.current) {
+      clearTimeout(timeoutDado.current);
+      timeoutDado.current = null;
+    }
+    setLanzando(false);
     opacidadDado.setValue(1);
     Animated.timing(opacidadDado, { toValue: 0, duration: 2500, useNativeDriver: true }).start();
   }, [ultimaTirada]);
+
+  useEffect(() => {
+    return () => {
+      if (intervaloDado.current) clearInterval(intervaloDado.current);
+      if (timeoutDado.current) clearTimeout(timeoutDado.current);
+    };
+  }, []);
 
   useEffect(() => {
     if (!sala || !personaje) {
@@ -77,6 +97,32 @@ export default function JuegoScreen({ navigation }: Props) {
     enCombate && estado!.combate!.orden_iniciativa[estado!.combate!.turno_index] === `personaje:${personaje.id}`;
   const soyAusente = personaje.estado === 'ausente';
   const soyMuerto = personaje.estado === 'muerto';
+
+  const idEnTurno = enCombate
+    ? estado!.combate!.orden_iniciativa[estado!.combate!.turno_index]?.split(':')[1]
+    : null;
+  const personajeEnTurno =
+    idEnTurno === personaje.id ? personaje : personajes.find((p) => p.id === idEnTurno);
+
+  function lanzarDado(tipo: string, datos: Record<string, unknown> = {}) {
+    setLanzando(true);
+    setCaraDado(1 + Math.floor(Math.random() * 20));
+    opacidadDado.stopAnimation();
+    opacidadDado.setValue(1);
+    if (intervaloDado.current) clearInterval(intervaloDado.current);
+    intervaloDado.current = setInterval(() => {
+      setCaraDado(1 + Math.floor(Math.random() * 20));
+    }, 80);
+    if (timeoutDado.current) clearTimeout(timeoutDado.current);
+    timeoutDado.current = setTimeout(() => {
+      if (intervaloDado.current) {
+        clearInterval(intervaloDado.current);
+        intervaloDado.current = null;
+      }
+      setLanzando(false);
+    }, 4000);
+    enviar(tipo, datos);
+  }
 
   function salir() {
     reiniciar();
@@ -105,13 +151,17 @@ export default function JuegoScreen({ navigation }: Props) {
       </View>
 
       <Animated.View style={[styles.dadoFlotante, { opacity: opacidadDado }]} pointerEvents="none">
-        {ultimaTirada && (
-          <>
-            <Text style={styles.dadoValor}>🎲 {ultimaTirada.dado ?? '?'}</Text>
-            <Text style={[styles.dadoResultado, ultimaTirada.exito ? styles.exito : styles.fallo]}>
-              {ultimaTirada.exito ? 'ÉXITO' : 'FALLO'} (total {ultimaTirada.total ?? '?'})
-            </Text>
-          </>
+        {lanzando ? (
+          <Text style={styles.dadoValor}>🎲 {caraDado}…</Text>
+        ) : (
+          ultimaTirada && (
+            <>
+              <Text style={styles.dadoValor}>🎲 {ultimaTirada.dado ?? '?'}</Text>
+              <Text style={[styles.dadoResultado, ultimaTirada.exito ? styles.exito : styles.fallo]}>
+                {ultimaTirada.exito ? 'ÉXITO' : 'FALLO'} (total {ultimaTirada.total ?? '?'})
+              </Text>
+            </>
+          )
         )}
       </Animated.View>
 
@@ -160,8 +210,22 @@ export default function JuegoScreen({ navigation }: Props) {
 
               const confirmacion = confirmacionesGrupales[clave];
 
+              const requiereTirada = p.modo_interaccion === 'opuesta' || !!p.dificultad;
+              const resumenTirada =
+                p.modo_interaccion === 'opuesta'
+                  ? `🎲 ${p.atributo ? ETIQUETA_ATRIBUTO[p.atributo] : '?'} contra un rival`
+                  : p.dificultad
+                    ? `🎲 ${p.atributo ? ETIQUETA_ATRIBUTO[p.atributo] : '?'} · dificultad ${p.dificultad}`
+                    : 'Sin tirada — se resuelve al confirmar';
+
               function tirar(datosExtra: Record<string, unknown> = {}) {
-                enviar('interactuar', { palabra_clave: p.texto, ...datosExtra });
+                const conDado =
+                  requiereTirada || datosExtra.via === 'hechizo' || datosExtra.rol_apoyo === 'apoyo';
+                if (conDado) {
+                  lanzarDado('interactuar', { palabra_clave: p.texto, ...datosExtra });
+                } else {
+                  enviar('interactuar', { palabra_clave: p.texto, ...datosExtra });
+                }
                 setPalabraExpandida(null);
               }
 
@@ -172,15 +236,20 @@ export default function JuegoScreen({ navigation }: Props) {
                     style={[styles.botonPalabra, deshabilitada && styles.botonPalabraDeshabilitado]}
                     onPress={() => setPalabraExpandida(expandida ? null : clave)}
                   >
-                    <Text
-                      style={[
-                        styles.botonPalabraTexto,
-                        deshabilitada && styles.botonPalabraTextoDeshabilitado,
-                      ]}
-                    >
-                      {p.texto}
-                      {p.modo_interaccion === 'grupal' ? ' (todos deben confirmar)' : ''}
-                    </Text>
+                    <View style={{ flex: 1 }}>
+                      <Text
+                        style={[
+                          styles.botonPalabraTexto,
+                          deshabilitada && styles.botonPalabraTextoDeshabilitado,
+                        ]}
+                      >
+                        {p.texto}
+                        {p.modo_interaccion === 'grupal' ? ' (todos deben confirmar)' : ''}
+                      </Text>
+                      {!deshabilitada && (
+                        <Text style={styles.botonPalabraSubtexto}>{resumenTirada}</Text>
+                      )}
+                    </View>
                     {usada && <Text style={styles.etiquetaEstado}>agotada</Text>}
                     {bloqueada && !usada && <Text style={styles.etiquetaEstado}>en curso…</Text>}
                   </TouchableOpacity>
@@ -215,7 +284,7 @@ export default function JuegoScreen({ navigation }: Props) {
 
                       <TouchableOpacity style={styles.botonTirar} onPress={() => tirar()}>
                         <Text style={styles.botonTirarTexto}>
-                          {p.dificultad ? '🎲 Tirar dado' : 'Confirmar'}
+                          {requiereTirada ? '🎲 Tirar dado' : 'Confirmar'}
                         </Text>
                       </TouchableOpacity>
 
@@ -270,20 +339,32 @@ export default function JuegoScreen({ navigation }: Props) {
 
         {enCombate && (
           <View style={{ gap: 8 }}>
-            <Text style={styles.seccionTitulo}>
-              Combate — ronda {estado!.combate!.ronda} {esMiTurno ? '(tu turno)' : '(esperando…)'}
-            </Text>
+            <Text style={styles.seccionTitulo}>Combate — ronda {estado!.combate!.ronda}</Text>
+            <View style={[styles.turnoBanner, esMiTurno && styles.turnoBannerActivo]}>
+              <Text style={styles.turnoBannerTexto}>
+                {esMiTurno
+                  ? '▶ Es tu turno'
+                  : `Esperando a ${personajeEnTurno?.nombre ?? 'otro jugador'}…`}
+              </Text>
+            </View>
             {estado!.combate!.enemigos.map((en) => (
               <View key={en.enemigo_id} style={styles.tarjetaEnemigo}>
-                <Text style={styles.enemigoNombre}>
-                  {en.nombre} — {en.vida}/{en.vida_max} PV {en.derrotado ? '☠' : ''}
-                  {en.aturdido ? ' 💫 aturdido' : ''}
-                </Text>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.enemigoNombre}>
+                    {en.nombre} — {en.vida}/{en.vida_max} PV {en.derrotado ? '☠' : ''}
+                    {en.aturdido ? ' 💫 aturdido' : ''}
+                  </Text>
+                  {esMiTurno && !en.derrotado && (
+                    <Text style={styles.enemigoSubtexto}>
+                      🎲 Fuerza vs defensa ({en.atributos?.defensa ?? 10})
+                    </Text>
+                  )}
+                </View>
                 {esMiTurno && !en.derrotado && (
                   <TouchableOpacity
                     style={styles.botonAtacar}
                     onPress={() =>
-                      enviar('combate_accion', { accion: 'atacar', enemigo_id: en.enemigo_id })
+                      lanzarDado('combate_accion', { accion: 'atacar', enemigo_id: en.enemigo_id })
                     }
                   >
                     <Text style={styles.botonAtacarTexto}>Atacar</Text>
@@ -294,18 +375,28 @@ export default function JuegoScreen({ navigation }: Props) {
             {esMiTurno && (
               <>
                 <View style={{ flexDirection: 'row', gap: 8 }}>
-                  <TouchableOpacity
-                    style={styles.botonSecundario}
-                    onPress={() => enviar('combate_accion', { accion: 'huir' })}
-                  >
-                    <Text style={styles.botonSecundarioTexto}>Huir</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    style={styles.botonSecundario}
-                    onPress={() => enviar('combate_accion', { accion: 'negociar' })}
-                  >
-                    <Text style={styles.botonSecundarioTexto}>Negociar</Text>
-                  </TouchableOpacity>
+                  <View style={{ flex: 1, gap: 4 }}>
+                    <TouchableOpacity
+                      style={styles.botonSecundario}
+                      onPress={() => lanzarDado('combate_accion', { accion: 'huir' })}
+                    >
+                      <Text style={styles.botonSecundarioTexto}>Huir</Text>
+                    </TouchableOpacity>
+                    <Text style={styles.accionSubtexto}>
+                      🎲 Agilidad · dificultad {estado!.combate!.dificultad_huida ?? 12}
+                    </Text>
+                  </View>
+                  <View style={{ flex: 1, gap: 4 }}>
+                    <TouchableOpacity
+                      style={styles.botonSecundario}
+                      onPress={() => lanzarDado('combate_accion', { accion: 'negociar' })}
+                    >
+                      <Text style={styles.botonSecundarioTexto}>Negociar</Text>
+                    </TouchableOpacity>
+                    <Text style={styles.accionSubtexto}>
+                      🎲 Astucia · dificultad {estado!.combate!.dificultad_negociacion ?? 13}
+                    </Text>
+                  </View>
                 </View>
 
                 {(() => {
@@ -400,7 +491,7 @@ export default function JuegoScreen({ navigation }: Props) {
                                     key={destino.id}
                                     style={styles.botonHechizo}
                                     onPress={() => {
-                                      enviar('combate_accion', {
+                                      lanzarDado('combate_accion', {
                                         accion: 'hechizo',
                                         hechizo_id: hechizo.hechizo_id,
                                         objetivo_personaje_id: destino.id,
@@ -419,7 +510,7 @@ export default function JuegoScreen({ navigation }: Props) {
                                     key={en.enemigo_id}
                                     style={styles.botonHechizo}
                                     onPress={() => {
-                                      enviar('combate_accion', {
+                                      lanzarDado('combate_accion', {
                                         accion: 'hechizo',
                                         hechizo_id: hechizo.hechizo_id,
                                         objetivo_enemigo_id: en.enemigo_id,
@@ -613,6 +704,7 @@ const styles = StyleSheet.create({
   },
   botonPalabraDeshabilitado: { borderColor: '#453a5c', opacity: 0.5 },
   botonPalabraTexto: { color: '#fff', fontSize: 15 },
+  botonPalabraSubtexto: { color: '#b39fd6', fontSize: 12, marginTop: 3 },
   botonPalabraTextoDeshabilitado: { textDecorationLine: 'line-through' },
   etiquetaEstado: { color: '#e0c27f', fontSize: 11 },
   botonHechizo: {
@@ -632,6 +724,17 @@ const styles = StyleSheet.create({
   },
   botonContinuarTexto: { color: '#fff', fontWeight: '600' },
   seccionTitulo: { color: '#c9b8e0', fontWeight: '700' },
+  turnoBanner: {
+    backgroundColor: '#241b33',
+    borderRadius: 8,
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+    borderWidth: 1,
+    borderColor: '#453a5c',
+    alignItems: 'center',
+  },
+  turnoBannerActivo: { backgroundColor: '#3d2360', borderColor: '#a97fe0' },
+  turnoBannerTexto: { color: '#f3e9ff', fontWeight: '700', fontSize: 14 },
   tarjetaEnemigo: {
     backgroundColor: '#2f1f1f',
     borderRadius: 8,
@@ -641,6 +744,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   enemigoNombre: { color: '#f3d9d9' },
+  enemigoSubtexto: { color: '#d6a9a9', fontSize: 11, marginTop: 2 },
+  accionSubtexto: { color: '#b39fd6', fontSize: 11, textAlign: 'center' },
   botonAtacar: { backgroundColor: '#8a3f3f', borderRadius: 6, paddingHorizontal: 12, paddingVertical: 6 },
   botonAtacarTexto: { color: '#fff', fontWeight: '600' },
   botonSecundario: {

@@ -127,9 +127,16 @@ export default function MasterSalaScreen({ navigation }: Props) {
         {estado?.fase === 'combate' && estado.combate && (
           <View style={styles.seccion}>
             <Text style={styles.seccionTitulo}>Combate — ronda {estado.combate.ronda}</Text>
+            <Text style={styles.turnoTexto}>
+              Turno de:{' '}
+              {personajes.find(
+                (p) => p.id === estado.combate!.orden_iniciativa[estado.combate!.turno_index]?.split(':')[1]
+              )?.nombre ?? '—'}
+            </Text>
             {estado.combate.enemigos.map((en) => (
               <Text key={en.enemigo_id} style={styles.enemigoTexto}>
                 {en.nombre}: {en.vida}/{en.vida_max} PV {en.derrotado ? '(derrotado)' : ''}
+                {en.aturdido ? ' 💫' : ''}
               </Text>
             ))}
           </View>
@@ -268,6 +275,7 @@ const styles = StyleSheet.create({
   palabraUsada: { color: '#7a6c8f', textDecorationLine: 'line-through' },
   palabraBloqueo: { color: '#e0c27f' },
   enemigoTexto: { color: '#e0a9a9' },
+  turnoTexto: { color: '#f0e6c9', fontWeight: '700', marginBottom: 4 },
   jugadorFila: {
     flexDirection: 'row',
     justifyContent: 'space-between',
