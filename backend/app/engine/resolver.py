@@ -246,11 +246,39 @@ def aplicar_resultado(
     return cambios
 
 
+def aplicar_dano_al_llegar(
+    nodo: dict, personajes_sala: list[Personaje] | None, muerte_permanente: bool = False
+) -> dict | None:
+    """Si el nodo define `dano_al_llegar`, resta esa cantidad de vida a todo
+    el grupo con solo llegar a él — una trampa, una caída, un peligro
+    narrativo — sin que medie ninguna tirada. A diferencia de
+    `dano_exito`/`dano_fallo` (ligados al resultado de una palabra clave
+    concreta de un nodo interactivo), esto puede darse en cualquier tipo de
+    nodo. Devuelve quién resultó afectado, o None si no hay nada que aplicar.
+    """
+    dano = nodo.get("dano_al_llegar")
+    if not dano or not personajes_sala:
+        return None
+    cantidad = dano.get("cantidad", 0)
+    afectados = []
+    for p in personajes_sala:
+        if p.estado == "muerto":
+            continue
+        p.vida_actual = max(0, p.vida_actual - cantidad)
+        if p.vida_actual == 0:
+            p.estado = "muerto" if muerte_permanente else "inconsciente"
+        afectados.append(str(p.id))
+    if not afectados:
+        return None
+    return {"cantidad": cantidad, "afectados": afectados}
+
+
 def avanzar_a_nodo(
     estado: EstadoSala,
     historia_contenido: dict,
     nodo_id: str,
     personajes_sala: list[Personaje] | None = None,
+    muerte_permanente: bool = False,
 ) -> dict:
     """Mueve el estado de sala al nodo indicado, aplicando descanso narrativo
     y marcando la partida como finalizada si corresponde. Devuelve un resumen.
@@ -258,7 +286,14 @@ def avanzar_a_nodo(
     nodo = encontrar_nodo(historia_contenido, nodo_id)
     estado.nodo_actual_id = nodo_id
 
-    resumen = {"nodo": nodo, "descanso": False, "final": False, "tipo_final": None, "objetos_otorgados": []}
+    resumen = {
+        "nodo": nodo,
+        "descanso": False,
+        "final": False,
+        "tipo_final": None,
+        "objetos_otorgados": [],
+        "dano_al_llegar": None,
+    }
 
     # Cualquier tipo de nodo (narrativo, interactivo o de combate) puede
     # otorgar objetos solo por llegar a él — a diferencia de
@@ -270,6 +305,8 @@ def avanzar_a_nodo(
         resumen["objetos_otorgados"].append(
             otorgar_objeto(objeto, estado, None, destino_defecto="grupo", personajes_sala=personajes_sala)
         )
+
+    resumen["dano_al_llegar"] = aplicar_dano_al_llegar(nodo, personajes_sala, muerte_permanente)
 
     if nodo.get("punto_descanso"):
         resumen["descanso"] = True

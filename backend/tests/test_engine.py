@@ -1,5 +1,11 @@
 from app.engine.dice import resolver_tirada, resolver_tirada_opuesta
-from app.engine.resolver import _tiene_ventaja, aplicar_resultado, avanzar_a_nodo, otorgar_objeto
+from app.engine.resolver import (
+    _tiene_ventaja,
+    aplicar_dano_al_llegar,
+    aplicar_resultado,
+    avanzar_a_nodo,
+    otorgar_objeto,
+)
 from app.engine.validator import validar_historia
 from app.models.estado_sala import EstadoSala
 from app.models.personaje import Personaje
@@ -319,3 +325,67 @@ def test_avanzar_a_nodo_con_objeto_otorgado_de_categoria_hechizo_lo_ensena_al_ll
     ]
     assert estado.inventario_grupo == []
     assert kara.hechizos_conocidos == ["ignis_arcanus"]
+
+
+def test_aplicar_dano_al_llegar_resta_vida_a_todo_el_grupo():
+    kara = _personaje_de_prueba(vida_actual=10)
+    ana = _personaje_de_prueba(vida_actual=4)
+
+    resultado = aplicar_dano_al_llegar({"dano_al_llegar": {"cantidad": 3}}, [kara, ana])
+
+    assert kara.vida_actual == 7
+    assert ana.vida_actual == 1
+    assert set(resultado["afectados"]) == {str(kara.id), str(ana.id)}
+    assert resultado["cantidad"] == 3
+
+
+def test_aplicar_dano_al_llegar_sin_el_campo_no_hace_nada():
+    kara = _personaje_de_prueba(vida_actual=10)
+    assert aplicar_dano_al_llegar({}, [kara]) is None
+    assert kara.vida_actual == 10
+
+
+def test_aplicar_dano_al_llegar_deja_inconsciente_sin_muerte_permanente():
+    kara = _personaje_de_prueba(vida_actual=2)
+    aplicar_dano_al_llegar({"dano_al_llegar": {"cantidad": 5}}, [kara], muerte_permanente=False)
+    assert kara.vida_actual == 0
+    assert kara.estado == "inconsciente"
+
+
+def test_aplicar_dano_al_llegar_mata_con_muerte_permanente():
+    kara = _personaje_de_prueba(vida_actual=2)
+    aplicar_dano_al_llegar({"dano_al_llegar": {"cantidad": 5}}, [kara], muerte_permanente=True)
+    assert kara.vida_actual == 0
+    assert kara.estado == "muerto"
+
+
+def test_aplicar_dano_al_llegar_ignora_a_quien_ya_esta_muerto():
+    kara = _personaje_de_prueba(vida_actual=0, estado="muerto")
+    ana = _personaje_de_prueba(vida_actual=5)
+
+    resultado = aplicar_dano_al_llegar({"dano_al_llegar": {"cantidad": 3}}, [kara, ana])
+
+    assert kara.vida_actual == 0  # no se le vuelve a aplicar nada
+    assert ana.vida_actual == 2
+    assert resultado["afectados"] == [str(ana.id)]
+
+
+def test_avanzar_a_nodo_con_dano_al_llegar_resta_vida_sin_tirada():
+    estado = _estado_de_prueba()
+    kara = _personaje_de_prueba(vida_actual=10)
+    historia = {
+        "nodos": {
+            "n1": {
+                "tipo": "narrativo",
+                "texto": "El suelo cede bajo vuestros pies.",
+                "es_final": False,
+                "nodo_siguiente": "n2",
+                "dano_al_llegar": {"cantidad": 4},
+            },
+        }
+    }
+
+    resumen = avanzar_a_nodo(estado, historia, "n1", personajes_sala=[kara])
+
+    assert resumen["dano_al_llegar"] == {"cantidad": 4, "afectados": [str(kara.id)]}
+    assert kara.vida_actual == 6

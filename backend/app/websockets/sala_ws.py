@@ -154,7 +154,13 @@ async def _broadcast_nodo(sala: Sala) -> None:
 async def _avanzar_y_notificar(db, sala: Sala, nodo_id: str) -> None:
     estado = sala.estado_sala
     personajes_sala = _personajes_no_master(db, sala.id)
-    resumen = avanzar_a_nodo(estado, sala.historia.contenido, nodo_id, personajes_sala=personajes_sala)
+    resumen = avanzar_a_nodo(
+        estado,
+        sala.historia.contenido,
+        nodo_id,
+        personajes_sala=personajes_sala,
+        muerte_permanente=_usa_muerte_permanente(sala),
+    )
 
     if resumen["descanso"]:
         aplicar_descanso(estado, personajes_sala, resumen["nodo"])
@@ -179,6 +185,19 @@ async def _avanzar_y_notificar(db, sala: Sala, nodo_id: str) -> None:
                 await gestor.broadcast(
                     str(sala.id), {"tipo": "personaje_actualizado", "datos": _personaje_publico(p)}
                 )
+
+    if resumen["dano_al_llegar"]:
+        dano_info = resumen["dano_al_llegar"]
+        await gestor.broadcast(str(sala.id), {"tipo": "dano_al_llegar", "datos": dano_info})
+        afectados_ids = set(dano_info["afectados"])
+        afectados = [p for p in personajes_sala if str(p.id) in afectados_ids]
+        for p in afectados:
+            await gestor.broadcast(
+                str(sala.id), {"tipo": "personaje_actualizado", "datos": _personaje_publico(p)}
+            )
+        for p in afectados:
+            if p.estado == "muerto" and await _procesar_posible_muerte(db, sala, p):
+                return
 
     await _broadcast_nodo(sala)
 

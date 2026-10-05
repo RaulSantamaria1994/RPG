@@ -342,6 +342,13 @@ function procesarMensaje(
       }));
       break;
     }
+    case 'dano_al_llegar': {
+      const d = datos as { cantidad: number; afectados: string[] };
+      set((s) => ({
+        log: [nuevoEvento(`⚠ El grupo sufre ${d.cantidad} de daño (-${d.cantidad} PV)`), ...s.log],
+      }));
+      break;
+    }
     case 'voto_registrado': {
       const d = datos as { personaje_nombre: string; opcion: string; votados: number; total: number };
       set((s) => ({
