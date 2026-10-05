@@ -147,3 +147,43 @@ def test_usar_objeto_del_grupo_en_combate_no_requiere_tenerlo_en_propiedad(
 
     db.refresh(estado)
     assert estado.inventario_grupo == []  # se consumió del fondo común
+
+
+def test_usar_objeto_de_ataque_en_combate_hace_dano_y_provoca_reaccion(
+    client, historia_cuervo_negro, db
+):
+    sala = _crear_sala_cuervo_negro(client, historia_cuervo_negro)
+    codigo = sala["sala"]["codigo"]
+    kara = _crear_personaje(client, codigo, "kara_la_espadachina", "Ana")
+
+    estado = db.query(EstadoSala).filter(EstadoSala.sala_id == uuid.UUID(sala["sala"]["id"])).first()
+    estado.inventario_grupo = [
+        {"objeto_id": "daga_arrojadiza", "nombre": "Daga arrojadiza", "efecto": {"tipo": "dano", "cantidad": 4}, "consumible": True}
+    ]
+    db.commit()
+
+    with client.websocket_connect(f"/ws/sala/{codigo}?token={sala['master_token']}") as ws_master:
+        _recibir_hasta(ws_master, "estado_inicial")
+        ws_master.send_json({"tipo": "override_nodo", "datos": {"nodo_id": "n_combate1"}})
+        _recibir_hasta(ws_master, "nodo_actualizado")
+
+        with client.websocket_connect(f"/ws/sala/{codigo}?token={kara['token']}") as ws:
+            _recibir_hasta(ws, "estado_inicial")
+
+            ws.send_json(
+                {
+                    "tipo": "combate_accion",
+                    "datos": {"accion": "objeto", "objeto_id": "daga_arrojadiza", "enemigo_id": "contrabandista_1"},
+                }
+            )
+            resultado = _recibir_hasta(ws, "combate_resultado")
+            assert resultado["datos"]["accion"] == "objeto"
+            assert resultado["datos"]["efecto"] == {"tipo": "dano", "cantidad": 4, "enemigo_id": "contrabandista_1"}
+
+            # El objeto de ataque sí provoca la reacción inmediata del enemigo
+            # implicado, igual que un ataque normal.
+            reaccion = _recibir_hasta(ws, "combate_resultado")
+            assert reaccion["datos"]["origen"] == "enemigo"
+
+    db.refresh(estado)
+    assert estado.inventario_grupo == []  # se consumió al usarla

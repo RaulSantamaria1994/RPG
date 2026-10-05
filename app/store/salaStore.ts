@@ -228,7 +228,11 @@ function procesarMensaje(
       if (d.origen === 'enemigo' && d.accion === 'aturdido') {
         texto = 'Un enemigo aturdido pierde su turno';
       } else if (d.accion === 'objeto') {
-        texto = `Usa "${d.objeto?.nombre ?? 'un objeto'}"`;
+        const nombreObjeto = d.objeto?.nombre ?? 'un objeto';
+        texto =
+          d.efecto?.tipo === 'dano'
+            ? `Usa "${nombreObjeto}": ${d.efecto.cantidad ?? 0} de daño`
+            : `Usa "${nombreObjeto}"`;
       } else if (d.accion === 'hechizo') {
         const exito = d.tirada?.exito;
         texto = exito

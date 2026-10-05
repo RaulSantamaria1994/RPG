@@ -20,7 +20,7 @@ const ETIQUETA_ATRIBUTO: Record<Atributo, string> = {
 };
 
 const EFECTOS_HECHIZO_COMBATE = new Set(['dano_directo', 'restaura_vida_o_mana', 'aturdir_enemigo']);
-const EFECTOS_OBJETO_COMBATE = new Set(['curar_vida', 'curar_mana']);
+const EFECTOS_OBJETO_COMBATE = new Set(['curar_vida', 'curar_mana', 'dano']);
 
 export default function JuegoScreen({ navigation }: Props) {
   const sala = useSalaStore((s) => s.sala);
@@ -44,6 +44,7 @@ export default function JuegoScreen({ navigation }: Props) {
   const [hechizos, setHechizos] = useState<Hechizo[]>([]);
   const [seccionCombate, setSeccionCombate] = useState<'objeto' | 'hechizo' | null>(null);
   const [hechizoElegido, setHechizoElegido] = useState<string | null>(null);
+  const [objetoAtaqueElegido, setObjetoAtaqueElegido] = useState<string | null>(null);
   const [lanzando, setLanzando] = useState(false);
   const [caraDado, setCaraDado] = useState(20);
 
@@ -433,6 +434,7 @@ export default function JuegoScreen({ navigation }: Props) {
                           onPress={() => {
                             setSeccionCombate(seccionCombate === 'objeto' ? null : 'objeto');
                             setHechizoElegido(null);
+                            setObjetoAtaqueElegido(null);
                           }}
                         >
                           <Text style={styles.botonSecundarioTexto}>
@@ -444,6 +446,7 @@ export default function JuegoScreen({ navigation }: Props) {
                           onPress={() => {
                             setSeccionCombate(seccionCombate === 'hechizo' ? null : 'hechizo');
                             setHechizoElegido(null);
+                            setObjetoAtaqueElegido(null);
                           }}
                         >
                           <Text style={styles.botonSecundarioTexto}>
@@ -452,7 +455,7 @@ export default function JuegoScreen({ navigation }: Props) {
                         </TouchableOpacity>
                       </View>
 
-                      {seccionCombate === 'objeto' && (
+                      {seccionCombate === 'objeto' && !objetoAtaqueElegido && (
                         <View style={styles.panelRequisito}>
                           {objetosUsables.length === 0 && (
                             <Text style={styles.requisitoTexto}>No tienes objetos usables en combate.</Text>
@@ -462,16 +465,53 @@ export default function JuegoScreen({ navigation }: Props) {
                               key={`${idx}-${o.objeto_id}`}
                               style={styles.botonHechizo}
                               onPress={() => {
+                                if (o.efecto?.tipo === 'dano') {
+                                  setObjetoAtaqueElegido(o.objeto_id);
+                                  return;
+                                }
                                 enviar('combate_accion', { accion: 'objeto', objeto_id: o.objeto_id });
                                 setSeccionCombate(null);
                               }}
                             >
                               <Text style={styles.botonHechizoTexto}>
-                                {o.nombre} — {o.efecto?.tipo === 'curar_vida' ? `+${o.efecto?.cantidad ?? 0} PV` : `+${o.efecto?.cantidad ?? 0} maná`}
+                                {o.nombre} —{' '}
+                                {o.efecto?.tipo === 'curar_vida'
+                                  ? `+${o.efecto?.cantidad ?? 0} PV`
+                                  : o.efecto?.tipo === 'curar_mana'
+                                    ? `+${o.efecto?.cantidad ?? 0} maná`
+                                    : `${o.efecto?.cantidad ?? 0} de daño`}
                                 {o.deGrupo ? ' (del grupo)' : ''}
                               </Text>
                             </TouchableOpacity>
                           ))}
+                        </View>
+                      )}
+
+                      {seccionCombate === 'objeto' && objetoAtaqueElegido && (
+                        <View style={styles.panelRequisito}>
+                          <Text style={styles.requisitoTexto}>Elige a qué enemigo usarlo:</Text>
+                          {estado!.combate!.enemigos
+                            .filter((en) => !en.derrotado)
+                            .map((en) => (
+                              <TouchableOpacity
+                                key={en.enemigo_id}
+                                style={styles.botonHechizo}
+                                onPress={() => {
+                                  enviar('combate_accion', {
+                                    accion: 'objeto',
+                                    objeto_id: objetoAtaqueElegido,
+                                    enemigo_id: en.enemigo_id,
+                                  });
+                                  setObjetoAtaqueElegido(null);
+                                  setSeccionCombate(null);
+                                }}
+                              >
+                                <Text style={styles.botonHechizoTexto}>{en.nombre}</Text>
+                              </TouchableOpacity>
+                            ))}
+                          <TouchableOpacity onPress={() => setObjetoAtaqueElegido(null)}>
+                            <Text style={styles.botonApoyoTexto}>‹ Elegir otro objeto</Text>
+                          </TouchableOpacity>
                         </View>
                       )}
 

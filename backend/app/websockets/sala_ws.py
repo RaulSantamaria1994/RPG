@@ -787,15 +787,27 @@ async def _manejar_combate_accion(db, sala: Sala, conexion: ConexionJugador, dat
             origen = "personal" if objeto is not None else None
 
         efecto = (objeto or {}).get("efecto") or {}
-        if objeto is None or efecto.get("tipo") not in ("curar_vida", "curar_mana"):
+        tipo_efecto = efecto.get("tipo")
+        if objeto is None or tipo_efecto not in ("curar_vida", "curar_mana", "dano"):
             await _enviar_error(conexion, "Ese objeto no se puede usar en combate.")
             return
 
         cantidad = efecto.get("cantidad", 0)
-        if efecto["tipo"] == "curar_vida":
+        enemigo_objetivo_id = None
+        if tipo_efecto == "curar_vida":
             personaje.vida_actual = min(personaje.vida_max, personaje.vida_actual + cantidad)
-        else:
+        elif tipo_efecto == "curar_mana":
             personaje.mana_actual = min(personaje.mana_max, personaje.mana_actual + cantidad)
+        else:  # dano: un objeto de ataque (arma arrojadiza, bomba improvisada...)
+            enemigo_objetivo_id = datos.get("enemigo_id")
+            enemigo = combate_engine.enemigo_en_combate(combate, enemigo_objetivo_id or "")
+            if enemigo is None:
+                await _enviar_error(conexion, "Elige a qué enemigo usar este objeto.")
+                return
+            enemigo["vida"] = max(0, enemigo["vida"] - cantidad)
+            if enemigo["vida"] == 0:
+                enemigo["derrotado"] = True
+            flag_modified(estado, "combate")
 
         if objeto.get("consumible", True):
             if origen == "grupo":
@@ -817,13 +829,20 @@ async def _manejar_combate_accion(db, sala: Sala, conexion: ConexionJugador, dat
                     "accion": "objeto",
                     "personaje_id": str(personaje.id),
                     "objeto": objeto,
-                    "efecto": efecto,
+                    "efecto": {**efecto, "enemigo_id": enemigo_objetivo_id} if tipo_efecto == "dano" else efecto,
                 },
             },
         )
         if origen == "grupo":
             await _broadcast_nodo(sala)
-        if await _reaccion_enemigo(db, sala, combate, estado, personaje, None):
+
+        if tipo_efecto == "dano" and combate_engine.evaluar_fin_combate(combate) == "victoria":
+            flag_modified(estado, "combate")
+            db.commit()
+            await _avanzar_y_notificar(db, sala, nodo_actual.get("nodo_victoria"))
+            return
+
+        if await _reaccion_enemigo(db, sala, combate, estado, personaje, enemigo_objetivo_id):
             return
     elif accion == "hechizo":
         try:
