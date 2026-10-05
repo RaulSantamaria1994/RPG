@@ -29,6 +29,7 @@ interface SalaState {
   log: EventoLog[];
   palabrasBloqueadas: Record<string, string>;
   confirmacionesGrupales: Record<string, { confirmados: number; total: number }>;
+  votosGrupales: { votados: number; total: number } | null;
   propuestasIntercambio: PropuestaIntercambio[];
   conectado: boolean;
   cliente: ClienteSala | null;
@@ -59,6 +60,7 @@ const ESTADO_INICIAL_TRANSITORIO = {
   log: [] as EventoLog[],
   palabrasBloqueadas: {} as Record<string, string>,
   confirmacionesGrupales: {} as Record<string, { confirmados: number; total: number }>,
+  votosGrupales: null as { votados: number; total: number } | null,
   propuestasIntercambio: [] as PropuestaIntercambio[],
   conectado: false,
   cliente: null,
@@ -171,7 +173,7 @@ function procesarMensaje(
       break;
     }
     case 'nodo_actualizado': {
-      set({ estado: datos as unknown as EstadoPublico, confirmacionesGrupales: {} });
+      set({ estado: datos as unknown as EstadoPublico, confirmacionesGrupales: {}, votosGrupales: null });
       break;
     }
     case 'palabra_clave_bloqueada': {
@@ -309,6 +311,23 @@ function procesarMensaje(
           [d.clave]: { confirmados: d.confirmados, total: d.total },
         },
         log: [nuevoEvento(`Confirmaciones: ${d.confirmados}/${d.total}`), ...s.log],
+      }));
+      break;
+    }
+    case 'voto_registrado': {
+      const d = datos as { personaje_nombre: string; opcion: string; votados: number; total: number };
+      set((s) => ({
+        votosGrupales: { votados: d.votados, total: d.total },
+        log: [nuevoEvento(`${d.personaje_nombre} vota: "${d.opcion}" (${d.votados}/${d.total})`), ...s.log],
+      }));
+      break;
+    }
+    case 'votacion_resuelta': {
+      const d = datos as { recuento: Record<string, number>; empate: boolean; opcion_ganadora: string };
+      const sufijo = d.empate ? ' (empate resuelto al azar)' : '';
+      set((s) => ({
+        votosGrupales: null,
+        log: [nuevoEvento(`El grupo decide: "${d.opcion_ganadora}"${sufijo}`), ...s.log],
       }));
       break;
     }

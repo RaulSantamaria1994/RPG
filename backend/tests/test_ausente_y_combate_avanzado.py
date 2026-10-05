@@ -53,15 +53,15 @@ def test_marcar_ausente_reduce_el_total_de_una_confirmacion_grupal(
                 "datos": {"palabra_clave": "entregarlo todo a la guardia de la ciudad"},
             }
         )
-        confirmacion = ws.receive_json()
-        assert confirmacion["tipo"] == "confirmacion_registrada"
+        voto = ws.receive_json()
+        assert voto["tipo"] == "voto_registrado"
         # Solo Kara cuenta: Ilyana está ausente y no entra en el total.
-        assert confirmacion["datos"]["confirmados"] == 1
-        assert confirmacion["datos"]["total"] == 1
+        assert voto["datos"]["votados"] == 1
+        assert voto["datos"]["total"] == 1
 
         resultado = ws.receive_json()
-        assert resultado["tipo"] == "tirada_resultado"
-        assert resultado["datos"]["exito"] is True
+        assert resultado["tipo"] == "votacion_resuelta"
+        assert resultado["datos"]["opcion_ganadora"] == "entregarlo todo a la guardia de la ciudad"
 
         final = ws.receive_json()
         assert final["datos"]["finalizada"] is True

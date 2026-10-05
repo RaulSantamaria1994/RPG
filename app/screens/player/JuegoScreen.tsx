@@ -30,6 +30,7 @@ export default function JuegoScreen({ navigation }: Props) {
   const log = useSalaStore((s) => s.log);
   const palabrasBloqueadas = useSalaStore((s) => s.palabrasBloqueadas);
   const confirmacionesGrupales = useSalaStore((s) => s.confirmacionesGrupales);
+  const votosGrupales = useSalaStore((s) => s.votosGrupales);
   const propuestasIntercambio = useSalaStore((s) => s.propuestasIntercambio);
   const ultimaTirada = useSalaStore((s) => s.ultimaTirada);
   const epilogoPersonal = useSalaStore((s) => s.epilogoPersonal);
@@ -208,6 +209,7 @@ export default function JuegoScreen({ navigation }: Props) {
                 (h) => h === p.hechizo_id_alternativo
               );
 
+              const esVotacion = p.modo_interaccion === 'grupal' && !p.dificultad;
               const confirmacion = confirmacionesGrupales[clave];
 
               const requiereTirada = p.modo_interaccion === 'opuesta' || !!p.dificultad;
@@ -216,7 +218,9 @@ export default function JuegoScreen({ navigation }: Props) {
                   ? `🎲 ${p.atributo ? ETIQUETA_ATRIBUTO[p.atributo] : '?'} contra un rival`
                   : p.dificultad
                     ? `🎲 ${p.atributo ? ETIQUETA_ATRIBUTO[p.atributo] : '?'} · dificultad ${p.dificultad}`
-                    : 'Sin tirada — se resuelve al confirmar';
+                    : esVotacion
+                      ? 'Sin tirada — gana la opción más votada por el grupo'
+                      : 'Sin tirada — se resuelve al confirmar';
 
               function tirar(datosExtra: Record<string, unknown> = {}) {
                 const conDado =
@@ -244,7 +248,11 @@ export default function JuegoScreen({ navigation }: Props) {
                         ]}
                       >
                         {p.texto}
-                        {p.modo_interaccion === 'grupal' ? ' (todos deben confirmar)' : ''}
+                        {esVotacion
+                          ? ' (se decide por votación del grupo)'
+                          : p.modo_interaccion === 'grupal'
+                            ? ' (todos deben confirmar)'
+                            : ''}
                       </Text>
                       {!deshabilitada && (
                         <Text style={styles.botonPalabraSubtexto}>{resumenTirada}</Text>
@@ -254,7 +262,12 @@ export default function JuegoScreen({ navigation }: Props) {
                     {bloqueada && !usada && <Text style={styles.etiquetaEstado}>en curso…</Text>}
                   </TouchableOpacity>
 
-                  {p.modo_interaccion === 'grupal' && confirmacion && !usada && (
+                  {esVotacion && votosGrupales && !usada && (
+                    <Text style={styles.etiquetaConfirmacion}>
+                      Votos: {votosGrupales.votados}/{votosGrupales.total}
+                    </Text>
+                  )}
+                  {!esVotacion && p.modo_interaccion === 'grupal' && confirmacion && !usada && (
                     <Text style={styles.etiquetaConfirmacion}>
                       Confirmados: {confirmacion.confirmados}/{confirmacion.total}
                     </Text>

@@ -126,12 +126,12 @@ def test_flujo_real_hasta_una_palabra_clave_sin_dificultad_de_ala_norte(
             assert ws.receive_json()["datos"]["nodo_actual_id"] == "nBc"
 
             ws.send_json({"tipo": "interactuar", "datos": {"palabra_clave": "guardar la carpeta"}})
-            assert ws.receive_json()["tipo"] == "confirmacion_registrada"
+            assert ws.receive_json()["tipo"] == "voto_registrado"
 
             resultado = ws.receive_json()
-            assert resultado["tipo"] == "tirada_resultado"
-            assert resultado["datos"]["exito"] is True
-            assert resultado["datos"]["tirada"]["sin_tirada"] is True
+            assert resultado["tipo"] == "votacion_resuelta"
+            assert resultado["datos"]["opcion_ganadora"] == "guardar la carpeta"
+            assert resultado["datos"]["empate"] is False
 
             actualizado = ws.receive_json()
             assert actualizado["tipo"] == "nodo_actualizado"

@@ -24,6 +24,9 @@ class SalaConexiones:
     palabras_bloqueadas: dict[str, str] = field(default_factory=dict)
     # confirmaciones pendientes para interacciones en modo grupal/apoyo: clave -> set(personaje_id)
     confirmaciones: dict[str, set[str]] = field(default_factory=dict)
+    # votos pendientes de una decisión grupal por votación (sin dificultad):
+    # nodo_id -> {personaje_id: texto de la opción elegida}
+    votos_grupales: dict[str, dict[str, str]] = field(default_factory=dict)
 
 
 class GestorConexiones:
@@ -76,6 +79,14 @@ class GestorConexiones:
 
     def limpiar_confirmaciones(self, sala_id: str, clave: str) -> None:
         self._sala(sala_id).confirmaciones.pop(clave, None)
+
+    def registrar_voto(self, sala_id: str, nodo_id: str, personaje_id: str, texto: str) -> dict[str, str]:
+        votos = self._sala(sala_id).votos_grupales.setdefault(nodo_id, {})
+        votos[personaje_id] = texto
+        return votos
+
+    def limpiar_votos(self, sala_id: str, nodo_id: str) -> None:
+        self._sala(sala_id).votos_grupales.pop(nodo_id, None)
 
 
 gestor = GestorConexiones()

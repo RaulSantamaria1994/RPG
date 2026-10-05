@@ -200,8 +200,8 @@ def test_un_personaje_muerto_no_cuenta_para_confirmaciones_grupales(
                 "datos": {"palabra_clave": "Entrar ya en el box 4"},
             }
         )
-        confirmacion = ws.receive_json()
-        assert confirmacion["tipo"] == "confirmacion_registrada"
+        voto = ws.receive_json()
+        assert voto["tipo"] == "voto_registrado"
         # Solo Hugo cuenta: Thalia ha muerto y no entra en el total.
-        assert confirmacion["datos"]["confirmados"] == 1
-        assert confirmacion["datos"]["total"] == 1
+        assert voto["datos"]["votados"] == 1
+        assert voto["datos"]["total"] == 1

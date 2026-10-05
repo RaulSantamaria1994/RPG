@@ -5,6 +5,7 @@ combate reactivo (el enemigo responde a la acción del jugador, sin turno
 propio) y overrides del máster.
 """
 
+import secrets
 import uuid
 from datetime import datetime, timezone
 
@@ -402,6 +403,26 @@ async def _resolver_apoyo(
 async def _resolver_grupal(
     db, sala: Sala, conexion: ConexionJugador, personaje: Personaje, nodo_id: str, palabra: dict, datos: dict
 ) -> None:
+    """Una palabra clave en modo "grupal" se resuelve de dos formas
+    distintas según lleve dificultad o no:
+
+    - Con dificultad: es una prueba conjunta (todos intentan lo mismo a la
+      vez), así que se exige que todos confirmen esa misma acción antes de
+      tirar los dados — ver `_resolver_grupal_tirada`.
+    - Sin dificultad: es una decisión narrativa entre varias opciones
+      (las demás palabras clave en modo "grupal" sin dificultad de este
+      mismo nodo), así que se resuelve por votación — ver
+      `_resolver_grupal_voto`.
+    """
+    if palabra.get("dificultad"):
+        await _resolver_grupal_tirada(db, sala, conexion, personaje, nodo_id, palabra, datos)
+    else:
+        await _resolver_grupal_voto(db, sala, conexion, personaje, nodo_id, palabra, datos)
+
+
+async def _resolver_grupal_tirada(
+    db, sala: Sala, conexion: ConexionJugador, personaje: Personaje, nodo_id: str, palabra: dict, datos: dict
+) -> None:
     clave = _clave_palabra(nodo_id, palabra["texto"])
     confirmaciones = gestor.registrar_confirmacion(str(sala.id), clave, str(personaje.id))
     total = len(_personajes_confirmables(db, sala.id))
@@ -420,22 +441,18 @@ async def _resolver_grupal(
     gestor.limpiar_confirmaciones(str(sala.id), clave)
     estado = sala.estado_sala
 
-    if palabra.get("dificultad"):
-        regla = palabra.get("regla_grupal", "mejor_resultado")
-        participantes = _personajes_confirmables(db, sala.id)
-        resultados = [
-            {"personaje": p.nombre, **resolver_tirada(getattr(p, palabra["atributo"]), palabra["dificultad"]).to_dict()}
-            for p in participantes
-        ]
-        exito = (
-            all(r["exito"] for r in resultados)
-            if regla == "todos_aciertan"
-            else any(r["exito"] for r in resultados)
-        )
-        tirada_payload = {"resultados": resultados, "regla": regla, "exito": exito}
-    else:
-        exito = True
-        tirada_payload = {"exito": True, "sin_tirada": True}
+    regla = palabra.get("regla_grupal", "mejor_resultado")
+    participantes = _personajes_confirmables(db, sala.id)
+    resultados = [
+        {"personaje": p.nombre, **resolver_tirada(getattr(p, palabra["atributo"]), palabra["dificultad"]).to_dict()}
+        for p in participantes
+    ]
+    exito = (
+        all(r["exito"] for r in resultados)
+        if regla == "todos_aciertan"
+        else any(r["exito"] for r in resultados)
+    )
+    tirada_payload = {"resultados": resultados, "regla": regla, "exito": exito}
 
     cambios = aplicar_resultado(
         nodo_id, palabra, exito, estado, personaje, muerte_permanente=_usa_muerte_permanente(sala)
@@ -452,6 +469,77 @@ async def _resolver_grupal(
                 "exito": exito,
                 "modo": "grupal",
             },
+        },
+    )
+    if cambios.get("dano_aplicado"):
+        await gestor.broadcast(
+            str(sala.id), {"tipo": "personaje_actualizado", "datos": _personaje_publico(personaje)}
+        )
+
+    if await _procesar_posible_muerte(db, sala, personaje):
+        return
+
+    await _avanzar_y_notificar(db, sala, cambios["nodo_destino"])
+
+
+def _opciones_grupales_sin_dificultad(nodo: dict) -> list[dict]:
+    """Las palabras clave en modo grupal sin dificultad de un mismo nodo
+    forman, juntas, una única decisión por votación."""
+    return [
+        p
+        for p in nodo.get("palabras_clave", []) or []
+        if p.get("modo_interaccion") == "grupal" and not p.get("dificultad")
+    ]
+
+
+async def _resolver_grupal_voto(
+    db, sala: Sala, conexion: ConexionJugador, personaje: Personaje, nodo_id: str, palabra: dict, datos: dict
+) -> None:
+    nodo = encontrar_nodo(sala.historia.contenido, nodo_id)
+    opciones = _opciones_grupales_sin_dificultad(nodo)
+
+    votos = gestor.registrar_voto(str(sala.id), nodo_id, str(personaje.id), palabra["texto"])
+    total = len(_personajes_confirmables(db, sala.id))
+
+    await gestor.broadcast(
+        str(sala.id),
+        {
+            "tipo": "voto_registrado",
+            "datos": {
+                "personaje_id": str(personaje.id),
+                "personaje_nombre": personaje.nombre,
+                "opcion": palabra["texto"],
+                "votados": len(votos),
+                "total": total,
+            },
+        },
+    )
+
+    if len(votos) < total:
+        return
+
+    gestor.limpiar_votos(str(sala.id), nodo_id)
+
+    recuento: dict[str, int] = {}
+    for texto_elegido in votos.values():
+        recuento[texto_elegido] = recuento.get(texto_elegido, 0) + 1
+    maximo = max(recuento.values())
+    ganadoras = sorted(texto for texto, n in recuento.items() if n == maximo)
+    empate = len(ganadoras) > 1
+    texto_ganador = ganadoras[secrets.randbelow(len(ganadoras))] if empate else ganadoras[0]
+    palabra_ganadora = next((p for p in opciones if p["texto"] == texto_ganador), palabra)
+
+    estado = sala.estado_sala
+    cambios = aplicar_resultado(
+        nodo_id, palabra_ganadora, True, estado, personaje, muerte_permanente=_usa_muerte_permanente(sala)
+    )
+    db.commit()
+
+    await gestor.broadcast(
+        str(sala.id),
+        {
+            "tipo": "votacion_resuelta",
+            "datos": {"recuento": recuento, "empate": empate, "opcion_ganadora": texto_ganador},
         },
     )
     if cambios.get("dano_aplicado"):
