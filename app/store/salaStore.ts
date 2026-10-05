@@ -196,13 +196,14 @@ function procesarMensaje(
         palabra_clave?: string;
         exito: boolean;
         tirada?: { dado?: number; total?: number };
-        cambios?: { dano_aplicado?: number };
+        cambios?: { dano_aplicado?: number; objeto_otorgado?: { nombre: string } | null };
       };
       const quien = d.personaje_nombre ?? 'El grupo';
       const resultado = d.exito ? 'ÉXITO' : 'FALLO';
       const dano = d.cambios?.dano_aplicado ? ` (-${d.cambios.dano_aplicado} PV)` : '';
+      const objeto = d.cambios?.objeto_otorgado ? ` — obtenéis "${d.cambios.objeto_otorgado.nombre}"` : '';
       set((s) => ({
-        log: [nuevoEvento(`${quien} intenta "${d.palabra_clave}" → ${resultado}${dano}`), ...s.log],
+        log: [nuevoEvento(`${quien} intenta "${d.palabra_clave}" → ${resultado}${dano}${objeto}`), ...s.log],
         ultimaTirada: {
           dado: d.tirada?.dado,
           total: d.tirada?.total,
@@ -311,6 +312,14 @@ function procesarMensaje(
           [d.clave]: { confirmados: d.confirmados, total: d.total },
         },
         log: [nuevoEvento(`Confirmaciones: ${d.confirmados}/${d.total}`), ...s.log],
+      }));
+      break;
+    }
+    case 'objetos_otorgados': {
+      const d = datos as { objetos: { objeto_id: string; nombre: string }[]; destino: string };
+      const nombres = d.objetos.map((o) => o.nombre).join(', ');
+      set((s) => ({
+        log: [nuevoEvento(`El grupo encuentra: ${nombres}`), ...s.log],
       }));
       break;
     }

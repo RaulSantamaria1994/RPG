@@ -164,6 +164,16 @@ async def _avanzar_y_notificar(db, sala: Sala, nodo_id: str) -> None:
         flag_modified(estado, "combate")
 
     db.commit()
+
+    if resumen["objetos_otorgados"]:
+        await gestor.broadcast(
+            str(sala.id),
+            {
+                "tipo": "objetos_otorgados",
+                "datos": {"objetos": resumen["objetos_otorgados"], "destino": "grupo"},
+            },
+        )
+
     await _broadcast_nodo(sala)
 
     if resumen["nodo"].get("tipo") == "combate":
@@ -764,8 +774,18 @@ async def _manejar_combate_accion(db, sala: Sala, conexion: ConexionJugador, dat
         except KeyError:
             await _enviar_error(conexion, "Falta el objeto a usar.")
             return
-        inventario = list(personaje.inventario or [])
-        objeto = next((o for o in inventario if o.get("objeto_id") == objeto_id), None)
+
+        # El inventario es común al grupo: el objeto puede estar en el
+        # fondo compartido o, por compatibilidad con historias antiguas,
+        # en el inventario personal de quien lo usa.
+        inventario_grupo = list(estado.inventario_grupo or [])
+        inventario_personal = list(personaje.inventario or [])
+        objeto = next((o for o in inventario_grupo if o.get("objeto_id") == objeto_id), None)
+        origen = "grupo" if objeto is not None else None
+        if objeto is None:
+            objeto = next((o for o in inventario_personal if o.get("objeto_id") == objeto_id), None)
+            origen = "personal" if objeto is not None else None
+
         efecto = (objeto or {}).get("efecto") or {}
         if objeto is None or efecto.get("tipo") not in ("curar_vida", "curar_mana"):
             await _enviar_error(conexion, "Ese objeto no se puede usar en combate.")
@@ -778,9 +798,14 @@ async def _manejar_combate_accion(db, sala: Sala, conexion: ConexionJugador, dat
             personaje.mana_actual = min(personaje.mana_max, personaje.mana_actual + cantidad)
 
         if objeto.get("consumible", True):
-            inventario.remove(objeto)
-            personaje.inventario = inventario
-            flag_modified(personaje, "inventario")
+            if origen == "grupo":
+                inventario_grupo.remove(objeto)
+                estado.inventario_grupo = inventario_grupo
+                flag_modified(estado, "inventario_grupo")
+            else:
+                inventario_personal.remove(objeto)
+                personaje.inventario = inventario_personal
+                flag_modified(personaje, "inventario")
 
         db.commit()
         await gestor.broadcast(
@@ -796,6 +821,8 @@ async def _manejar_combate_accion(db, sala: Sala, conexion: ConexionJugador, dat
                 },
             },
         )
+        if origen == "grupo":
+            await _broadcast_nodo(sala)
         if await _reaccion_enemigo(db, sala, combate, estado, personaje, None):
             return
     elif accion == "hechizo":

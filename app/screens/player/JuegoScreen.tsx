@@ -413,9 +413,10 @@ export default function JuegoScreen({ navigation }: Props) {
                 </View>
 
                 {(() => {
-                  const objetosUsables = personaje.inventario.filter(
-                    (o) => o.efecto?.tipo && EFECTOS_OBJETO_COMBATE.has(o.efecto.tipo)
-                  );
+                  const objetosUsables = [
+                    ...personaje.inventario.map((o) => ({ ...o, deGrupo: false })),
+                    ...(estado?.inventario_grupo ?? []).map((o) => ({ ...o, deGrupo: true })),
+                  ].filter((o) => o.efecto?.tipo && EFECTOS_OBJETO_COMBATE.has(o.efecto.tipo));
                   const hechizosCombate = hechizos.filter(
                     (h) =>
                       personaje.hechizos_conocidos.includes(h.hechizo_id) &&
@@ -456,9 +457,9 @@ export default function JuegoScreen({ navigation }: Props) {
                           {objetosUsables.length === 0 && (
                             <Text style={styles.requisitoTexto}>No tienes objetos usables en combate.</Text>
                           )}
-                          {objetosUsables.map((o) => (
+                          {objetosUsables.map((o, idx) => (
                             <TouchableOpacity
-                              key={o.objeto_id}
+                              key={`${idx}-${o.objeto_id}`}
                               style={styles.botonHechizo}
                               onPress={() => {
                                 enviar('combate_accion', { accion: 'objeto', objeto_id: o.objeto_id });
@@ -467,6 +468,7 @@ export default function JuegoScreen({ navigation }: Props) {
                             >
                               <Text style={styles.botonHechizoTexto}>
                                 {o.nombre} — {o.efecto?.tipo === 'curar_vida' ? `+${o.efecto?.cantidad ?? 0} PV` : `+${o.efecto?.cantidad ?? 0} maná`}
+                                {o.deGrupo ? ' (del grupo)' : ''}
                               </Text>
                             </TouchableOpacity>
                           ))}
@@ -569,9 +571,23 @@ export default function JuegoScreen({ navigation }: Props) {
             </View>
           ))}
 
+        {(estado?.inventario_grupo.length ?? 0) > 0 && (
+          <View style={{ gap: 8 }}>
+            <Text style={styles.seccionTitulo}>Inventario del grupo</Text>
+            <Text style={styles.inventarioTexto}>
+              Común para todos: cualquiera puede usar estos objetos, sin pedirlos.
+            </Text>
+            {estado!.inventario_grupo.map((o, idx) => (
+              <View key={`${idx}-${o.objeto_id}`} style={styles.tarjetaObjeto}>
+                <Text style={styles.objetoNombre}>{o.nombre}</Text>
+              </View>
+            ))}
+          </View>
+        )}
+
         {personaje.inventario.length > 0 && (
           <View style={{ gap: 8 }}>
-            <Text style={styles.seccionTitulo}>Inventario</Text>
+            <Text style={styles.seccionTitulo}>Inventario personal</Text>
             {personaje.inventario.map((o) => (
               <View key={o.objeto_id} style={styles.tarjetaObjeto}>
                 <TouchableOpacity

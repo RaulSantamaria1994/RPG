@@ -1,5 +1,5 @@
 from app.engine.dice import resolver_tirada, resolver_tirada_opuesta
-from app.engine.resolver import _tiene_ventaja, aplicar_resultado
+from app.engine.resolver import _tiene_ventaja, aplicar_resultado, avanzar_a_nodo, otorgar_objeto
 from app.engine.validator import validar_historia
 from app.models.estado_sala import EstadoSala
 from app.models.personaje import Personaje
@@ -182,3 +182,61 @@ def test_tiene_ventaja_falso_sin_el_objeto_en_ningun_inventario():
     palabra = {"texto": "t", "ventaja_si_objeto": "prueba"}
 
     assert _tiene_ventaja(palabra, personaje, estado) is False
+
+
+def test_otorgar_objeto_sin_destino_explicito_usa_el_defecto_grupo():
+    estado = _estado_de_prueba()
+    item = otorgar_objeto({"objeto_id": "llave", "nombre": "Llave"}, estado, None, destino_defecto="grupo")
+
+    assert item == {"objeto_id": "llave", "nombre": "Llave"}
+    assert estado.inventario_grupo == [{"objeto_id": "llave", "nombre": "Llave"}]
+
+
+def test_otorgar_objeto_con_destino_personaje_explicito_va_al_personaje():
+    personaje = _personaje_de_prueba()
+    estado = _estado_de_prueba()
+    otorgar_objeto(
+        {"objeto_id": "diario", "nombre": "Diario", "destino": "personaje"},
+        estado,
+        personaje,
+        destino_defecto="grupo",
+    )
+
+    assert estado.inventario_grupo == []
+    assert personaje.inventario == [{"objeto_id": "diario", "nombre": "Diario"}]
+
+
+def test_avanzar_a_nodo_otorga_objetos_al_grupo_con_solo_llegar():
+    """Cualquier nodo (narrativo, interactivo o de combate) puede regalar
+    objetos al grupo por el simple hecho de llegar a él — a diferencia de
+    `objeto_otorga_exito`, que depende del éxito de una palabra clave."""
+    estado = _estado_de_prueba()
+    historia = {
+        "nodos": {
+            "n1": {
+                "tipo": "narrativo",
+                "texto": "Encontráis algo en el suelo.",
+                "es_final": False,
+                "nodo_siguiente": "n2",
+                "objetos_otorgados": [
+                    {"objeto_id": "llave_oxidada", "nombre": "Llave oxidada"},
+                ],
+            },
+        }
+    }
+
+    resumen = avanzar_a_nodo(estado, historia, "n1")
+
+    assert estado.inventario_grupo == [{"objeto_id": "llave_oxidada", "nombre": "Llave oxidada"}]
+    assert resumen["objetos_otorgados"] == [{"objeto_id": "llave_oxidada", "nombre": "Llave oxidada"}]
+
+
+def test_avanzar_a_nodo_sin_objetos_otorgados_no_toca_el_inventario():
+    estado = _estado_de_prueba()
+    historia = {
+        "nodos": {"n1": {"tipo": "narrativo", "texto": "..", "es_final": False, "nodo_siguiente": "n2"}}
+    }
+
+    avanzar_a_nodo(estado, historia, "n1")
+
+    assert estado.inventario_grupo == []

@@ -134,6 +134,33 @@ def resolver_via_hechizo(
     return resultado, hechizo
 
 
+def otorgar_objeto(
+    objeto: dict, estado: EstadoSala, personaje: Personaje | None, destino_defecto: str = "personaje"
+) -> dict:
+    """Añade un objeto al inventario de grupo o al de `personaje`, según
+    `objeto.get("destino", destino_defecto)`. Devuelve el ítem guardado
+    (nunca el dict de definición original: solo los campos que de verdad
+    viajan al inventario)."""
+    destino = objeto.get("destino", destino_defecto)
+    item = {"objeto_id": objeto["objeto_id"], "nombre": objeto.get("nombre", objeto["objeto_id"])}
+    if "efecto" in objeto:
+        item["efecto"] = objeto["efecto"]
+    if "consumible" in objeto:
+        item["consumible"] = objeto["consumible"]
+
+    if destino == "grupo" or personaje is None:
+        inventario = list(estado.inventario_grupo or [])
+        inventario.append(item)
+        estado.inventario_grupo = inventario
+        flag_modified(estado, "inventario_grupo")
+    else:
+        inventario = list(personaje.inventario or [])
+        inventario.append(item)
+        personaje.inventario = inventario
+        flag_modified(personaje, "inventario")
+    return item
+
+
 def aplicar_resultado(
     nodo_id: str,
     palabra_clave: dict,
@@ -171,26 +198,7 @@ def aplicar_resultado(
     if exito:
         objeto = palabra_clave.get("objeto_otorga_exito")
         if objeto:
-            destino = objeto.get("destino", "personaje")
-            item = {
-                "objeto_id": objeto["objeto_id"],
-                "nombre": objeto.get("nombre", objeto["objeto_id"]),
-            }
-            if "efecto" in objeto:
-                item["efecto"] = objeto["efecto"]
-            if "consumible" in objeto:
-                item["consumible"] = objeto["consumible"]
-            if destino == "grupo":
-                inventario = list(estado.inventario_grupo or [])
-                inventario.append(item)
-                estado.inventario_grupo = inventario
-                flag_modified(estado, "inventario_grupo")
-            else:
-                inventario = list(personaje.inventario or [])
-                inventario.append(item)
-                personaje.inventario = inventario
-                flag_modified(personaje, "inventario")
-            cambios["objeto_otorgado"] = item
+            cambios["objeto_otorgado"] = otorgar_objeto(objeto, estado, personaje)
 
     if not palabra_clave.get("repetible", False):
         usadas = list(estado.palabras_clave_usadas or [])
@@ -210,7 +218,14 @@ def avanzar_a_nodo(estado: EstadoSala, historia_contenido: dict, nodo_id: str) -
     nodo = encontrar_nodo(historia_contenido, nodo_id)
     estado.nodo_actual_id = nodo_id
 
-    resumen = {"nodo": nodo, "descanso": False, "final": False, "tipo_final": None}
+    resumen = {"nodo": nodo, "descanso": False, "final": False, "tipo_final": None, "objetos_otorgados": []}
+
+    # Cualquier tipo de nodo (narrativo, interactivo o de combate) puede
+    # otorgar objetos solo por llegar a él — a diferencia de
+    # `objeto_otorga_exito` (ligado al éxito de una palabra clave concreta),
+    # esto es un regalo del propio nodo al grupo entero.
+    for objeto in nodo.get("objetos_otorgados", []) or []:
+        resumen["objetos_otorgados"].append(otorgar_objeto(objeto, estado, None, destino_defecto="grupo"))
 
     if nodo.get("punto_descanso"):
         resumen["descanso"] = True
