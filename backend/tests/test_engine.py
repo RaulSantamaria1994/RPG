@@ -240,3 +240,82 @@ def test_avanzar_a_nodo_sin_objetos_otorgados_no_toca_el_inventario():
     avanzar_a_nodo(estado, historia, "n1")
 
     assert estado.inventario_grupo == []
+
+
+def test_otorgar_objeto_de_categoria_hechizo_no_va_al_inventario_sino_a_hechizos_conocidos():
+    """Un "objeto" de categoría hechizo no es un objeto físico: representa
+    aprender a lanzar ese hechizo, así que no debe acabar en ningún
+    inventario."""
+    estado = _estado_de_prueba()
+    personaje = _personaje_de_prueba()
+
+    item = otorgar_objeto(
+        {"objeto_id": "ignis_arcanus", "nombre": "Ignis Arcanus", "categoria": "hechizo"},
+        estado,
+        personaje,
+        destino_defecto="grupo",
+    )
+
+    assert item == {"objeto_id": "ignis_arcanus", "nombre": "Ignis Arcanus", "categoria": "hechizo"}
+    assert estado.inventario_grupo == []
+    assert personaje.inventario == []
+    assert personaje.hechizos_conocidos == ["ignis_arcanus"]
+
+
+def test_otorgar_objeto_de_categoria_hechizo_con_personajes_sala_lo_ensena_a_todo_el_grupo():
+    estado = _estado_de_prueba()
+    kara = _personaje_de_prueba(nombre="Kara")
+    ana = _personaje_de_prueba(nombre="Ana", hechizos_conocidos=["luz_fantasma"])
+
+    otorgar_objeto(
+        {"objeto_id": "ignis_arcanus", "nombre": "Ignis Arcanus", "categoria": "hechizo"},
+        estado,
+        None,
+        destino_defecto="grupo",
+        personajes_sala=[kara, ana],
+    )
+
+    assert kara.hechizos_conocidos == ["ignis_arcanus"]
+    # Ana ya conocía otro hechizo: el nuevo se añade sin perder el que ya tenía.
+    assert ana.hechizos_conocidos == ["luz_fantasma", "ignis_arcanus"]
+
+
+def test_otorgar_objeto_de_categoria_hechizo_no_lo_duplica_si_ya_se_conoce():
+    estado = _estado_de_prueba()
+    kara = _personaje_de_prueba(hechizos_conocidos=["ignis_arcanus"])
+
+    otorgar_objeto(
+        {"objeto_id": "ignis_arcanus", "nombre": "Ignis Arcanus", "categoria": "hechizo"},
+        estado,
+        None,
+        destino_defecto="grupo",
+        personajes_sala=[kara],
+    )
+
+    assert kara.hechizos_conocidos == ["ignis_arcanus"]
+
+
+def test_avanzar_a_nodo_con_objeto_otorgado_de_categoria_hechizo_lo_ensena_al_llegar():
+    estado = _estado_de_prueba()
+    kara = _personaje_de_prueba()
+    historia = {
+        "nodos": {
+            "n1": {
+                "tipo": "narrativo",
+                "texto": "Descubrís un grimorio ardiente.",
+                "es_final": False,
+                "nodo_siguiente": "n2",
+                "objetos_otorgados": [
+                    {"objeto_id": "ignis_arcanus", "nombre": "Ignis Arcanus", "categoria": "hechizo"},
+                ],
+            },
+        }
+    }
+
+    resumen = avanzar_a_nodo(estado, historia, "n1", personajes_sala=[kara])
+
+    assert resumen["objetos_otorgados"] == [
+        {"objeto_id": "ignis_arcanus", "nombre": "Ignis Arcanus", "categoria": "hechizo"}
+    ]
+    assert estado.inventario_grupo == []
+    assert kara.hechizos_conocidos == ["ignis_arcanus"]

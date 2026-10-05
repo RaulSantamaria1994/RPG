@@ -134,15 +134,47 @@ def resolver_via_hechizo(
     return resultado, hechizo
 
 
+def _aprender_hechizo(hechizo_id: str, personajes: list[Personaje]) -> None:
+    for p in personajes:
+        if hechizo_id not in (p.hechizos_conocidos or []):
+            conocidos = list(p.hechizos_conocidos or [])
+            conocidos.append(hechizo_id)
+            p.hechizos_conocidos = conocidos
+            flag_modified(p, "hechizos_conocidos")
+
+
 def otorgar_objeto(
-    objeto: dict, estado: EstadoSala, personaje: Personaje | None, destino_defecto: str = "personaje"
+    objeto: dict,
+    estado: EstadoSala,
+    personaje: Personaje | None,
+    destino_defecto: str = "personaje",
+    personajes_sala: list[Personaje] | None = None,
 ) -> dict:
     """Añade un objeto al inventario de grupo o al de `personaje`, según
     `objeto.get("destino", destino_defecto)`. Devuelve el ítem guardado
     (nunca el dict de definición original: solo los campos que de verdad
-    viajan al inventario)."""
+    viajan al inventario).
+
+    Si `objeto["categoria"] == "hechizo"`, en vez de un objeto físico esto
+    otorga la capacidad de lanzar ese hechizo (su `objeto_id` es el id del
+    hechizo en el catálogo): se añade a `hechizos_conocidos` de todo el
+    grupo (`personajes_sala`), o solo de `personaje` si no se pasa la sala
+    completa.
+    """
+    if objeto.get("categoria") == "hechizo":
+        item = {
+            "objeto_id": objeto["objeto_id"],
+            "nombre": objeto.get("nombre", objeto["objeto_id"]),
+            "categoria": "hechizo",
+        }
+        aprendices = personajes_sala if personajes_sala is not None else ([personaje] if personaje else [])
+        _aprender_hechizo(objeto["objeto_id"], aprendices)
+        return item
+
     destino = objeto.get("destino", destino_defecto)
     item = {"objeto_id": objeto["objeto_id"], "nombre": objeto.get("nombre", objeto["objeto_id"])}
+    if "categoria" in objeto:
+        item["categoria"] = objeto["categoria"]
     if "efecto" in objeto:
         item["efecto"] = objeto["efecto"]
     if "consumible" in objeto:
@@ -168,6 +200,7 @@ def aplicar_resultado(
     estado: EstadoSala,
     personaje: Personaje,
     muerte_permanente: bool = False,
+    personajes_sala: list[Personaje] | None = None,
 ) -> dict:
     """Aplica flags/objetos/agotamiento tras resolver una tirada y determina
     el nodo destino. Devuelve un resumen de los cambios aplicados.
@@ -198,7 +231,9 @@ def aplicar_resultado(
     if exito:
         objeto = palabra_clave.get("objeto_otorga_exito")
         if objeto:
-            cambios["objeto_otorgado"] = otorgar_objeto(objeto, estado, personaje)
+            cambios["objeto_otorgado"] = otorgar_objeto(
+                objeto, estado, personaje, personajes_sala=personajes_sala
+            )
 
     if not palabra_clave.get("repetible", False):
         usadas = list(estado.palabras_clave_usadas or [])
@@ -211,7 +246,12 @@ def aplicar_resultado(
     return cambios
 
 
-def avanzar_a_nodo(estado: EstadoSala, historia_contenido: dict, nodo_id: str) -> dict:
+def avanzar_a_nodo(
+    estado: EstadoSala,
+    historia_contenido: dict,
+    nodo_id: str,
+    personajes_sala: list[Personaje] | None = None,
+) -> dict:
     """Mueve el estado de sala al nodo indicado, aplicando descanso narrativo
     y marcando la partida como finalizada si corresponde. Devuelve un resumen.
     """
@@ -223,9 +263,13 @@ def avanzar_a_nodo(estado: EstadoSala, historia_contenido: dict, nodo_id: str) -
     # Cualquier tipo de nodo (narrativo, interactivo o de combate) puede
     # otorgar objetos solo por llegar a él — a diferencia de
     # `objeto_otorga_exito` (ligado al éxito de una palabra clave concreta),
-    # esto es un regalo del propio nodo al grupo entero.
+    # esto es un regalo del propio nodo al grupo entero. Si la categoría es
+    # "hechizo", `otorgar_objeto` lo convierte en aprendizaje para todo el
+    # grupo en vez de un objeto físico.
     for objeto in nodo.get("objetos_otorgados", []) or []:
-        resumen["objetos_otorgados"].append(otorgar_objeto(objeto, estado, None, destino_defecto="grupo"))
+        resumen["objetos_otorgados"].append(
+            otorgar_objeto(objeto, estado, None, destino_defecto="grupo", personajes_sala=personajes_sala)
+        )
 
     if nodo.get("punto_descanso"):
         resumen["descanso"] = True

@@ -153,10 +153,11 @@ async def _broadcast_nodo(sala: Sala) -> None:
 
 async def _avanzar_y_notificar(db, sala: Sala, nodo_id: str) -> None:
     estado = sala.estado_sala
-    resumen = avanzar_a_nodo(estado, sala.historia.contenido, nodo_id)
+    personajes_sala = _personajes_no_master(db, sala.id)
+    resumen = avanzar_a_nodo(estado, sala.historia.contenido, nodo_id, personajes_sala=personajes_sala)
 
     if resumen["descanso"]:
-        aplicar_descanso(estado, _personajes_no_master(db, sala.id), resumen["nodo"])
+        aplicar_descanso(estado, personajes_sala, resumen["nodo"])
 
     if resumen["nodo"].get("tipo") == "combate":
         combate = combate_engine.iniciar_combate(resumen["nodo"], _personajes_confirmables(db, sala.id))
@@ -173,6 +174,11 @@ async def _avanzar_y_notificar(db, sala: Sala, nodo_id: str) -> None:
                 "datos": {"objetos": resumen["objetos_otorgados"], "destino": "grupo"},
             },
         )
+        if any(o.get("categoria") == "hechizo" for o in resumen["objetos_otorgados"]):
+            for p in personajes_sala:
+                await gestor.broadcast(
+                    str(sala.id), {"tipo": "personaje_actualizado", "datos": _personaje_publico(p)}
+                )
 
     await _broadcast_nodo(sala)
 
@@ -337,8 +343,15 @@ async def _resolver_individual(
 
         exito = tirada_payload["exito"]
 
+        personajes_sala = _personajes_no_master(db, sala.id)
         cambios = aplicar_resultado(
-            nodo_id, palabra, exito, estado, personaje, muerte_permanente=_usa_muerte_permanente(sala)
+            nodo_id,
+            palabra,
+            exito,
+            estado,
+            personaje,
+            muerte_permanente=_usa_muerte_permanente(sala),
+            personajes_sala=personajes_sala,
         )
         db.commit()
 
@@ -360,6 +373,11 @@ async def _resolver_individual(
             await gestor.broadcast(
                 str(sala.id), {"tipo": "personaje_actualizado", "datos": _personaje_publico(personaje)}
             )
+        if (cambios.get("objeto_otorgado") or {}).get("categoria") == "hechizo":
+            for p in personajes_sala:
+                await gestor.broadcast(
+                    str(sala.id), {"tipo": "personaje_actualizado", "datos": _personaje_publico(p)}
+                )
 
         if await _procesar_posible_muerte(db, sala, personaje):
             return
@@ -465,7 +483,13 @@ async def _resolver_grupal_tirada(
     tirada_payload = {"resultados": resultados, "regla": regla, "exito": exito}
 
     cambios = aplicar_resultado(
-        nodo_id, palabra, exito, estado, personaje, muerte_permanente=_usa_muerte_permanente(sala)
+        nodo_id,
+        palabra,
+        exito,
+        estado,
+        personaje,
+        muerte_permanente=_usa_muerte_permanente(sala),
+        personajes_sala=participantes,
     )
     db.commit()
 
@@ -485,6 +509,11 @@ async def _resolver_grupal_tirada(
         await gestor.broadcast(
             str(sala.id), {"tipo": "personaje_actualizado", "datos": _personaje_publico(personaje)}
         )
+    if (cambios.get("objeto_otorgado") or {}).get("categoria") == "hechizo":
+        for p in participantes:
+            await gestor.broadcast(
+                str(sala.id), {"tipo": "personaje_actualizado", "datos": _personaje_publico(p)}
+            )
 
     if await _procesar_posible_muerte(db, sala, personaje):
         return
@@ -540,8 +569,15 @@ async def _resolver_grupal_voto(
     palabra_ganadora = next((p for p in opciones if p["texto"] == texto_ganador), palabra)
 
     estado = sala.estado_sala
+    personajes_sala = _personajes_no_master(db, sala.id)
     cambios = aplicar_resultado(
-        nodo_id, palabra_ganadora, True, estado, personaje, muerte_permanente=_usa_muerte_permanente(sala)
+        nodo_id,
+        palabra_ganadora,
+        True,
+        estado,
+        personaje,
+        muerte_permanente=_usa_muerte_permanente(sala),
+        personajes_sala=personajes_sala,
     )
     db.commit()
 
@@ -556,6 +592,11 @@ async def _resolver_grupal_voto(
         await gestor.broadcast(
             str(sala.id), {"tipo": "personaje_actualizado", "datos": _personaje_publico(personaje)}
         )
+    if (cambios.get("objeto_otorgado") or {}).get("categoria") == "hechizo":
+        for p in personajes_sala:
+            await gestor.broadcast(
+                str(sala.id), {"tipo": "personaje_actualizado", "datos": _personaje_publico(p)}
+            )
 
     if await _procesar_posible_muerte(db, sala, personaje):
         return
@@ -636,10 +677,23 @@ async def _manejar_override_resultado(db, sala: Sala, conexion: ConexionJugador,
         return
 
     exito = bool(datos.get("exito", True))
+    personajes_sala = _personajes_no_master(db, sala.id)
     cambios = aplicar_resultado(
-        nodo_id, palabra, exito, estado, personaje, muerte_permanente=_usa_muerte_permanente(sala)
+        nodo_id,
+        palabra,
+        exito,
+        estado,
+        personaje,
+        muerte_permanente=_usa_muerte_permanente(sala),
+        personajes_sala=personajes_sala,
     )
     db.commit()
+
+    if (cambios.get("objeto_otorgado") or {}).get("categoria") == "hechizo":
+        for p in personajes_sala:
+            await gestor.broadcast(
+                str(sala.id), {"tipo": "personaje_actualizado", "datos": _personaje_publico(p)}
+            )
 
     await gestor.broadcast(
         str(sala.id),

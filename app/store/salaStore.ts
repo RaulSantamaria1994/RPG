@@ -196,12 +196,19 @@ function procesarMensaje(
         palabra_clave?: string;
         exito: boolean;
         tirada?: { dado?: number; total?: number };
-        cambios?: { dano_aplicado?: number; objeto_otorgado?: { nombre: string } | null };
+        cambios?: {
+          dano_aplicado?: number;
+          objeto_otorgado?: { nombre: string; categoria?: string } | null;
+        };
       };
       const quien = d.personaje_nombre ?? 'El grupo';
       const resultado = d.exito ? 'ÉXITO' : 'FALLO';
       const dano = d.cambios?.dano_aplicado ? ` (-${d.cambios.dano_aplicado} PV)` : '';
-      const objeto = d.cambios?.objeto_otorgado ? ` — obtenéis "${d.cambios.objeto_otorgado.nombre}"` : '';
+      const objeto = d.cambios?.objeto_otorgado
+        ? d.cambios.objeto_otorgado.categoria === 'hechizo'
+          ? ` — el grupo aprende el hechizo "${d.cambios.objeto_otorgado.nombre}"`
+          : ` — obtenéis "${d.cambios.objeto_otorgado.nombre}"`
+        : '';
       set((s) => ({
         log: [nuevoEvento(`${quien} intenta "${d.palabra_clave}" → ${resultado}${dano}${objeto}`), ...s.log],
         ultimaTirada: {
@@ -320,10 +327,18 @@ function procesarMensaje(
       break;
     }
     case 'objetos_otorgados': {
-      const d = datos as { objetos: { objeto_id: string; nombre: string }[]; destino: string };
-      const nombres = d.objetos.map((o) => o.nombre).join(', ');
+      const d = datos as {
+        objetos: { objeto_id: string; nombre: string; categoria?: string }[];
+        destino: string;
+      };
+      const hechizos = d.objetos.filter((o) => o.categoria === 'hechizo').map((o) => o.nombre);
+      const objetos = d.objetos.filter((o) => o.categoria !== 'hechizo').map((o) => o.nombre);
+      const partes = [
+        objetos.length ? `El grupo encuentra: ${objetos.join(', ')}` : null,
+        hechizos.length ? `El grupo aprende: ${hechizos.join(', ')}` : null,
+      ].filter(Boolean) as string[];
       set((s) => ({
-        log: [nuevoEvento(`El grupo encuentra: ${nombres}`), ...s.log],
+        log: [...partes.map(nuevoEvento), ...s.log],
       }));
       break;
     }

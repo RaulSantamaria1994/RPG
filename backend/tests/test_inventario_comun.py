@@ -98,6 +98,70 @@ def test_objetos_otorgados_se_anuncian_y_llegan_al_inventario_de_grupo(client, d
             assert ids_estado == {"llave_oxidada", "nota"}
 
 
+HISTORIA_HECHIZO_AL_LLEGAR = {
+    "historia_id": "prueba_hechizo_al_llegar",
+    "titulo": "Prueba: hechizo al llegar",
+    "version": 1,
+    "nodo_inicial": "n_salida",
+    "nodos": {
+        "n_salida": {"tipo": "narrativo", "texto": "..", "es_final": False, "nodo_siguiente": "n_grimorio"},
+        "n_grimorio": {
+            "tipo": "narrativo",
+            "texto": "Descubrís un grimorio que arde sin consumirse.",
+            "es_final": False,
+            "nodo_siguiente": "n_final",
+            "objetos_otorgados": [
+                {"objeto_id": "ignis_arcanus", "nombre": "Ignis Arcanus", "categoria": "hechizo"},
+            ],
+        },
+        "n_final": {"tipo": "narrativo", "texto": "Fin.", "es_final": True, "tipo_final": "heroico"},
+    },
+}
+
+
+def test_objeto_otorgado_de_categoria_hechizo_se_aprende_en_vez_de_ir_al_inventario(client, db):
+    resultado = validar_historia(HISTORIA_HECHIZO_AL_LLEGAR)
+    assert resultado.valida, resultado.errores
+    historia = Historia(
+        historia_id=HISTORIA_HECHIZO_AL_LLEGAR["historia_id"],
+        titulo=HISTORIA_HECHIZO_AL_LLEGAR["titulo"],
+        version=1,
+        contenido=HISTORIA_HECHIZO_AL_LLEGAR,
+        validada=True,
+    )
+    db.add(historia)
+    db.commit()
+
+    resp = client.post("/salas", json={"master_nombre": "M", "historia_id": historia.historia_id})
+    assert resp.status_code == 201, resp.text
+    sala = resp.json()
+    codigo = sala["sala"]["codigo"]
+
+    creado = _crear_personaje_generico(client, codigo)
+
+    with client.websocket_connect(f"/ws/sala/{codigo}?token={sala['master_token']}") as ws_master:
+        _recibir_hasta(ws_master, "estado_inicial")
+
+        with client.websocket_connect(f"/ws/sala/{codigo}?token={creado['token']}") as ws:
+            _recibir_hasta(ws, "estado_inicial")
+
+            ws_master.send_json({"tipo": "override_nodo", "datos": {"nodo_id": "n_grimorio"}})
+
+            anuncio = _recibir_hasta(ws, "objetos_otorgados")
+            assert anuncio["datos"]["objetos"] == [
+                {"objeto_id": "ignis_arcanus", "nombre": "Ignis Arcanus", "categoria": "hechizo"}
+            ]
+
+            actualizado_personaje = _recibir_hasta(ws, "personaje_actualizado")
+            assert actualizado_personaje["datos"]["hechizos_conocidos"] == ["ignis_arcanus"]
+
+            actualizado_nodo = _recibir_hasta(ws, "nodo_actualizado")
+            assert actualizado_nodo["datos"]["inventario_grupo"] == []  # no es un objeto físico
+
+    resp = client.get(f"/salas/{codigo}/personajes")
+    assert resp.json()[0]["hechizos_conocidos"] == ["ignis_arcanus"]
+
+
 def _crear_personaje_generico(client, codigo):
     resp = client.post(
         f"/salas/{codigo}/personajes/personalizado",
