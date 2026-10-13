@@ -1144,10 +1144,18 @@ async def _manejar_combate_accion(db, sala: Sala, conexion: ConexionJugador, dat
 
 
 async def _manejar_intercambio_proponer(db, sala: Sala, conexion: ConexionJugador, datos: dict) -> None:
-    origen = db.get(Personaje, uuid.UUID(conexion.personaje_id))
-    objeto = next(
-        (o for o in (origen.inventario or []) if o.get("objeto_id") == datos["objeto_id"]), None
-    )
+    if conexion.rol != "jugador":
+        await _enviar_error(conexion, "Solo un jugador puede proponer un intercambio.")
+        return
+    try:
+        origen = db.get(Personaje, uuid.UUID(conexion.personaje_id))
+        objeto_id = datos["objeto_id"]
+        destino_personaje_id = datos["destino_personaje_id"]
+    except (KeyError, ValueError, TypeError):
+        await _enviar_error(conexion, "Datos incompletos.")
+        return
+
+    objeto = next((o for o in (origen.inventario or []) if o.get("objeto_id") == objeto_id), None)
     if objeto is None:
         await _enviar_error(conexion, "No tienes ese objeto en tu inventario.")
         return
@@ -1159,18 +1167,32 @@ async def _manejar_intercambio_proponer(db, sala: Sala, conexion: ConexionJugado
             "datos": {
                 "origen_personaje_id": conexion.personaje_id,
                 "origen_personaje_nombre": origen.nombre,
-                "objeto_id": datos["objeto_id"],
-                "objeto_nombre": objeto.get("nombre", datos["objeto_id"]),
-                "destino_personaje_id": datos["destino_personaje_id"],
+                "objeto_id": objeto_id,
+                "objeto_nombre": objeto.get("nombre", objeto_id),
+                "destino_personaje_id": destino_personaje_id,
             },
         },
     )
 
 
 async def _manejar_intercambio_confirmar(db, sala: Sala, conexion: ConexionJugador, datos: dict) -> None:
-    origen = db.get(Personaje, uuid.UUID(datos["origen_personaje_id"]))
-    destino = db.get(Personaje, uuid.UUID(conexion.personaje_id))
-    objeto_id = datos["objeto_id"]
+    if conexion.rol != "jugador":
+        await _enviar_error(conexion, "Solo un jugador puede confirmar un intercambio.")
+        return
+    try:
+        origen = db.get(Personaje, uuid.UUID(datos["origen_personaje_id"]))
+        destino = db.get(Personaje, uuid.UUID(conexion.personaje_id))
+        objeto_id = datos["objeto_id"]
+    except (KeyError, ValueError, TypeError):
+        await _enviar_error(conexion, "Datos incompletos.")
+        return
+    # `origen` lo decide el cliente (es quien propuso el intercambio, no esta
+    # conexión) — sin este chequeo, cualquiera podría pasar el id de un
+    # personaje de OTRA sala y robarle un objeto con solo saber su id y el
+    # de uno de sus objetos.
+    if origen is None or origen.sala_id != sala.id:
+        await _enviar_error(conexion, "Ese personaje no existe en esta sala.")
+        return
 
     inventario_origen = list(origen.inventario or [])
     objeto = next((o for o in inventario_origen if o.get("objeto_id") == objeto_id), None)
