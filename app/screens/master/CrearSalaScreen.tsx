@@ -1,19 +1,12 @@
 import { useEffect, useState } from 'react';
-import {
-  ActivityIndicator,
-  ScrollView,
-  StyleSheet,
-  Switch,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View,
-} from 'react-native';
+import { ScrollView, StyleSheet, Switch, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../../navigation/types';
+import { Boton } from '../../components';
 import { api, ErrorApi } from '../../services/api';
 import { useSalaStore } from '../../store/salaStore';
 import type { HistoriaResumen } from '../../types';
+import { color, espacio, radio, tipo } from '../../theme';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'MasterCrearSala'>;
 
@@ -65,6 +58,9 @@ export default function CrearSalaScreen({ navigation }: Props) {
   return (
     <ScrollView contentContainerStyle={styles.contenedor}>
       <Text style={styles.titulo}>Crear sala</Text>
+      <Text style={styles.ayuda}>
+        Al crearla recibirás un código de 6 caracteres para compartir con tu grupo.
+      </Text>
 
       <Text style={styles.etiqueta}>Tu nombre (máster)</Text>
       <TextInput
@@ -72,7 +68,7 @@ export default function CrearSalaScreen({ navigation }: Props) {
         value={nombreMaster}
         onChangeText={setNombreMaster}
         placeholder="Nombre del máster"
-        placeholderTextColor="#7a6c8f"
+        placeholderTextColor={color.textoTenue}
       />
 
       <Text style={styles.etiqueta}>Historia</Text>
@@ -82,11 +78,9 @@ export default function CrearSalaScreen({ navigation }: Props) {
         historias.map((h) => (
           <TouchableOpacity
             key={h.historia_id}
-            style={[
-              styles.opcionHistoria,
-              historiaId === h.historia_id && styles.opcionHistoriaSeleccionada,
-            ]}
+            style={[styles.opcionHistoria, historiaId === h.historia_id && styles.opcionHistoriaSeleccionada]}
             onPress={() => setHistoriaId(h.historia_id)}
+            activeOpacity={0.85}
           >
             <Text style={styles.opcionHistoriaTexto}>{h.titulo}</Text>
             <Text style={styles.opcionHistoriaVersion}>v{h.version}</Text>
@@ -103,53 +97,53 @@ export default function CrearSalaScreen({ navigation }: Props) {
       />
 
       <View style={styles.filaSwitch}>
-        <Text style={styles.etiqueta}>Muerte permanente</Text>
-        <Switch value={muertePermanente} onValueChange={setMuertePermanente} />
+        <View style={{ flex: 1 }}>
+          <Text style={styles.etiqueta}>Muerte permanente</Text>
+          <Text style={styles.ayudaCorta}>Si un personaje llega a 0 de vida, puede morir para siempre.</Text>
+        </View>
+        <Switch
+          value={muertePermanente}
+          onValueChange={setMuertePermanente}
+          trackColor={{ true: color.acento, false: color.bordeSutil }}
+          thumbColor="#fff"
+        />
       </View>
 
       {error && <Text style={styles.error}>{error}</Text>}
 
-      <TouchableOpacity style={styles.boton} onPress={crear} disabled={cargando}>
-        {cargando ? <ActivityIndicator color="#fff" /> : <Text style={styles.botonTexto}>Crear sala</Text>}
-      </TouchableOpacity>
+      <Boton texto="Crear sala" onPress={crear} cargando={cargando} style={{ marginTop: espacio.xl }} />
     </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
-  contenedor: { padding: 24, backgroundColor: '#1a1523', flexGrow: 1, gap: 8 },
-  titulo: { fontSize: 26, fontWeight: '700', color: '#f3e9ff', marginBottom: 12 },
-  etiqueta: { color: '#c9b8e0', fontSize: 13, marginTop: 12, marginBottom: 4 },
+  contenedor: { padding: espacio.xl, backgroundColor: color.fondo, flexGrow: 1, gap: espacio.sm },
+  titulo: { ...tipo.titulo, fontSize: 26, marginBottom: 2 },
+  ayuda: { ...tipo.nota, marginBottom: espacio.sm },
+  ayudaCorta: { color: color.textoTenue, fontSize: 12, marginTop: 2 },
+  etiqueta: { color: color.textoSecundario, fontSize: 13, marginTop: espacio.md, marginBottom: 4 },
   input: {
-    backgroundColor: '#2f2540',
-    borderRadius: 8,
+    backgroundColor: color.superficieAlt,
+    borderRadius: radio.md,
     padding: 12,
-    color: '#fff',
+    color: color.texto,
     borderWidth: 1,
-    borderColor: '#453a5c',
+    borderColor: color.bordeSutil,
   },
   opcionHistoria: {
-    backgroundColor: '#2f2540',
-    borderRadius: 8,
+    backgroundColor: color.superficieAlt,
+    borderRadius: radio.md,
     padding: 12,
     borderWidth: 1,
-    borderColor: '#453a5c',
-    marginBottom: 8,
+    borderColor: color.bordeSutil,
+    marginBottom: espacio.sm,
     flexDirection: 'row',
     justifyContent: 'space-between',
   },
-  opcionHistoriaSeleccionada: { borderColor: '#a97fe0', backgroundColor: '#3d2f57' },
-  opcionHistoriaTexto: { color: '#fff', fontWeight: '600' },
-  opcionHistoriaVersion: { color: '#a390bd' },
-  filaSwitch: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 12 },
-  aviso: { color: '#e0a97f' },
-  error: { color: '#ff8a8a', marginTop: 12 },
-  boton: {
-    backgroundColor: '#6b3fa0',
-    borderRadius: 12,
-    paddingVertical: 16,
-    alignItems: 'center',
-    marginTop: 24,
-  },
-  botonTexto: { color: '#fff', fontSize: 16, fontWeight: '600' },
+  opcionHistoriaSeleccionada: { borderColor: color.acentoFuerte, backgroundColor: color.acentoSuave },
+  opcionHistoriaTexto: { color: color.texto, fontWeight: '600' },
+  opcionHistoriaVersion: { color: color.textoTenue },
+  filaSwitch: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: espacio.md, gap: espacio.md },
+  aviso: { color: color.aviso },
+  error: { color: color.peligro, marginTop: espacio.md },
 });

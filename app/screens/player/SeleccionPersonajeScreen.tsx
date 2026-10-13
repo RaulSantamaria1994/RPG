@@ -1,22 +1,22 @@
 import { useEffect, useMemo, useState } from 'react';
-import {
-  ActivityIndicator,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View,
-} from 'react-native';
+import { ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../../navigation/types';
+import { Boton, Tarjeta } from '../../components';
 import { api, ErrorApi } from '../../services/api';
 import { useSalaStore } from '../../store/salaStore';
 import type { Atributo, HabilidadPasiva, PersonajePregenerado, Sala } from '../../types';
+import { color, espacio, radio, tipo } from '../../theme';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'JugadorSeleccionPersonaje'>;
 
 const ATRIBUTOS: Atributo[] = ['fuerza', 'astucia', 'voluntad', 'agilidad'];
+const ETIQUETA_ATRIBUTO: Record<Atributo, string> = {
+  fuerza: 'Fuerza',
+  astucia: 'Astucia',
+  voluntad: 'Voluntad',
+  agilidad: 'Agilidad',
+};
 const PUNTOS_TOTALES = 12;
 
 export default function SeleccionPersonajeScreen({ route, navigation }: Props) {
@@ -44,6 +44,7 @@ export default function SeleccionPersonajeScreen({ route, navigation }: Props) {
     () => ATRIBUTOS.reduce((acc, a) => acc + puntos[a], 0),
     [puntos]
   );
+  const puntosListos = puntosUsados === PUNTOS_TOTALES;
 
   useEffect(() => {
     Promise.all([
@@ -120,6 +121,7 @@ export default function SeleccionPersonajeScreen({ route, navigation }: Props) {
   return (
     <ScrollView contentContainerStyle={styles.contenedor}>
       <Text style={styles.titulo}>{sala?.nombre ?? `Sala ${codigo}`}</Text>
+      <Text style={styles.ayuda}>Elige con quién vas a enfrentarte a lo que viene.</Text>
 
       <Text style={styles.etiqueta}>Tu nombre</Text>
       <TextInput
@@ -127,7 +129,7 @@ export default function SeleccionPersonajeScreen({ route, navigation }: Props) {
         value={jugadorNombre}
         onChangeText={setJugadorNombre}
         placeholder="Nombre de jugador"
-        placeholderTextColor="#7a6c8f"
+        placeholderTextColor={color.textoTenue}
       />
 
       <View style={styles.tabs}>
@@ -135,151 +137,156 @@ export default function SeleccionPersonajeScreen({ route, navigation }: Props) {
           style={[styles.tab, modo === 'pregenerado' && styles.tabActivo]}
           onPress={() => setModo('pregenerado')}
         >
-          <Text style={styles.tabTexto}>Pregenerado</Text>
+          <Text style={[styles.tabTexto, modo === 'pregenerado' && styles.tabTextoActivo]}>Pregenerado</Text>
         </TouchableOpacity>
         <TouchableOpacity
           style={[styles.tab, modo === 'personalizado' && styles.tabActivo]}
           onPress={() => setModo('personalizado')}
         >
-          <Text style={styles.tabTexto}>Personalizado</Text>
+          <Text style={[styles.tabTexto, modo === 'personalizado' && styles.tabTextoActivo]}>Personalizado</Text>
         </TouchableOpacity>
       </View>
 
       {error && <Text style={styles.error}>{error}</Text>}
 
       {modo === 'pregenerado' ? (
-        pregenerados.map((p) => (
-          <TouchableOpacity
-            key={p.id}
-            style={styles.tarjeta}
-            onPress={() => elegirPregenerado(p)}
-            disabled={cargando}
-          >
-            <Text style={styles.tarjetaTitulo}>{p.nombre}</Text>
-            <Text style={styles.tarjetaTrasfondo}>{p.trasfondo}</Text>
-            <Text style={styles.tarjetaAtributos}>
-              F {p.atributos.fuerza} · A {p.atributos.astucia} · V {p.atributos.voluntad} · Ag{' '}
-              {p.atributos.agilidad}
-            </Text>
-          </TouchableOpacity>
-        ))
+        <View style={{ gap: espacio.sm }}>
+          {pregenerados.map((p) => (
+            <TouchableOpacity key={p.id} onPress={() => elegirPregenerado(p)} disabled={cargando} activeOpacity={0.85}>
+              <Tarjeta>
+                <Text style={styles.tarjetaTitulo}>{p.nombre}</Text>
+                <Text style={styles.tarjetaTrasfondo}>{p.trasfondo}</Text>
+                <View style={styles.filaChips}>
+                  {ATRIBUTOS.map((a) => (
+                    <View key={a} style={styles.chip}>
+                      <Text style={styles.chipTexto}>
+                        {ETIQUETA_ATRIBUTO[a].slice(0, 3).toUpperCase()} {p.atributos[a]}
+                      </Text>
+                    </View>
+                  ))}
+                </View>
+              </Tarjeta>
+            </TouchableOpacity>
+          ))}
+        </View>
       ) : (
-        <View style={styles.tarjeta}>
+        <Tarjeta>
           <Text style={styles.etiqueta}>Nombre del personaje</Text>
           <TextInput
             style={styles.input}
             value={nombrePersonalizado}
             onChangeText={setNombrePersonalizado}
             placeholder="Nombre"
-            placeholderTextColor="#7a6c8f"
+            placeholderTextColor={color.textoTenue}
           />
 
-          <Text style={[styles.etiqueta, { marginTop: 12 }]}>
-            Puntos: {puntosUsados}/{PUNTOS_TOTALES} (1-5 por atributo)
-          </Text>
+          <View style={styles.filaPuntosTitulo}>
+            <Text style={[styles.etiqueta, { marginTop: espacio.md, marginBottom: 0 }]}>Reparte tus puntos</Text>
+            <Text style={[styles.puntosContador, puntosListos && styles.puntosContadorListo]}>
+              {puntosUsados}/{PUNTOS_TOTALES}
+            </Text>
+          </View>
+          <Text style={styles.ayudaCorta}>Entre 1 y 5 por atributo.</Text>
           {ATRIBUTOS.map((a) => (
             <View key={a} style={styles.filaAtributo}>
-              <Text style={styles.atributoNombre}>{a}</Text>
-              <TouchableOpacity onPress={() => ajustarPunto(a, -1)} style={styles.botonPunto}>
-                <Text style={styles.botonPuntoTexto}>-</Text>
+              <Text style={styles.atributoNombre}>{ETIQUETA_ATRIBUTO[a]}</Text>
+              <TouchableOpacity
+                onPress={() => ajustarPunto(a, -1)}
+                style={[styles.botonPunto, puntos[a] <= 1 && styles.botonPuntoDeshabilitado]}
+                disabled={puntos[a] <= 1}
+              >
+                <Text style={styles.botonPuntoTexto}>−</Text>
               </TouchableOpacity>
               <Text style={styles.atributoValor}>{puntos[a]}</Text>
-              <TouchableOpacity onPress={() => ajustarPunto(a, 1)} style={styles.botonPunto}>
+              <TouchableOpacity
+                onPress={() => ajustarPunto(a, 1)}
+                style={[
+                  styles.botonPunto,
+                  (puntos[a] >= 5 || puntosUsados >= PUNTOS_TOTALES) && styles.botonPuntoDeshabilitado,
+                ]}
+                disabled={puntos[a] >= 5 || puntosUsados >= PUNTOS_TOTALES}
+              >
                 <Text style={styles.botonPuntoTexto}>+</Text>
               </TouchableOpacity>
             </View>
           ))}
 
-          <Text style={[styles.etiqueta, { marginTop: 12 }]}>Habilidad pasiva</Text>
-          {habilidades.map((h) => (
-            <TouchableOpacity
-              key={h.id}
-              style={[
-                styles.opcionHabilidad,
-                habilidadElegida === h.id && styles.opcionHabilidadSeleccionada,
-              ]}
-              onPress={() => setHabilidadElegida(h.id)}
-            >
-              <Text style={styles.tarjetaTitulo}>{h.nombre}</Text>
-              <Text style={styles.tarjetaTrasfondo}>{h.descripcion}</Text>
-            </TouchableOpacity>
-          ))}
+          <Text style={[styles.etiqueta, { marginTop: espacio.md }]}>Habilidad pasiva</Text>
+          <View style={{ gap: espacio.xs }}>
+            {habilidades.map((h) => (
+              <TouchableOpacity key={h.id} onPress={() => setHabilidadElegida(h.id)} activeOpacity={0.85}>
+                <Tarjeta seleccionada={habilidadElegida === h.id} style={{ paddingVertical: espacio.sm }}>
+                  <Text style={styles.tarjetaTitulo}>{h.nombre}</Text>
+                  <Text style={styles.tarjetaTrasfondo}>{h.descripcion}</Text>
+                </Tarjeta>
+              </TouchableOpacity>
+            ))}
+          </View>
 
-          <TouchableOpacity style={styles.boton} onPress={crearPersonalizado} disabled={cargando}>
-            {cargando ? (
-              <ActivityIndicator color="#fff" />
-            ) : (
-              <Text style={styles.botonTexto}>Crear personaje</Text>
-            )}
-          </TouchableOpacity>
-        </View>
+          <Boton
+            texto="Crear personaje"
+            onPress={crearPersonalizado}
+            cargando={cargando}
+            style={{ marginTop: espacio.lg }}
+          />
+        </Tarjeta>
       )}
     </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
-  contenedor: { padding: 24, backgroundColor: '#1a1523', flexGrow: 1, gap: 8 },
-  titulo: { fontSize: 24, fontWeight: '700', color: '#f3e9ff', marginBottom: 8 },
-  etiqueta: { color: '#c9b8e0', fontSize: 13, marginBottom: 4 },
+  contenedor: { padding: espacio.xl, backgroundColor: color.fondo, flexGrow: 1, gap: espacio.sm },
+  titulo: { ...tipo.titulo, fontSize: 24, marginBottom: 2 },
+  ayuda: { ...tipo.nota, marginBottom: espacio.sm },
+  ayudaCorta: { color: color.textoTenue, fontSize: 12, marginBottom: espacio.xs },
+  etiqueta: { color: color.textoSecundario, fontSize: 13, marginBottom: 4 },
   input: {
-    backgroundColor: '#2f2540',
-    borderRadius: 8,
+    backgroundColor: color.superficieAlt,
+    borderRadius: radio.md,
     padding: 12,
-    color: '#fff',
+    color: color.texto,
     borderWidth: 1,
-    borderColor: '#453a5c',
+    borderColor: color.bordeSutil,
   },
-  tabs: { flexDirection: 'row', gap: 8, marginVertical: 16 },
+  tabs: { flexDirection: 'row', gap: espacio.sm, marginVertical: espacio.lg },
   tab: {
     flex: 1,
     padding: 10,
-    borderRadius: 8,
-    backgroundColor: '#2f2540',
+    borderRadius: radio.md,
+    backgroundColor: color.superficieAlt,
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: '#453a5c',
+    borderColor: color.bordeSutil,
   },
-  tabActivo: { backgroundColor: '#3d2f57', borderColor: '#a97fe0' },
-  tabTexto: { color: '#fff', fontWeight: '600' },
-  tarjeta: {
-    backgroundColor: '#241b33',
-    borderRadius: 10,
-    padding: 14,
-    marginBottom: 10,
-    gap: 6,
+  tabActivo: { backgroundColor: color.acentoSuave, borderColor: color.acentoFuerte },
+  tabTexto: { color: color.textoSecundario, fontWeight: '600' },
+  tabTextoActivo: { color: color.texto },
+  tarjetaTitulo: { color: color.texto, fontWeight: '700', fontSize: 16 },
+  tarjetaTrasfondo: { color: color.textoSecundario, fontSize: 13, lineHeight: 18 },
+  filaChips: { flexDirection: 'row', gap: 6, marginTop: 4, flexWrap: 'wrap' },
+  chip: {
+    backgroundColor: color.fondoElevado,
+    borderRadius: radio.sm,
+    paddingHorizontal: 7,
+    paddingVertical: 3,
   },
-  tarjetaTitulo: { color: '#fff', fontWeight: '700', fontSize: 16 },
-  tarjetaTrasfondo: { color: '#c9b8e0', fontSize: 13 },
-  tarjetaAtributos: { color: '#a390bd', fontSize: 12, marginTop: 4 },
-  filaAtributo: { flexDirection: 'row', alignItems: 'center', gap: 12, marginTop: 4 },
-  atributoNombre: { color: '#fff', width: 90, textTransform: 'capitalize' },
+  chipTexto: { color: color.textoSecundario, fontSize: 11, fontWeight: '700' },
+  filaPuntosTitulo: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  puntosContador: { color: color.textoSecundario, fontWeight: '700', fontSize: 13 },
+  puntosContadorListo: { color: color.exito },
+  filaAtributo: { flexDirection: 'row', alignItems: 'center', gap: espacio.md, marginTop: 4 },
+  atributoNombre: { color: color.texto, width: 90 },
   botonPunto: {
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: '#6b3fa0',
+    backgroundColor: color.acento,
     alignItems: 'center',
     justifyContent: 'center',
   },
+  botonPuntoDeshabilitado: { backgroundColor: color.superficieAlt, opacity: 0.6 },
   botonPuntoTexto: { color: '#fff', fontSize: 18, fontWeight: '700' },
-  atributoValor: { color: '#fff', fontSize: 16, width: 24, textAlign: 'center' },
-  opcionHabilidad: {
-    backgroundColor: '#2f2540',
-    borderRadius: 8,
-    padding: 10,
-    borderWidth: 1,
-    borderColor: '#453a5c',
-    marginBottom: 6,
-  },
-  opcionHabilidadSeleccionada: { borderColor: '#a97fe0', backgroundColor: '#3d2f57' },
-  error: { color: '#ff8a8a', marginBottom: 8 },
-  boton: {
-    backgroundColor: '#6b3fa0',
-    borderRadius: 12,
-    paddingVertical: 14,
-    alignItems: 'center',
-    marginTop: 16,
-  },
-  botonTexto: { color: '#fff', fontSize: 16, fontWeight: '600' },
+  atributoValor: { color: color.texto, fontSize: 16, width: 24, textAlign: 'center' },
+  error: { color: color.peligro, marginBottom: espacio.sm },
 });

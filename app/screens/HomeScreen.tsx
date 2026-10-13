@@ -2,6 +2,7 @@ import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../navigation/types';
 import { useSalaStore } from '../store/salaStore';
+import { color, espacio, radio, tipo } from '../theme';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Home'>;
 
@@ -11,30 +12,43 @@ export default function HomeScreen({ navigation }: Props) {
 
   return (
     <View style={styles.contenedor}>
-      <Text style={styles.titulo}>RPG Narrativo</Text>
-      <Text style={styles.subtitulo}>¿Cómo quieres jugar?</Text>
+      <View style={styles.encabezado}>
+        <Text style={styles.titulo}>RPG Narrativo</Text>
+        <Text style={styles.subtitulo}>Historias de terror cósmico para jugar entre amigos</Text>
+      </View>
 
       {mensajeSesion && (
-        <TouchableOpacity style={styles.avisoSesion} onPress={limpiarMensajeSesion}>
+        <TouchableOpacity style={styles.avisoSesion} onPress={limpiarMensajeSesion} activeOpacity={0.8}>
           <Text style={styles.avisoSesionTexto}>{mensajeSesion}</Text>
+          <Text style={styles.avisoSesionCerrar}>Toca para cerrar</Text>
         </TouchableOpacity>
       )}
 
-      <TouchableOpacity
-        style={styles.boton}
-        onPress={() => navigation.navigate('MasterCrearSala')}
-      >
-        <Text style={styles.botonTexto}>Soy el Máster</Text>
-        <Text style={styles.botonDescripcion}>Crear una sala y narrar la historia</Text>
-      </TouchableOpacity>
+      <View style={styles.opciones}>
+        <TouchableOpacity
+          style={[styles.opcion, styles.opcionPrimaria]}
+          onPress={() => navigation.navigate('MasterCrearSala')}
+          activeOpacity={0.85}
+        >
+          <Text style={styles.opcionIcono}>📖</Text>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.opcionTitulo}>Soy el Máster</Text>
+            <Text style={styles.opcionDescripcion}>Crea una sala y narra la historia al grupo</Text>
+          </View>
+        </TouchableOpacity>
 
-      <TouchableOpacity
-        style={[styles.boton, styles.botonSecundario]}
-        onPress={() => navigation.navigate('JugadorUnirseSala')}
-      >
-        <Text style={styles.botonTexto}>Soy Jugador</Text>
-        <Text style={styles.botonDescripcion}>Unirme a una sala con un código</Text>
-      </TouchableOpacity>
+        <TouchableOpacity
+          style={styles.opcion}
+          onPress={() => navigation.navigate('JugadorUnirseSala')}
+          activeOpacity={0.85}
+        >
+          <Text style={styles.opcionIcono}>🕯️</Text>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.opcionTitulo}>Soy Jugador</Text>
+            <Text style={styles.opcionDescripcion}>Únete a una sala con el código del máster</Text>
+          </View>
+        </TouchableOpacity>
+      </View>
     </View>
   );
 }
@@ -42,34 +56,42 @@ export default function HomeScreen({ navigation }: Props) {
 const styles = StyleSheet.create({
   contenedor: {
     flex: 1,
-    backgroundColor: '#1a1523',
+    backgroundColor: color.fondo,
     alignItems: 'center',
     justifyContent: 'center',
-    padding: 24,
-    gap: 16,
+    padding: espacio.xl,
+    gap: espacio.xl,
   },
-  titulo: { fontSize: 32, fontWeight: '700', color: '#f3e9ff', marginBottom: 4 },
-  subtitulo: { fontSize: 16, color: '#c9b8e0', marginBottom: 24 },
+  encabezado: { alignItems: 'center', gap: espacio.sm, maxWidth: 360 },
+  titulo: { ...tipo.titulo, fontSize: 34, textAlign: 'center' },
+  subtitulo: { ...tipo.nota, textAlign: 'center' },
   avisoSesion: {
     width: '100%',
     maxWidth: 360,
-    backgroundColor: '#2b2a1f',
+    backgroundColor: color.avisoSuave,
     borderWidth: 1,
-    borderColor: '#d0b86f',
-    borderRadius: 10,
-    padding: 12,
-    marginBottom: 8,
+    borderColor: color.aviso,
+    borderRadius: radio.lg,
+    padding: espacio.md,
+    gap: 2,
   },
   avisoSesionTexto: { color: '#f0e6c9', fontSize: 13, textAlign: 'center' },
-  boton: {
+  avisoSesionCerrar: { color: '#9b8a5f', fontSize: 11, textAlign: 'center' },
+  opciones: { width: '100%', maxWidth: 360, gap: espacio.md },
+  opcion: {
     width: '100%',
-    maxWidth: 360,
-    backgroundColor: '#6b3fa0',
-    borderRadius: 12,
-    paddingVertical: 18,
-    paddingHorizontal: 20,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: espacio.md,
+    backgroundColor: color.superficieAlt,
+    borderRadius: radio.xl,
+    borderWidth: 1,
+    borderColor: color.borde,
+    paddingVertical: espacio.lg,
+    paddingHorizontal: espacio.lg,
   },
-  botonSecundario: { backgroundColor: '#2f2540', borderWidth: 1, borderColor: '#6b3fa0' },
-  botonTexto: { color: '#fff', fontSize: 18, fontWeight: '600' },
-  botonDescripcion: { color: '#d8cbe8', fontSize: 13, marginTop: 4 },
+  opcionPrimaria: { backgroundColor: color.acentoSuave, borderColor: color.acento },
+  opcionIcono: { fontSize: 28 },
+  opcionTitulo: { color: color.texto, fontSize: 17, fontWeight: '700' },
+  opcionDescripcion: { color: color.textoSecundario, fontSize: 13, marginTop: 2 },
 });
