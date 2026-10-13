@@ -318,7 +318,11 @@ function procesarMensaje(
             ? `${d.nombre} ha sido marcado ausente`
             : d.estado === 'muerto'
               ? null // el evento 'personaje_muerto' ya deja constancia en el log
-              : `${d.nombre} vuelve a estar activo`;
+              : d.estado === 'inconsciente'
+                ? `${d.nombre} ha quedado inconsciente`
+                : d.estado === 'activo'
+                  ? `${d.nombre} vuelve a estar activo`
+                  : null;
         return {
           personajes: s.personajes.some((p) => p.id === d.id)
             ? s.personajes.map((p) => (p.id === d.id ? { ...p, ...d } : p))
@@ -479,8 +483,21 @@ function procesarMensaje(
       break;
     }
     case 'error': {
-      const d = datos as { mensaje: string };
-      set((s) => ({ log: [nuevoEvento(d.mensaje, 'aviso'), ...s.log] }));
+      const d = datos as { mensaje: string; origen_personaje_id?: string; objeto_id?: string };
+      set((s) => ({
+        log: [nuevoEvento(d.mensaje, 'aviso'), ...s.log],
+        // Un intercambio_confirmar fallido (el objeto ya no está, o el
+        // personaje de origen no es válido) trae de vuelta qué propuesta
+        // concreta ha quedado obsoleta — si no la quitáramos aquí, la
+        // tarjeta de "te ofrece X" seguiría mostrándose como si todavía se
+        // pudiera aceptar.
+        propuestasIntercambio:
+          d.origen_personaje_id && d.objeto_id
+            ? s.propuestasIntercambio.filter(
+                (p) => !(p.origen_personaje_id === d.origen_personaje_id && p.objeto_id === d.objeto_id)
+              )
+            : s.propuestasIntercambio,
+      }));
       break;
     }
     default:

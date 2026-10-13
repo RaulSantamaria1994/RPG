@@ -584,7 +584,10 @@ export default function JuegoScreen({ navigation }: Props) {
                           <Text style={styles.requisitoTexto}>Elige el objetivo de {hechizo.nombre}:</Text>
                           {hechizo.efecto === 'restaura_vida_o_mana'
                             ? personajes
-                                .filter((p) => p.estado !== 'ausente')
+                                // Un personaje muerto de forma permanente no
+                                // se puede revivir con esto — ver el gasto de
+                                // maná y el turno en nada.
+                                .filter((p) => p.estado !== 'ausente' && p.estado !== 'muerto')
                                 .map((destino) => (
                                   <TouchableOpacity
                                     key={destino.id}

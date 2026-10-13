@@ -169,8 +169,8 @@ def _personaje_publico(p: Personaje) -> dict:
     }
 
 
-async def _enviar_error(conexion: ConexionJugador, mensaje: str) -> None:
-    await gestor.enviar_a(conexion, {"tipo": "error", "datos": {"mensaje": mensaje}})
+async def _enviar_error(conexion: ConexionJugador, mensaje: str, **extra) -> None:
+    await gestor.enviar_a(conexion, {"tipo": "error", "datos": {"mensaje": mensaje, **extra}})
 
 
 async def _broadcast_nodo(sala: Sala) -> None:
@@ -1220,13 +1220,27 @@ async def _manejar_intercambio_confirmar(db, sala: Sala, conexion: ConexionJugad
     # personaje de OTRA sala y robarle un objeto con solo saber su id y el
     # de uno de sus objetos.
     if origen is None or origen.sala_id != sala.id:
-        await _enviar_error(conexion, "Ese personaje no existe en esta sala.")
+        await _enviar_error(
+            conexion,
+            "Ese personaje no existe en esta sala.",
+            origen_personaje_id=datos["origen_personaje_id"],
+            objeto_id=objeto_id,
+        )
         return
 
     inventario_origen = list(origen.inventario or [])
     objeto = next((o for o in inventario_origen if o.get("objeto_id") == objeto_id), None)
     if objeto is None:
-        await _enviar_error(conexion, "Ese objeto ya no está disponible.")
+        # El cliente que propuso ya no tiene el objeto (lo usó, lo dio a
+        # otro...): además del error, hay que decirle al destinatario cuál
+        # propuesta concreta ha quedado obsoleta, para que deje de mostrarla
+        # como si siguiera en pie.
+        await _enviar_error(
+            conexion,
+            "Ese objeto ya no está disponible.",
+            origen_personaje_id=str(origen.id),
+            objeto_id=objeto_id,
+        )
         return
 
     inventario_origen.remove(objeto)

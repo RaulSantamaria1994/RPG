@@ -150,7 +150,12 @@ def test_confirmar_objeto_ya_entregado_da_error(client, historia_cuervo_negro):
                 "datos": {"origen_personaje_id": kara["personaje"]["id"], "objeto_id": "amuleto_prueba"},
             }
         )
-        _recibir_hasta(ws, "error")
+        error = _recibir_hasta(ws, "error")
+        # El cliente necesita estos dos campos para poder quitar de su
+        # pantalla la propuesta de intercambio que acaba de quedar obsoleta
+        # (ver salaStore.ts, caso 'error').
+        assert error["datos"]["origen_personaje_id"] == kara["personaje"]["id"]
+        assert error["datos"]["objeto_id"] == "amuleto_prueba"
 
 
 def test_confirmar_con_personaje_de_otra_sala_no_roba_el_objeto(client, historia_cuervo_negro, db):
@@ -188,7 +193,9 @@ def test_confirmar_con_personaje_de_otra_sala_no_roba_el_objeto(client, historia
                 },
             }
         )
-        _recibir_hasta(ws, "error")
+        error = _recibir_hasta(ws, "error")
+        assert error["datos"]["origen_personaje_id"] == victima["personaje"]["id"]
+        assert error["datos"]["objeto_id"] == "objeto_codiciado"
 
     victima_actual = db.get(Personaje, uuid.UUID(victima["personaje"]["id"]))
     assert any(o["objeto_id"] == "objeto_codiciado" for o in (victima_actual.inventario or []))
