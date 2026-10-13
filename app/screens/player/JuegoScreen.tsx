@@ -233,9 +233,11 @@ export default function JuegoScreen({ navigation }: Props) {
               const deshabilitada = usada || bloqueada;
               const expandida = palabraExpandida === clave;
 
-              const hechizosDisponibles = personaje.hechizos_conocidos.filter(
-                (h) => h === p.hechizo_id_alternativo
-              );
+              const hechizosDisponibles = personaje.hechizos_conocidos.filter((h) => {
+                if (h === p.hechizo_id_alternativo) return true;
+                if (!p.categoria_hechizo_alternativa) return false;
+                return hechizos.find((x) => x.hechizo_id === h)?.categoria === p.categoria_hechizo_alternativa;
+              });
 
               const esVotacion = p.modo_interaccion === 'grupal' && !p.dificultad;
               const confirmacion = confirmacionesGrupales[clave];

@@ -42,6 +42,10 @@ export default function MasterSalaScreen({ navigation }: Props) {
   const [filtro, setFiltro] = useState('');
   const [expulsionArmada, setExpulsionArmada] = useState<string | null>(null);
   const [ajusteAbierto, setAjusteAbierto] = useState<string | null>(null);
+  const [cierreArmado, setCierreArmado] = useState(false);
+  const [cerrando, setCerrando] = useState(false);
+  const [salaCerrada, setSalaCerrada] = useState(false);
+  const [errorCierre, setErrorCierre] = useState<string | null>(null);
 
   useEffect(() => {
     conectar();
@@ -53,6 +57,15 @@ export default function MasterSalaScreen({ navigation }: Props) {
       api.listarNodos(sala.codigo, token).then(setNodos).catch(() => {});
     }
   }, [sala, token]);
+
+  useEffect(() => {
+    if (sala) {
+      api
+        .obtenerSala(sala.codigo)
+        .then((s) => setSalaCerrada(s.estado === 'cerrada'))
+        .catch(() => {});
+    }
+  }, [sala]);
 
   useEffect(() => {
     if (!sala) {
@@ -87,6 +100,21 @@ export default function MasterSalaScreen({ navigation }: Props) {
 
   function ajustarMana(personajeId: string, delta: number) {
     enviar('ajustar_personaje', { personaje_id: personajeId, delta_mana: delta });
+  }
+
+  async function cerrarSala() {
+    if (!sala || !token) return;
+    setCerrando(true);
+    setErrorCierre(null);
+    try {
+      await api.cerrarSala(sala.codigo, token);
+      setSalaCerrada(true);
+    } catch {
+      setErrorCierre('No se pudo cerrar la sala. Inténtalo de nuevo.');
+    } finally {
+      setCerrando(false);
+      setCierreArmado(false);
+    }
   }
 
   return (
@@ -269,6 +297,37 @@ export default function MasterSalaScreen({ navigation }: Props) {
         <Tarjeta>
           <Text style={styles.seccionTitulo}>CONTROL DEL MÁSTER</Text>
           <Boton texto="Forzar salto de nodo…" onPress={() => setSelectorVisible(true)} variante="secundario" />
+
+          <View style={styles.separadorCierre}>
+            {salaCerrada ? (
+              <Insignia texto="Cerrada a nuevos jugadores" tono="neutro" icono="lock-closed-outline" />
+            ) : cierreArmado ? (
+              <View style={styles.filaConfirmarExpulsion}>
+                <TouchableOpacity
+                  style={styles.botonExpulsarConfirmar}
+                  onPress={cerrarSala}
+                  disabled={cerrando}
+                >
+                  <Text style={styles.botonExpulsarConfirmarTexto}>
+                    {cerrando ? 'Cerrando…' : '¿Seguro? Cerrar sala'}
+                  </Text>
+                </TouchableOpacity>
+                <TouchableOpacity onPress={() => setCierreArmado(false)} disabled={cerrando}>
+                  <Text style={styles.cancelarExpulsion}>Cancelar</Text>
+                </TouchableOpacity>
+              </View>
+            ) : (
+              <Boton
+                texto="Cerrar sala a nuevos jugadores"
+                onPress={() => setCierreArmado(true)}
+                variante="fantasma"
+              />
+            )}
+            <Text style={styles.ayudaCierre}>
+              Nadie más podrá unirse con el código, pero el grupo actual sigue jugando con normalidad.
+            </Text>
+            {errorCierre && <Text style={styles.errorCierre}>{errorCierre}</Text>}
+          </View>
         </Tarjeta>
       </ScrollView>
 
@@ -424,6 +483,16 @@ const styles = StyleSheet.create({
   },
   botonExpulsarConfirmarTexto: { color: '#fff', fontSize: 11, fontWeight: '700' },
   cancelarExpulsion: { color: color.textoSecundario, fontSize: 11 },
+  separadorCierre: {
+    marginTop: espacio.md,
+    paddingTop: espacio.md,
+    borderTopWidth: 1,
+    borderTopColor: color.bordeSutil,
+    gap: espacio.xs,
+    alignItems: 'flex-start',
+  },
+  ayudaCierre: { color: color.textoTenue, fontSize: 11 },
+  errorCierre: { color: color.peligro, fontSize: 12 },
   panelAjuste: {
     backgroundColor: color.fondoElevado,
     borderRadius: radio.md,

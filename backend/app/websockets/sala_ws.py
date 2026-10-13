@@ -927,7 +927,16 @@ async def _manejar_combate_accion(db, sala: Sala, conexion: ConexionJugador, dat
         flag_modified(estado, "combate")
         db.commit()
         await gestor.broadcast(
-            str(sala.id), {"tipo": "combate_resultado", "datos": {"origen": "jugador", **resultado}}
+            str(sala.id),
+            {
+                "tipo": "combate_resultado",
+                "datos": {
+                    "origen": "jugador",
+                    "personaje_id": str(personaje.id),
+                    "personaje_nombre": personaje.nombre,
+                    **resultado,
+                },
+            },
         )
         if combate_engine.evaluar_fin_combate(combate) == "victoria":
             flag_modified(estado, "combate")
@@ -940,7 +949,16 @@ async def _manejar_combate_accion(db, sala: Sala, conexion: ConexionJugador, dat
         resultado = resolver_tirada(personaje.agilidad, dificultad=combate.get("dificultad_huida", 12))
         await gestor.broadcast(
             str(sala.id),
-            {"tipo": "combate_resultado", "datos": {"origen": "jugador", "accion": "huir", "tirada": resultado.to_dict()}},
+            {
+                "tipo": "combate_resultado",
+                "datos": {
+                    "origen": "jugador",
+                    "accion": "huir",
+                    "personaje_id": str(personaje.id),
+                    "personaje_nombre": personaje.nombre,
+                    "tirada": resultado.to_dict(),
+                },
+            },
         )
         if resultado.exito and nodo_actual.get("nodo_huida"):
             combate["terminado"] = True
@@ -955,7 +973,16 @@ async def _manejar_combate_accion(db, sala: Sala, conexion: ConexionJugador, dat
         resultado = resolver_tirada(personaje.astucia, dificultad=combate.get("dificultad_negociacion", 13))
         await gestor.broadcast(
             str(sala.id),
-            {"tipo": "combate_resultado", "datos": {"origen": "jugador", "accion": "negociar", "tirada": resultado.to_dict()}},
+            {
+                "tipo": "combate_resultado",
+                "datos": {
+                    "origen": "jugador",
+                    "accion": "negociar",
+                    "personaje_id": str(personaje.id),
+                    "personaje_nombre": personaje.nombre,
+                    "tirada": resultado.to_dict(),
+                },
+            },
         )
         if resultado.exito and nodo_actual.get("nodo_negociacion"):
             combate["terminado"] = True
@@ -1026,6 +1053,7 @@ async def _manejar_combate_accion(db, sala: Sala, conexion: ConexionJugador, dat
                     "origen": "jugador",
                     "accion": "objeto",
                     "personaje_id": str(personaje.id),
+                    "personaje_nombre": personaje.nombre,
                     "objeto": objeto,
                     "efecto": {**efecto, "enemigo_id": enemigo_objetivo_id} if tipo_efecto == "dano" else efecto,
                 },
@@ -1114,6 +1142,7 @@ async def _manejar_combate_accion(db, sala: Sala, conexion: ConexionJugador, dat
                     "origen": "jugador",
                     "accion": "hechizo",
                     "personaje_id": str(personaje.id),
+                    "personaje_nombre": personaje.nombre,
                     "hechizo": hechizo["nombre"],
                     "tirada": resultado_tirada.to_dict(),
                     "efecto": efecto_aplicado,

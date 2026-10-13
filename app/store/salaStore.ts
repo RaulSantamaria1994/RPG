@@ -242,46 +242,52 @@ function procesarMensaje(
         dano_aplicado?: number;
         accion?: string;
         enemigo_id?: string;
+        personaje_id?: string;
+        personaje_nombre?: string;
         objeto?: { nombre: string };
         hechizo?: string;
         efecto?: { tipo: string; dano?: number; cantidad?: number; enemigo_id?: string } | null;
         tirada?: { exito?: boolean; dado?: number; total?: number };
       };
-      let texto: string;
-      if (d.origen === 'enemigo' && d.accion === 'aturdido') {
-        texto = 'Un enemigo aturdido pierde su turno';
-      } else if (d.accion === 'objeto') {
-        const nombreObjeto = d.objeto?.nombre ?? 'un objeto';
-        texto =
-          d.efecto?.tipo === 'dano'
-            ? `Usa "${nombreObjeto}": ${d.efecto.cantidad ?? 0} de daño`
-            : `Usa "${nombreObjeto}"`;
-      } else if (d.accion === 'hechizo') {
-        const exito = d.tirada?.exito;
-        texto = exito
-          ? `Lanza ${d.hechizo}: ${d.efecto?.tipo === 'dano' ? `${d.efecto.dano} de daño` : d.efecto?.tipo === 'aturdido' ? 'enemigo aturdido' : d.efecto?.tipo === 'curacion' ? `${d.efecto.cantidad} de curación` : 'efecto aplicado'}`
-          : `Falla al lanzar ${d.hechizo}`;
-      } else if (d.accion === 'huir') {
-        texto = d.tirada?.exito ? 'Consigue huir' : 'No logra huir';
-      } else if (d.accion === 'negociar') {
-        texto = d.tirada?.exito ? 'Consigue negociar' : 'No logra negociar';
-      } else if (d.origen === 'jugador') {
-        texto = `Ataque de jugador: ${d.dano_aplicado ?? 0} de daño`;
-      } else {
-        texto = `Un enemigo ataca: ${d.dano_aplicado ?? 0} de daño`;
-      }
-      set((s) => ({
-        log: [nuevoEvento(texto), ...s.log],
-        ultimaTirada:
-          d.origen === 'jugador' && d.tirada
-            ? {
-                dado: d.tirada.dado,
-                total: d.tirada.total,
-                exito: !!d.tirada.exito,
-                quien: s.personaje?.nombre ?? 'Tú',
-              }
-            : s.ultimaTirada,
-      }));
+      set((s) => {
+        // El autor de la acción no tiene por qué ser quien ve la pantalla:
+        // en una partida con varios jugadores, cada combate_resultado llega
+        // a todo el mundo por igual, así que el nombre viene siempre del
+        // propio mensaje (con el personaje local como respaldo si el
+        // mensaje no lo trae), nunca de "mi" personaje.
+        const quien =
+          d.personaje_nombre ?? s.personajes.find((p) => p.id === d.personaje_id)?.nombre ?? 'Un jugador';
+        let texto: string;
+        if (d.origen === 'enemigo' && d.accion === 'aturdido') {
+          texto = 'Un enemigo aturdido pierde su turno';
+        } else if (d.accion === 'objeto') {
+          const nombreObjeto = d.objeto?.nombre ?? 'un objeto';
+          texto =
+            d.efecto?.tipo === 'dano'
+              ? `${quien} usa "${nombreObjeto}": ${d.efecto.cantidad ?? 0} de daño`
+              : `${quien} usa "${nombreObjeto}"`;
+        } else if (d.accion === 'hechizo') {
+          const exito = d.tirada?.exito;
+          texto = exito
+            ? `${quien} lanza ${d.hechizo}: ${d.efecto?.tipo === 'dano' ? `${d.efecto.dano} de daño` : d.efecto?.tipo === 'aturdido' ? 'enemigo aturdido' : d.efecto?.tipo === 'curacion' ? `${d.efecto.cantidad} de curación` : 'efecto aplicado'}`
+            : `${quien} falla al lanzar ${d.hechizo}`;
+        } else if (d.accion === 'huir') {
+          texto = d.tirada?.exito ? `${quien} consigue huir` : `${quien} no logra huir`;
+        } else if (d.accion === 'negociar') {
+          texto = d.tirada?.exito ? `${quien} consigue negociar` : `${quien} no logra negociar`;
+        } else if (d.origen === 'jugador') {
+          texto = `${quien} ataca: ${d.dano_aplicado ?? 0} de daño`;
+        } else {
+          texto = `Un enemigo ataca: ${d.dano_aplicado ?? 0} de daño`;
+        }
+        return {
+          log: [nuevoEvento(texto), ...s.log],
+          ultimaTirada:
+            d.origen === 'jugador' && d.tirada
+              ? { dado: d.tirada.dado, total: d.tirada.total, exito: !!d.tirada.exito, quien }
+              : s.ultimaTirada,
+        };
+      });
       break;
     }
     case 'personaje_ajustado': {
