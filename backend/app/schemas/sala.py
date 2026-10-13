@@ -7,7 +7,7 @@ class SalaCrear(BaseModel):
     master_nombre: str = Field(min_length=1, max_length=60)
     historia_id: str
     nombre: str | None = None
-    min_jugadores: int = Field(default=2, ge=1)
+    min_jugadores: int = Field(default=1, ge=1)
     max_jugadores: int = Field(default=6, le=6)
     muerte_permanente: bool = False
 

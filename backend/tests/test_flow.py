@@ -27,7 +27,7 @@ def test_crear_sala_ancla_version_y_nodo_inicial(client, historia_cuervo_negro):
     datos = _crear_sala(client, historia_cuervo_negro)
     assert len(datos["sala"]["codigo"]) == 6
     assert datos["sala"]["historia_version"] == 1
-    assert datos["sala"]["min_jugadores"] == 2
+    assert datos["sala"]["min_jugadores"] == 1
     assert datos["sala"]["max_jugadores"] == 6
 
 

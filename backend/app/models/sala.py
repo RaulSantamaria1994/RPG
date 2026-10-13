@@ -27,7 +27,7 @@ class Sala(Base):
     master_nombre: Mapped[str] = mapped_column(String(60), nullable=False)
     master_token: Mapped[str] = mapped_column(Text, nullable=False)
 
-    min_jugadores: Mapped[int] = mapped_column(Integer, nullable=False, default=2)
+    min_jugadores: Mapped[int] = mapped_column(Integer, nullable=False, default=1)
     max_jugadores: Mapped[int] = mapped_column(Integer, nullable=False, default=6)
 
     # activa | pausada | cerrada

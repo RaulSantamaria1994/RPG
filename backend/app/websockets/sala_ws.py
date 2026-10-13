@@ -69,6 +69,14 @@ def _usa_muerte_permanente(sala: Sala) -> bool:
     return bool(sala.muerte_permanente) and bool(sala.historia.contenido.get("nodo_muerte_total"))
 
 
+def _faltan_jugadores_para_empezar(db, sala: Sala) -> int:
+    """Cuántos jugadores faltan por unirse para alcanzar `sala.min_jugadores`
+    (0 o menos significa que ya se puede jugar). Cuenta todo personaje creado
+    en la sala, esté ausente o muerto o no: lo que importa aquí es cuánta
+    gente se apuntó a la partida, no quién sigue activo en este momento."""
+    return sala.min_jugadores - len(_personajes_no_master(db, sala.id))
+
+
 def _texto_epilogo_tetrico(sala: Sala, personaje: Personaje) -> str:
     contenido = sala.historia.contenido
     epilogos = contenido.get("desenlaces_tetricos") or {}
@@ -657,6 +665,15 @@ async def _manejar_interactuar(db, sala: Sala, conexion: ConexionJugador, datos:
         await _enviar_error(conexion, "El máster no interactúa directamente con palabras clave.")
         return
 
+    faltan = _faltan_jugadores_para_empezar(db, sala)
+    if faltan > 0:
+        await _enviar_error(
+            conexion,
+            f"Hacen falta al menos {sala.min_jugadores} jugadores para empezar a jugar "
+            f"(falta{'n' if faltan != 1 else ''} {faltan}).",
+        )
+        return
+
     estado = sala.estado_sala
     nodo_id = estado.nodo_actual_id
     try:
@@ -688,6 +705,15 @@ async def _manejar_interactuar(db, sala: Sala, conexion: ConexionJugador, datos:
 
 
 async def _manejar_continuar(db, sala: Sala, conexion: ConexionJugador, datos: dict) -> None:
+    faltan = _faltan_jugadores_para_empezar(db, sala)
+    if faltan > 0:
+        await _enviar_error(
+            conexion,
+            f"Hacen falta al menos {sala.min_jugadores} jugadores para empezar a jugar "
+            f"(falta{'n' if faltan != 1 else ''} {faltan}).",
+        )
+        return
+
     estado = sala.estado_sala
     nodo = encontrar_nodo(sala.historia.contenido, estado.nodo_actual_id)
     if nodo.get("tipo") != "narrativo" or not nodo.get("nodo_siguiente"):

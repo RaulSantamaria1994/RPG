@@ -86,6 +86,7 @@ export default function MasterSalaScreen({ navigation }: Props) {
   if (!sala) return null;
 
   const nodo = estado?.nodo;
+  const faltanJugadores = Math.max(0, sala.min_jugadores - personajes.length);
 
   function salir() {
     reiniciar();
@@ -168,6 +169,16 @@ export default function MasterSalaScreen({ navigation }: Props) {
           </View>
         )}
 
+        {faltanJugadores > 0 && (
+          <View style={styles.finalBanner}>
+            <Text style={styles.finalBannerTexto}>
+              Esperando a {faltanJugadores} jugador{faltanJugadores !== 1 ? 'es' : ''} más para
+              empezar ({personajes.length}/{sala.min_jugadores}). Podéis seguir usando "Forzar salto
+              de nodo…" si queréis saltaros la espera.
+            </Text>
+          </View>
+        )}
+
         {nodo && (
           <View style={styles.filaNodoTitulo}>
             <Insignia texto={ETIQUETA_TIPO[nodo.tipo]} tono="acento" />
@@ -196,7 +207,7 @@ export default function MasterSalaScreen({ navigation }: Props) {
           </Tarjeta>
         )}
 
-        {nodo?.tipo === 'narrativo' && (
+        {nodo?.tipo === 'narrativo' && faltanJugadores === 0 && (
           <Boton texto="Avanzar al siguiente nodo" onPress={() => enviar('continuar')} variante="secundario" />
         )}
 

@@ -16,6 +16,7 @@ export default function CrearSalaScreen({ navigation }: Props) {
   const [historias, setHistorias] = useState<HistoriaResumen[]>([]);
   const [historiaId, setHistoriaId] = useState<string | null>(null);
   const [nombreMaster, setNombreMaster] = useState('');
+  const [minJugadores, setMinJugadores] = useState('1');
   const [maxJugadores, setMaxJugadores] = useState('6');
   const [muertePermanente, setMuertePermanente] = useState(false);
   const [cargando, setCargando] = useState(false);
@@ -43,6 +44,7 @@ export default function CrearSalaScreen({ navigation }: Props) {
       const { sala, master_token } = await api.crearSala({
         master_nombre: nombreMaster.trim(),
         historia_id: historiaId,
+        min_jugadores: Number(minJugadores) || 1,
         max_jugadores: Number(maxJugadores) || 6,
         muerte_permanente: muertePermanente,
       });
@@ -88,7 +90,18 @@ export default function CrearSalaScreen({ navigation }: Props) {
         ))
       )}
 
-      <Text style={styles.etiqueta}>Máximo de jugadores (2-6)</Text>
+      <Text style={styles.etiqueta}>Mínimo de jugadores para empezar</Text>
+      <Text style={styles.ayudaCorta}>
+        Nadie podrá hacer avanzar la historia hasta que se una esta cantidad de jugadores.
+      </Text>
+      <TextInput
+        style={styles.input}
+        value={minJugadores}
+        onChangeText={setMinJugadores}
+        keyboardType="number-pad"
+      />
+
+      <Text style={[styles.etiqueta, { marginTop: espacio.md }]}>Máximo de jugadores (2-6)</Text>
       <TextInput
         style={styles.input}
         value={maxJugadores}

@@ -102,6 +102,7 @@ export default function JuegoScreen({ navigation }: Props) {
 
   if (!sala || !personaje) return null;
 
+  const faltanJugadores = Math.max(0, sala.min_jugadores - personajes.length);
   const nodo = estado?.nodo;
   const enCombate = estado?.fase === 'combate' && estado.combate;
   const esMiTurno =
@@ -203,6 +204,15 @@ export default function JuegoScreen({ navigation }: Props) {
           </View>
         )}
 
+        {faltanJugadores > 0 && (
+          <View style={styles.ausenteBanner}>
+            <Text style={styles.ausenteBannerTexto}>
+              Esperando a {faltanJugadores} jugador{faltanJugadores !== 1 ? 'es' : ''} más para
+              empezar ({personajes.length}/{sala.min_jugadores}).
+            </Text>
+          </View>
+        )}
+
         {soyAusente && (
           <View style={styles.ausenteBanner}>
             <Text style={styles.ausenteBannerTexto}>
@@ -224,7 +234,7 @@ export default function JuegoScreen({ navigation }: Props) {
           {nodo?.texto}
         </Text>
 
-        {nodo?.tipo === 'interactivo' && !enCombate && !soyAusente && !soyMuerto && (
+        {nodo?.tipo === 'interactivo' && !enCombate && !soyAusente && !soyMuerto && faltanJugadores === 0 && (
           <View style={{ gap: espacio.sm }}>
             {nodo.palabras_clave?.map((p) => {
               const clave = `${estado?.nodo_actual_id}:${p.texto}`;
@@ -388,7 +398,8 @@ export default function JuegoScreen({ navigation }: Props) {
           <Boton texto="Volver al menú" onPress={salir} />
         ) : (
           nodo?.tipo === 'narrativo' &&
-          !soyMuerto && <Boton texto="Continuar" onPress={() => enviar('continuar')} />
+          !soyMuerto &&
+          faltanJugadores === 0 && <Boton texto="Continuar" onPress={() => enviar('continuar')} />
         )}
 
         {enCombate && (
