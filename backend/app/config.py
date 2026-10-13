@@ -16,6 +16,13 @@ class Settings(BaseSettings):
     codigo_sala_longitud: int = 6
     sala_max_jugadores_duro: int = 6
 
+    # Una sala sin ninguna actividad (ninguna petición REST ni mensaje WS que
+    # toque `ultima_actividad_en`) durante este número de días se considera
+    # abandonada y se borra, junto con su estado, personajes e inventario.
+    sala_expiracion_dias: int = 30
+    # Cada cuánto se ejecuta esa limpieza en segundo plano, en horas.
+    limpieza_intervalo_horas: int = 24
+
 
 @lru_cache
 def get_settings() -> Settings:
