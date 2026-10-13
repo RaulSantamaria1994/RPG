@@ -114,6 +114,9 @@ export const api = {
   cerrarSala: (codigo: string, token: string) =>
     peticion<Sala>(`/salas/${codigo}/cerrar`, { method: 'POST', token }),
 
+  regenerarCodigo: (codigo: string, token: string) =>
+    peticion<Sala>(`/salas/${codigo}/regenerar-codigo`, { method: 'POST', token }),
+
   borrarSala: (codigo: string, token: string) =>
     peticion<void>(`/salas/${codigo}`, { method: 'DELETE', token }),
 };

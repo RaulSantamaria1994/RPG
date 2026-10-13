@@ -46,6 +46,10 @@ export default function MasterSalaScreen({ navigation }: Props) {
   const [cerrando, setCerrando] = useState(false);
   const [salaCerrada, setSalaCerrada] = useState(false);
   const [errorCierre, setErrorCierre] = useState<string | null>(null);
+  const [regenerarArmado, setRegenerarArmado] = useState(false);
+  const [regenerando, setRegenerando] = useState(false);
+  const [errorRegenerar, setErrorRegenerar] = useState<string | null>(null);
+  const actualizarCodigoSala = useSalaStore((s) => s.actualizarCodigoSala);
 
   useEffect(() => {
     conectar();
@@ -114,6 +118,21 @@ export default function MasterSalaScreen({ navigation }: Props) {
     } finally {
       setCerrando(false);
       setCierreArmado(false);
+    }
+  }
+
+  async function regenerarCodigo() {
+    if (!sala || !token) return;
+    setRegenerando(true);
+    setErrorRegenerar(null);
+    try {
+      const nuevaSala = await api.regenerarCodigo(sala.codigo, token);
+      actualizarCodigoSala(nuevaSala.codigo);
+    } catch {
+      setErrorRegenerar('No se pudo regenerar el código. Inténtalo de nuevo.');
+    } finally {
+      setRegenerando(false);
+      setRegenerarArmado(false);
     }
   }
 
@@ -328,6 +347,37 @@ export default function MasterSalaScreen({ navigation }: Props) {
             </Text>
             {errorCierre && <Text style={styles.errorCierre}>{errorCierre}</Text>}
           </View>
+
+          {!salaCerrada && (
+            <View style={styles.separadorCierre}>
+              {regenerarArmado ? (
+                <View style={styles.filaConfirmarExpulsion}>
+                  <TouchableOpacity
+                    style={styles.botonExpulsarConfirmar}
+                    onPress={regenerarCodigo}
+                    disabled={regenerando}
+                  >
+                    <Text style={styles.botonExpulsarConfirmarTexto}>
+                      {regenerando ? 'Regenerando…' : '¿Seguro? Regenerar código'}
+                    </Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity onPress={() => setRegenerarArmado(false)} disabled={regenerando}>
+                    <Text style={styles.cancelarExpulsion}>Cancelar</Text>
+                  </TouchableOpacity>
+                </View>
+              ) : (
+                <Boton
+                  texto="Regenerar código de sala"
+                  onPress={() => setRegenerarArmado(true)}
+                  variante="fantasma"
+                />
+              )}
+              <Text style={styles.ayudaCierre}>
+                El código actual deja de servir al instante; compártelo de nuevo con el grupo.
+              </Text>
+              {errorRegenerar && <Text style={styles.errorCierre}>{errorRegenerar}</Text>}
+            </View>
+          )}
         </Tarjeta>
       </ScrollView>
 

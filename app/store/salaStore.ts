@@ -44,6 +44,7 @@ interface SalaState {
   enviar: (tipo: string, datos?: Record<string, unknown>) => void;
   reiniciar: () => void;
   limpiarMensajeSesion: () => void;
+  actualizarCodigoSala: (nuevoCodigo: string) => void;
 }
 
 function nuevoEvento(texto: string, icono?: EventoLog['icono']): EventoLog {
@@ -113,6 +114,21 @@ export const useSalaStore = create<SalaState>()(
       },
 
       limpiarMensajeSesion: () => set({ mensajeSesion: null }),
+
+      actualizarCodigoSala: (nuevoCodigo) => {
+        const { sala, token, cliente } = get();
+        if (!sala || !token) return;
+        // El `ClienteSala` activo guarda el código con el que se construyó
+        // y lo reutiliza si la conexión se cae y reintenta por su cuenta —
+        // si no lo reconectamos ahora con el código nuevo, ese reintento
+        // automático (o recargar la página, que relee esto del
+        // almacenamiento persistido) fallaría con el código ya inválido.
+        cliente?.desconectar();
+        const nuevoCliente = new ClienteSala(nuevoCodigo, token);
+        nuevoCliente.suscribir((mensaje) => procesarMensaje(mensaje, set, get));
+        nuevoCliente.conectar();
+        set({ sala: { ...sala, codigo: nuevoCodigo }, cliente: nuevoCliente, conectado: true });
+      },
     }),
     {
       name: 'rpg-sesion',
