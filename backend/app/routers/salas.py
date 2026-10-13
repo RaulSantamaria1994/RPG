@@ -1,3 +1,5 @@
+from datetime import datetime, timezone
+
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
@@ -198,6 +200,7 @@ def cerrar_sala(
     sala = _obtener_sala_por_codigo(codigo, db)
     _requerir_master_de_sala(sala, payload)
     sala.estado = "cerrada"
+    sala.ultima_actividad_en = datetime.now(timezone.utc)
     db.commit()
     db.refresh(sala)
     return sala

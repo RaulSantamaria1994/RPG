@@ -94,3 +94,24 @@ def test_solo_borra_las_salas_realmente_expiradas(client, historia_cuervo_negro,
     assert borradas == 1
     assert db.query(Sala).filter(Sala.codigo == activa["sala"]["codigo"]).first() is not None
     assert db.query(Sala).filter(Sala.codigo == expirada["sala"]["codigo"]).first() is None
+
+
+def test_cerrar_sala_actualiza_ultima_actividad(client, historia_cuervo_negro, db):
+    """Cerrar una sala es una acción explícita del máster sobre ella — debe
+    contar como actividad igual que cualquier otra, para que una partida ya
+    muy vieja que se cierra hoy reciba el mismo margen de gracia que
+    cualquier otra antes de que la limpieza la borre."""
+    ahora = datetime.now(timezone.utc)
+    sala = _crear_sala(client, historia_cuervo_negro)
+    codigo = sala["sala"]["codigo"]
+    master_token = sala["master_token"]
+    _retrasar_actividad(db, codigo, ahora, settings.sala_expiracion_dias + 10)
+
+    resp = client.post(f"/salas/{codigo}/cerrar", headers={"Authorization": f"Bearer {master_token}"})
+    assert resp.status_code == 200, resp.text
+    assert resp.json()["estado"] == "cerrada"
+
+    borradas = limpiar_salas_expiradas(db, ahora=ahora)
+
+    assert borradas == 0
+    assert db.query(Sala).filter(Sala.codigo == codigo).first() is not None
