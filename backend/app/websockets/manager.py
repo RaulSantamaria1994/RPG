@@ -49,9 +49,6 @@ class GestorConexiones:
         if sala and conexion in sala.conexiones:
             sala.conexiones.remove(conexion)
 
-    def conectados(self, sala_id: str) -> list[ConexionJugador]:
-        return self._sala(sala_id).conexiones
-
     async def broadcast(self, sala_id: str, mensaje: dict) -> None:
         for conexion in list(self._sala(sala_id).conexiones):
             try:

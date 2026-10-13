@@ -31,10 +31,6 @@ class SalaCreadaOut(BaseModel):
     master_token: str
 
 
-class SalaUnirse(BaseModel):
-    codigo: str = Field(min_length=6, max_length=6)
-
-
 class EstadoSalaOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 

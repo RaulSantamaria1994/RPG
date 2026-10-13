@@ -141,10 +141,6 @@ def avanzar_turno(combate: dict) -> None:
         combate["ronda"] += 1
 
 
-def turno_actual(combate: dict) -> str:
-    return combate["orden_iniciativa"][combate["turno_index"]]
-
-
 def evaluar_fin_combate(combate: dict) -> str | None:
     """Devuelve 'victoria' si todos los enemigos están derrotados, o None."""
     if combate["enemigos"] and all(e["derrotado"] for e in combate["enemigos"]):

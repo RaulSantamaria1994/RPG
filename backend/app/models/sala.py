@@ -45,6 +45,3 @@ class Sala(Base):
     personajes = relationship(
         "Personaje", back_populates="sala", cascade="all, delete-orphan"
     )
-    historial = relationship(
-        "HistorialDecision", back_populates="sala", cascade="all, delete-orphan"
-    )

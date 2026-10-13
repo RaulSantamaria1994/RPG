@@ -9,7 +9,7 @@ from app.models.historia import Historia
 from app.models.personaje import Personaje
 from app.models.sala import Sala
 from app.schemas.personaje import PersonajeOut
-from app.schemas.sala import EstadoSalaOut, SalaCompletaOut, SalaCrear, SalaCreadaOut, SalaOut
+from app.schemas.sala import SalaCompletaOut, SalaCrear, SalaCreadaOut, SalaOut
 from app.security import TokenPayload, crear_token, requerir_token
 from app.utils import generar_codigo_sala
 

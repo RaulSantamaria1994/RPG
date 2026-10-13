@@ -48,11 +48,18 @@ def _personajes_no_master(db, sala_id) -> list[Personaje]:
     )
 
 
+def _filtrar_confirmables(personajes: list[Personaje]) -> list[Personaje]:
+    """Todos menos quienes el máster haya marcado como ausentes, o quienes ya
+    hayan muerto de forma permanente — ver `_personajes_confirmables`."""
+    return [p for p in personajes if p.estado not in ("ausente", "muerto")]
+
+
 def _personajes_confirmables(db, sala_id) -> list[Personaje]:
     """Personajes que cuentan para tiradas grupales y para el orden de
-    iniciativa de un combate nuevo: todos menos quienes el máster haya
-    marcado como ausentes, o quienes ya hayan muerto de forma permanente."""
-    return [p for p in _personajes_no_master(db, sala_id) if p.estado not in ("ausente", "muerto")]
+    iniciativa de un combate nuevo. Si ya tienes la lista completa de la
+    sala en memoria, usa `_filtrar_confirmables` directamente en vez de
+    volver a consultar la base de datos."""
+    return _filtrar_confirmables(_personajes_no_master(db, sala_id))
 
 
 def _usa_muerte_permanente(sala: Sala) -> bool:
@@ -73,18 +80,24 @@ def _texto_epilogo_tetrico(sala: Sala, personaje: Personaje) -> str:
     )
 
 
-async def _procesar_posible_muerte(db, sala: Sala, personaje: Personaje) -> bool:
+async def _procesar_posible_muerte(
+    db, sala: Sala, personaje: Personaje, personajes_sala: list[Personaje] | None = None
+) -> bool:
     """Si `personaje` acaba de morir de forma permanente, notifica su
     desenlace personal (el resto del grupo sigue jugando) o, si era el
     último con vida, hace saltar la partida entera al epílogo de muerte
     total. Devuelve True si la partida ya se resolvió por esa vía, para
-    que el llamador no siga avanzando nodos por su cuenta."""
+    que el llamador no siga avanzando nodos por su cuenta.
+
+    Si el llamador ya tiene la lista de personajes de la sala en memoria
+    (recién consultada en esta misma petición), pásala en `personajes_sala`
+    para no repetir la consulta."""
     if personaje.estado != "muerto":
         return False
 
     otros_vivos = any(
         p.estado != "muerto"
-        for p in _personajes_no_master(db, sala.id)
+        for p in (personajes_sala if personajes_sala is not None else _personajes_no_master(db, sala.id))
         if p.id != personaje.id
     )
     if otros_vivos:
@@ -166,7 +179,7 @@ async def _avanzar_y_notificar(db, sala: Sala, nodo_id: str) -> None:
         aplicar_descanso(estado, personajes_sala, resumen["nodo"])
 
     if resumen["nodo"].get("tipo") == "combate":
-        combate = combate_engine.iniciar_combate(resumen["nodo"], _personajes_confirmables(db, sala.id))
+        combate = combate_engine.iniciar_combate(resumen["nodo"], _filtrar_confirmables(personajes_sala))
         estado.combate = combate
         flag_modified(estado, "combate")
 
@@ -196,7 +209,7 @@ async def _avanzar_y_notificar(db, sala: Sala, nodo_id: str) -> None:
                 str(sala.id), {"tipo": "personaje_actualizado", "datos": _personaje_publico(p)}
             )
         for p in afectados:
-            if p.estado == "muerto" and await _procesar_posible_muerte(db, sala, p):
+            if p.estado == "muerto" and await _procesar_posible_muerte(db, sala, p, personajes_sala):
                 return
 
     await _broadcast_nodo(sala)
@@ -398,7 +411,7 @@ async def _resolver_individual(
                     str(sala.id), {"tipo": "personaje_actualizado", "datos": _personaje_publico(p)}
                 )
 
-        if await _procesar_posible_muerte(db, sala, personaje):
+        if await _procesar_posible_muerte(db, sala, personaje, personajes_sala):
             return
 
         await _avanzar_y_notificar(db, sala, cambios["nodo_destino"])
@@ -472,7 +485,9 @@ async def _resolver_grupal_tirada(
 ) -> None:
     clave = _clave_palabra(nodo_id, palabra["texto"])
     confirmaciones = gestor.registrar_confirmacion(str(sala.id), clave, str(personaje.id))
-    total = len(_personajes_confirmables(db, sala.id))
+    personajes_sala = _personajes_no_master(db, sala.id)
+    participantes = _filtrar_confirmables(personajes_sala)
+    total = len(participantes)
 
     await gestor.broadcast(
         str(sala.id),
@@ -489,7 +504,6 @@ async def _resolver_grupal_tirada(
     estado = sala.estado_sala
 
     regla = palabra.get("regla_grupal", "mejor_resultado")
-    participantes = _personajes_confirmables(db, sala.id)
     resultados = [
         {"personaje": p.nombre, **resolver_tirada(getattr(p, palabra["atributo"]), palabra["dificultad"]).to_dict()}
         for p in participantes
@@ -534,7 +548,7 @@ async def _resolver_grupal_tirada(
                 str(sala.id), {"tipo": "personaje_actualizado", "datos": _personaje_publico(p)}
             )
 
-    if await _procesar_posible_muerte(db, sala, personaje):
+    if await _procesar_posible_muerte(db, sala, personaje, personajes_sala):
         return
 
     await _avanzar_y_notificar(db, sala, cambios["nodo_destino"])
@@ -557,7 +571,8 @@ async def _resolver_grupal_voto(
     opciones = _opciones_grupales_sin_dificultad(nodo)
 
     votos = gestor.registrar_voto(str(sala.id), nodo_id, str(personaje.id), palabra["texto"])
-    total = len(_personajes_confirmables(db, sala.id))
+    personajes_sala = _personajes_no_master(db, sala.id)
+    total = len(_filtrar_confirmables(personajes_sala))
 
     await gestor.broadcast(
         str(sala.id),
@@ -588,7 +603,6 @@ async def _resolver_grupal_voto(
     palabra_ganadora = next((p for p in opciones if p["texto"] == texto_ganador), palabra)
 
     estado = sala.estado_sala
-    personajes_sala = _personajes_no_master(db, sala.id)
     cambios = aplicar_resultado(
         nodo_id,
         palabra_ganadora,
@@ -617,7 +631,7 @@ async def _resolver_grupal_voto(
                 str(sala.id), {"tipo": "personaje_actualizado", "datos": _personaje_publico(p)}
             )
 
-    if await _procesar_posible_muerte(db, sala, personaje):
+    if await _procesar_posible_muerte(db, sala, personaje, personajes_sala):
         return
 
     await _avanzar_y_notificar(db, sala, cambios["nodo_destino"])
@@ -726,7 +740,7 @@ async def _manejar_override_resultado(db, sala: Sala, conexion: ConexionJugador,
             str(sala.id), {"tipo": "personaje_actualizado", "datos": _personaje_publico(personaje)}
         )
 
-    if await _procesar_posible_muerte(db, sala, personaje):
+    if await _procesar_posible_muerte(db, sala, personaje, personajes_sala):
         return
 
     await _avanzar_y_notificar(db, sala, cambios["nodo_destino"])

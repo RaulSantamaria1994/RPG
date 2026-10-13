@@ -15,9 +15,6 @@ class Settings(BaseSettings):
 
     codigo_sala_longitud: int = 6
     sala_max_jugadores_duro: int = 6
-    sala_min_jugadores_defecto: int = 2
-    sala_max_jugadores_defecto: int = 6
-    sala_expiracion_dias: int = 30
 
 
 @lru_cache
