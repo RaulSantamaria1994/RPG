@@ -1298,6 +1298,13 @@ async def sala_websocket(websocket: WebSocket, codigo: str, token: str = Query(.
                 await _enviar_error(conexion, f"Tipo de mensaje '{tipo}' no reconocido.")
                 continue
 
+            # Cuenta como actividad cualquier mensaje reconocido, no solo el
+            # momento de conectar — si no, una sala con una conexión abierta
+            # durante días pero sin que nadie toque nada seguiría pareciendo
+            # "activa" para la limpieza de salas expiradas.
+            sala.ultima_actividad_en = datetime.now(timezone.utc)
+            db.commit()
+
             try:
                 await manejador(db, sala, conexion, datos)
             except KeyError as exc:

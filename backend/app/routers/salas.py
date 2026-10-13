@@ -186,6 +186,7 @@ def regenerar_codigo_sala(
     while db.query(Sala).filter(Sala.codigo == nuevo_codigo).first():
         nuevo_codigo = generar_codigo_sala(settings.codigo_sala_longitud)
     sala.codigo = nuevo_codigo
+    sala.ultima_actividad_en = datetime.now(timezone.utc)
     db.commit()
     db.refresh(sala)
     return sala

@@ -1,3 +1,5 @@
+from datetime import datetime, timezone
+
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from sqlalchemy.orm.attributes import flag_modified
@@ -39,6 +41,7 @@ def _crear_y_guardar(sala: Sala, jugador_nombre: str, datos: dict, db: Session) 
 
     token = crear_token(sala.id, rol="jugador", nombre=jugador_nombre, personaje_id=personaje.id)
     personaje.jugador_token = token
+    sala.ultima_actividad_en = datetime.now(timezone.utc)
 
     db.commit()
     db.refresh(personaje)
@@ -127,6 +130,7 @@ def override_inventario_personaje(
         inventario.append(objeto)
     personaje.inventario = inventario
     flag_modified(personaje, "inventario")
+    sala.ultima_actividad_en = datetime.now(timezone.utc)
 
     db.commit()
     db.refresh(personaje)
