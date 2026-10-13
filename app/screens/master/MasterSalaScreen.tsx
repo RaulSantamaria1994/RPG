@@ -23,6 +23,8 @@ const COLOR_TIPO: Record<NodoResumen['tipo'], string> = {
   combate: color.combate,
 };
 
+const PASOS_AJUSTE = [-5, -1, 1, 5];
+
 export default function MasterSalaScreen({ navigation }: Props) {
   const sala = useSalaStore((s) => s.sala);
   const token = useSalaStore((s) => s.token);
@@ -39,6 +41,7 @@ export default function MasterSalaScreen({ navigation }: Props) {
   const [selectorVisible, setSelectorVisible] = useState(false);
   const [filtro, setFiltro] = useState('');
   const [expulsionArmada, setExpulsionArmada] = useState<string | null>(null);
+  const [ajusteAbierto, setAjusteAbierto] = useState<string | null>(null);
 
   useEffect(() => {
     conectar();
@@ -76,6 +79,14 @@ export default function MasterSalaScreen({ navigation }: Props) {
     enviar('override_nodo', { nodo_id: nodoId });
     setSelectorVisible(false);
     setFiltro('');
+  }
+
+  function ajustarVida(personajeId: string, delta: number) {
+    enviar('ajustar_personaje', { personaje_id: personajeId, delta_vida: delta });
+  }
+
+  function ajustarMana(personajeId: string, delta: number) {
+    enviar('ajustar_personaje', { personaje_id: personajeId, delta_mana: delta });
   }
 
   return (
@@ -179,6 +190,16 @@ export default function MasterSalaScreen({ navigation }: Props) {
                     </Text>
                   </TouchableOpacity>
                 )}
+                {p.estado !== 'muerto' && (
+                  <TouchableOpacity
+                    style={styles.botonAusente}
+                    onPress={() => setAjusteAbierto(ajusteAbierto === p.id ? null : p.id)}
+                  >
+                    <Text style={styles.botonAusenteTexto}>
+                      {ajusteAbierto === p.id ? 'Cerrar ajuste' : 'Ajustar PV / maná'}
+                    </Text>
+                  </TouchableOpacity>
+                )}
                 {expulsionArmada === p.id ? (
                   <View style={styles.filaConfirmarExpulsion}>
                     <TouchableOpacity
@@ -200,6 +221,34 @@ export default function MasterSalaScreen({ navigation }: Props) {
                   </TouchableOpacity>
                 )}
               </View>
+              {ajusteAbierto === p.id && (
+                <View style={styles.panelAjuste}>
+                  <View style={styles.filaAjusteRecurso}>
+                    <Text style={styles.etiquetaAjuste}>PV</Text>
+                    {PASOS_AJUSTE.map((paso) => (
+                      <TouchableOpacity
+                        key={paso}
+                        style={styles.botonPaso}
+                        onPress={() => ajustarVida(p.id, paso)}
+                      >
+                        <Text style={styles.botonPasoTexto}>{paso > 0 ? `+${paso}` : paso}</Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                  <View style={styles.filaAjusteRecurso}>
+                    <Text style={styles.etiquetaAjuste}>Maná</Text>
+                    {PASOS_AJUSTE.map((paso) => (
+                      <TouchableOpacity
+                        key={paso}
+                        style={styles.botonPaso}
+                        onPress={() => ajustarMana(p.id, paso)}
+                      >
+                        <Text style={styles.botonPasoTexto}>{paso > 0 ? `+${paso}` : paso}</Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                </View>
+              )}
             </View>
           ))}
         </Tarjeta>
@@ -348,6 +397,24 @@ const styles = StyleSheet.create({
   },
   botonExpulsarConfirmarTexto: { color: '#fff', fontSize: 11, fontWeight: '700' },
   cancelarExpulsion: { color: color.textoSecundario, fontSize: 11 },
+  panelAjuste: {
+    backgroundColor: color.fondoElevado,
+    borderRadius: radio.md,
+    padding: espacio.sm,
+    marginTop: espacio.xs,
+    gap: espacio.xs,
+  },
+  filaAjusteRecurso: { flexDirection: 'row', alignItems: 'center', gap: espacio.xs },
+  etiquetaAjuste: { color: color.textoSecundario, fontSize: 11, fontWeight: '700', width: 38 },
+  botonPaso: {
+    backgroundColor: color.superficieAlt,
+    borderWidth: 1,
+    borderColor: color.bordeSutil,
+    borderRadius: radio.sm,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+  },
+  botonPasoTexto: { color: color.texto, fontSize: 12, fontWeight: '700' },
   input: {
     backgroundColor: color.superficieAlt,
     borderRadius: radio.md,

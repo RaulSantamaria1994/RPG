@@ -793,6 +793,65 @@ async def _manejar_marcar_activo(db, sala: Sala, conexion: ConexionJugador, dato
     )
 
 
+async def _manejar_ajustar_personaje(db, sala: Sala, conexion: ConexionJugador, datos: dict) -> None:
+    """Control manual del máster sobre la vida y el maná de un personaje:
+    para curar tras un descanso narrativo que no sea un punto_descanso,
+    aplicar una consecuencia que no encaja en ninguna palabra clave, o
+    corregir algo sobre la marcha. `delta_vida`/`delta_mana` son enteros
+    (pueden ser negativos) que se suman al valor actual, recortado a
+    [0, máximo]. Si así se cura a alguien inconsciente por encima de 0 de
+    vida, vuelve a quedar activo; si lo deja a 0, se aplica la misma regla
+    de muerte permanente que el resto del daño del juego.
+    """
+    if conexion.rol != "master":
+        await _enviar_error(conexion, "Solo el máster puede ajustar la vida o el maná de un personaje.")
+        return
+    try:
+        personaje = db.get(Personaje, uuid.UUID(datos["personaje_id"]))
+        delta_vida = int(datos.get("delta_vida") or 0)
+        delta_mana = int(datos.get("delta_mana") or 0)
+    except (KeyError, ValueError, TypeError):
+        await _enviar_error(conexion, "Datos incompletos.")
+        return
+    if personaje is None or personaje.sala_id != sala.id:
+        await _enviar_error(conexion, "Ese personaje no existe en esta sala.")
+        return
+    if personaje.estado == "muerto":
+        await _enviar_error(conexion, "Ese personaje ha muerto de forma permanente.")
+        return
+    if not delta_vida and not delta_mana:
+        return
+
+    vida_antes = personaje.vida_actual
+    mana_antes = personaje.mana_actual
+    personaje.vida_actual = max(0, min(personaje.vida_max, personaje.vida_actual + delta_vida))
+    personaje.mana_actual = max(0, min(personaje.mana_max, personaje.mana_actual + delta_mana))
+
+    if personaje.vida_actual == 0 and personaje.estado == "activo":
+        personaje.estado = "muerto" if _usa_muerte_permanente(sala) else "inconsciente"
+    elif personaje.vida_actual > 0 and personaje.estado == "inconsciente":
+        personaje.estado = "activo"
+
+    db.commit()
+    await gestor.broadcast(
+        str(sala.id),
+        {
+            "tipo": "personaje_ajustado",
+            "datos": {
+                "personaje_id": str(personaje.id),
+                "nombre": personaje.nombre,
+                "delta_vida": personaje.vida_actual - vida_antes,
+                "delta_mana": personaje.mana_actual - mana_antes,
+            },
+        },
+    )
+    await gestor.broadcast(
+        str(sala.id), {"tipo": "personaje_actualizado", "datos": _personaje_publico(personaje)}
+    )
+
+    await _procesar_posible_muerte(db, sala, personaje)
+
+
 async def _manejar_expulsar_jugador(db, sala: Sala, conexion: ConexionJugador, datos: dict) -> None:
     """Expulsión definitiva (a diferencia de "marcar ausente", que es
     reversible): borra el personaje, así que su token deja de servir y no
@@ -1134,6 +1193,7 @@ MANEJADORES = {
     "override_resultado": _manejar_override_resultado,
     "marcar_ausente": _manejar_marcar_ausente,
     "marcar_activo": _manejar_marcar_activo,
+    "ajustar_personaje": _manejar_ajustar_personaje,
     "expulsar_jugador": _manejar_expulsar_jugador,
     "combate_accion": _manejar_combate_accion,
     "intercambio_proponer": _manejar_intercambio_proponer,

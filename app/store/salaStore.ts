@@ -273,21 +273,43 @@ function procesarMensaje(
       }));
       break;
     }
+    case 'personaje_ajustado': {
+      const d = datos as { personaje_id: string; nombre: string; delta_vida: number; delta_mana: number };
+      const partes = [
+        d.delta_vida ? `${d.delta_vida > 0 ? '+' : ''}${d.delta_vida} PV` : null,
+        d.delta_mana ? `${d.delta_mana > 0 ? '+' : ''}${d.delta_mana} maná` : null,
+      ].filter(Boolean);
+      if (partes.length) {
+        set((s) => ({
+          log: [nuevoEvento(`El máster ajusta a ${d.nombre}: ${partes.join(', ')}`), ...s.log],
+        }));
+      }
+      break;
+    }
     case 'personaje_actualizado': {
       const d = datos as unknown as Personaje;
-      const textoEstado =
-        d.estado === 'ausente'
-          ? `${d.nombre} ha sido marcado ausente`
-          : d.estado === 'muerto'
-            ? null // el evento 'personaje_muerto' ya deja constancia en el log
-            : `${d.nombre} vuelve a estar activo`;
-      set((s) => ({
-        personajes: s.personajes.some((p) => p.id === d.id)
-          ? s.personajes.map((p) => (p.id === d.id ? { ...p, ...d } : p))
-          : [...s.personajes, d],
-        personaje: s.personaje?.id === d.id ? { ...s.personaje, ...d } : s.personaje,
-        log: textoEstado ? [nuevoEvento(textoEstado), ...s.log] : s.log,
-      }));
+      set((s) => {
+        // Este mensaje llega por cualquier cambio del personaje (vida,
+        // maná, estado…), no solo por pasar a ausente/activo — así que el
+        // texto de "ha cambiado de estado" solo se añade al log si el
+        // estado es justo lo que cambió, comparando con lo que ya sabíamos.
+        const anterior = s.personajes.find((p) => p.id === d.id) ?? s.personaje ?? undefined;
+        const estadoCambio = anterior ? anterior.estado !== d.estado : false;
+        const textoEstado = !estadoCambio
+          ? null
+          : d.estado === 'ausente'
+            ? `${d.nombre} ha sido marcado ausente`
+            : d.estado === 'muerto'
+              ? null // el evento 'personaje_muerto' ya deja constancia en el log
+              : `${d.nombre} vuelve a estar activo`;
+        return {
+          personajes: s.personajes.some((p) => p.id === d.id)
+            ? s.personajes.map((p) => (p.id === d.id ? { ...p, ...d } : p))
+            : [...s.personajes, d],
+          personaje: s.personaje?.id === d.id ? { ...s.personaje, ...d } : s.personaje,
+          log: textoEstado ? [nuevoEvento(textoEstado), ...s.log] : s.log,
+        };
+      });
       break;
     }
     case 'personaje_muerto': {
