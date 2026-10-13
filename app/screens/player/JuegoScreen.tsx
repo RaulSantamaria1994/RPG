@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
 import { Animated, FlatList, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../../navigation/types';
-import { Boton, BarraRecurso, Insignia, Tarjeta } from '../../components';
+import { Boton, BarraRecurso, IconoEvento, Insignia, Tarjeta } from '../../components';
 import { api } from '../../services/api';
 import { useSalaStore } from '../../store/salaStore';
 import type { Atributo, Hechizo } from '../../types';
@@ -163,11 +164,17 @@ export default function JuegoScreen({ navigation }: Props) {
 
       <Animated.View style={[styles.dadoFlotante, { opacity: opacidadDado }]} pointerEvents="none">
         {lanzando ? (
-          <Text style={styles.dadoValor}>🎲 {caraDado}</Text>
+          <View style={styles.filaDado}>
+            <MaterialCommunityIcons name="dice-d20" size={26} color={color.texto} />
+            <Text style={styles.dadoValor}>{caraDado}</Text>
+          </View>
         ) : (
           ultimaTirada && (
             <>
-              <Text style={styles.dadoValor}>🎲 {ultimaTirada.dado ?? '?'}</Text>
+              <View style={styles.filaDado}>
+                <MaterialCommunityIcons name="dice-d20" size={26} color={color.texto} />
+                <Text style={styles.dadoValor}>{ultimaTirada.dado ?? '?'}</Text>
+              </View>
               <Text style={[styles.dadoResultado, ultimaTirada.exito ? styles.exito : styles.fallo]}>
                 {ultimaTirada.exito ? 'ÉXITO' : 'FALLO'} · total {ultimaTirada.total ?? '?'}
               </Text>
@@ -223,9 +230,9 @@ export default function JuegoScreen({ navigation }: Props) {
               const requiereTirada = p.modo_interaccion === 'opuesta' || !!p.dificultad;
               const resumenTirada =
                 p.modo_interaccion === 'opuesta'
-                  ? `🎲 ${p.atributo ? ETIQUETA_ATRIBUTO[p.atributo] : '?'} contra un rival`
+                  ? `${p.atributo ? ETIQUETA_ATRIBUTO[p.atributo] : '?'} contra un rival`
                   : p.dificultad
-                    ? `🎲 ${p.atributo ? ETIQUETA_ATRIBUTO[p.atributo] : '?'} · dificultad ${p.dificultad}`
+                    ? `${p.atributo ? ETIQUETA_ATRIBUTO[p.atributo] : '?'} · dificultad ${p.dificultad}`
                     : esVotacion
                       ? 'Sin tirada — gana la opción más votada por el grupo'
                       : 'Sin tirada — se resuelve al confirmar';
@@ -264,7 +271,15 @@ export default function JuegoScreen({ navigation }: Props) {
                                 ? ' (confirma todo el grupo)'
                                 : ''}
                           </Text>
-                          {!deshabilitada && <Text style={styles.subtextoPalabra}>{resumenTirada}</Text>}
+                          {!deshabilitada && (
+                            <Text style={styles.subtextoPalabra}>
+                              {requiereTirada && (
+                                <MaterialCommunityIcons name="dice-d20-outline" size={12} color={color.textoSecundario} />
+                              )}
+                              {requiereTirada ? ' ' : ''}
+                              {resumenTirada}
+                            </Text>
+                          )}
                         </View>
                         {usada && <Insignia texto="agotada" />}
                         {bloqueada && !usada && <Insignia texto="en curso…" tono="aviso" />}
@@ -305,7 +320,15 @@ export default function JuegoScreen({ navigation }: Props) {
                             </Text>
                           )}
 
-                          <Boton texto={requiereTirada ? '🎲 Tirar dado' : 'Confirmar'} onPress={() => tirar()} />
+                          <Boton
+                            texto={requiereTirada ? 'Tirar dado' : 'Confirmar'}
+                            icono={
+                              requiereTirada ? (
+                                <MaterialCommunityIcons name="dice-d20-outline" size={17} color={color.textoSobreAcento} />
+                              ) : undefined
+                            }
+                            onPress={() => tirar()}
+                          />
 
                           {p.modo_interaccion === 'apoyo' && (
                             <TouchableOpacity
@@ -329,7 +352,8 @@ export default function JuegoScreen({ navigation }: Props) {
                                 onPress={() => tirar({ via: 'hechizo', hechizo_id: h })}
                               >
                                 <Text style={styles.botonHechizoTexto}>
-                                  🎲 Lanzar {info?.nombre ?? formatearId(h)} (vía mágica) — dificultad{' '}
+                                  <MaterialCommunityIcons name="dice-d20-outline" size={13} color={color.textoSecundario} />{' '}
+                                  Lanzar {info?.nombre ?? formatearId(h)} (vía mágica) — dificultad{' '}
                                   {info?.dificultad ?? '?'}, coste {info?.coste_mana ?? '?'} maná
                                 </Text>
                               </TouchableOpacity>
@@ -354,18 +378,27 @@ export default function JuegoScreen({ navigation }: Props) {
 
         {enCombate && (
           <View style={{ gap: espacio.sm }}>
-            <Text style={styles.tituloSeccion}>⚔ COMBATE — RONDA {estado!.combate!.ronda}</Text>
+            <View style={styles.filaTituloCombate}>
+              <MaterialCommunityIcons name="sword-cross" size={14} color={color.textoSecundario} />
+              <Text style={styles.tituloSeccion}>COMBATE — RONDA {estado!.combate!.ronda}</Text>
+            </View>
             <View style={[styles.turnoBanner, esMiTurno && styles.turnoBannerActivo]}>
               <Text style={styles.turnoBannerTexto}>
-                {esMiTurno ? '▶ Es tu turno' : `Esperando a ${personajeEnTurno?.nombre ?? 'otro jugador'}…`}
+                {esMiTurno && <Ionicons name="play" size={13} color={color.texto} />}
+                {esMiTurno ? ' Es tu turno' : `Esperando a ${personajeEnTurno?.nombre ?? 'otro jugador'}…`}
               </Text>
             </View>
             {estado!.combate!.enemigos.map((en) => (
               <Tarjeta key={en.enemigo_id} acento={color.combate} atenuada={en.derrotado} style={styles.tarjetaEnemigo}>
                 <View style={styles.filaEnemigoCabecera}>
                   <Text style={styles.enemigoNombre}>
-                    {en.nombre} {en.derrotado ? '☠' : ''}
-                    {en.aturdido ? ' 💫 aturdido' : ''}
+                    {en.nombre}{' '}
+                    {en.derrotado && <Ionicons name="skull-outline" size={13} color={color.textoTenue} />}
+                    {en.aturdido && (
+                      <>
+                        <Ionicons name="sparkles-outline" size={13} color={color.aviso} /> aturdido
+                      </>
+                    )}
                   </Text>
                   {esMiTurno && !en.derrotado && (
                     <TouchableOpacity
@@ -379,7 +412,8 @@ export default function JuegoScreen({ navigation }: Props) {
                 <BarraRecurso etiqueta="PV" actual={en.vida} maximo={en.vida_max} />
                 {esMiTurno && !en.derrotado && (
                   <Text style={styles.enemigoSubtexto}>
-                    🎲 Fuerza vs defensa ({en.atributos?.defensa ?? 10})
+                    <MaterialCommunityIcons name="dice-d20-outline" size={11} color={color.textoTenue} /> Fuerza vs
+                    defensa ({en.atributos?.defensa ?? 10})
                   </Text>
                 )}
               </Tarjeta>
@@ -394,7 +428,8 @@ export default function JuegoScreen({ navigation }: Props) {
                       onPress={() => lanzarDado('combate_accion', { accion: 'huir' })}
                     />
                     <Text style={styles.accionSubtexto}>
-                      🎲 Agilidad · dificultad {estado!.combate!.dificultad_huida ?? 12}
+                      <MaterialCommunityIcons name="dice-d20-outline" size={11} color={color.textoTenue} /> Agilidad ·
+                      dificultad {estado!.combate!.dificultad_huida ?? 12}
                     </Text>
                   </View>
                   <View style={{ flex: 1, gap: 4 }}>
@@ -404,7 +439,8 @@ export default function JuegoScreen({ navigation }: Props) {
                       onPress={() => lanzarDado('combate_accion', { accion: 'negociar' })}
                     />
                     <Text style={styles.accionSubtexto}>
-                      🎲 Astucia · dificultad {estado!.combate!.dificultad_negociacion ?? 13}
+                      <MaterialCommunityIcons name="dice-d20-outline" size={11} color={color.textoTenue} /> Astucia ·
+                      dificultad {estado!.combate!.dificultad_negociacion ?? 13}
                     </Text>
                   </View>
                 </View>
@@ -519,7 +555,8 @@ export default function JuegoScreen({ navigation }: Props) {
                               onPress={() => setHechizoElegido(h.hechizo_id)}
                             >
                               <Text style={styles.botonHechizoTexto}>
-                                🎲 {h.nombre} — dificultad {h.dificultad}, coste {h.coste_mana} maná (tienes{' '}
+                                <MaterialCommunityIcons name="dice-d20-outline" size={13} color={color.textoSecundario} />{' '}
+                                {h.nombre} — dificultad {h.dificultad}, coste {h.coste_mana} maná (tienes{' '}
                                 {personaje.mana_actual})
                               </Text>
                             </TouchableOpacity>
@@ -661,7 +698,16 @@ export default function JuegoScreen({ navigation }: Props) {
         <FlatList
           data={log.slice(0, 20)}
           keyExtractor={(item) => item.id}
-          renderItem={({ item }) => <Text style={styles.logTexto}>{item.texto}</Text>}
+          renderItem={({ item }) => (
+            <Text style={styles.logTexto}>
+              {item.icono && (
+                <>
+                  <IconoEvento icono={item.icono} />{' '}
+                </>
+              )}
+              {item.texto}
+            </Text>
+          )}
         />
       </View>
     </View>
@@ -707,6 +753,7 @@ const styles = StyleSheet.create({
     shadowRadius: 10,
     shadowOffset: { width: 0, height: 4 },
   },
+  filaDado: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   dadoValor: { fontSize: 30, color: color.texto, fontWeight: '700' },
   dadoResultado: { fontSize: 13, marginTop: 4, fontWeight: '700' },
   exito: { color: color.exito },
@@ -740,6 +787,7 @@ const styles = StyleSheet.create({
     paddingLeft: espacio.md,
   },
   tituloSeccion: { ...tipo.seccion },
+  filaTituloCombate: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   tarjetaPalabra: { gap: espacio.xs },
   filaPalabraCabecera: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', gap: espacio.sm },
   textoPalabra: { color: color.texto, fontSize: 15, fontWeight: '600' },

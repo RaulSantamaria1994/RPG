@@ -2,3 +2,4 @@ export { default as Boton } from './Boton';
 export { default as Tarjeta } from './Tarjeta';
 export { default as Insignia } from './Insignia';
 export { default as BarraRecurso } from './BarraRecurso';
+export { default as IconoEvento } from './IconoEvento';

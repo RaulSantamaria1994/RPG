@@ -1,4 +1,5 @@
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../navigation/types';
 import { useSalaStore } from '../store/salaStore';
@@ -30,7 +31,7 @@ export default function HomeScreen({ navigation }: Props) {
           onPress={() => navigation.navigate('MasterCrearSala')}
           activeOpacity={0.85}
         >
-          <Text style={styles.opcionIcono}>📖</Text>
+          <Ionicons name="book-outline" size={28} color={color.texto} />
           <View style={{ flex: 1 }}>
             <Text style={styles.opcionTitulo}>Soy el Máster</Text>
             <Text style={styles.opcionDescripcion}>Crea una sala y narra la historia al grupo</Text>
@@ -42,7 +43,7 @@ export default function HomeScreen({ navigation }: Props) {
           onPress={() => navigation.navigate('JugadorUnirseSala')}
           activeOpacity={0.85}
         >
-          <Text style={styles.opcionIcono}>🕯️</Text>
+          <Ionicons name="flame-outline" size={28} color={color.texto} />
           <View style={{ flex: 1 }}>
             <Text style={styles.opcionTitulo}>Soy Jugador</Text>
             <Text style={styles.opcionDescripcion}>Únete a una sala con el código del máster</Text>
@@ -91,7 +92,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: espacio.lg,
   },
   opcionPrimaria: { backgroundColor: color.acentoSuave, borderColor: color.acento },
-  opcionIcono: { fontSize: 28 },
   opcionTitulo: { color: color.texto, fontSize: 17, fontWeight: '700' },
   opcionDescripcion: { color: color.textoSecundario, fontSize: 13, marginTop: 2 },
 });

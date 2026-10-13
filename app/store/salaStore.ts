@@ -46,11 +46,12 @@ interface SalaState {
   limpiarMensajeSesion: () => void;
 }
 
-function nuevoEvento(texto: string): EventoLog {
+function nuevoEvento(texto: string, icono?: EventoLog['icono']): EventoLog {
   return {
     id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
     hora: new Date().toLocaleTimeString(),
     texto,
+    icono,
   };
 }
 
@@ -292,7 +293,7 @@ function procesarMensaje(
     case 'personaje_muerto': {
       const d = datos as { personaje_id: string; personaje_nombre: string; epilogo: string };
       set((s) => ({
-        log: [nuevoEvento(`💀 ${d.personaje_nombre} ha caído`), ...s.log],
+        log: [nuevoEvento(`${d.personaje_nombre} ha caído`, 'muerte'), ...s.log],
         epilogoPersonal:
           s.personaje?.id === d.personaje_id
             ? { personaje_id: d.personaje_id, personaje_nombre: d.personaje_nombre, texto: d.epilogo }
@@ -350,14 +351,14 @@ function procesarMensaje(
         hechizos.length ? `El grupo aprende: ${hechizos.join(', ')}` : null,
       ].filter(Boolean) as string[];
       set((s) => ({
-        log: [...partes.map(nuevoEvento), ...s.log],
+        log: [...partes.map((texto) => nuevoEvento(texto)), ...s.log],
       }));
       break;
     }
     case 'dano_al_llegar': {
       const d = datos as { cantidad: number; afectados: string[] };
       set((s) => ({
-        log: [nuevoEvento(`⚠ El grupo sufre ${d.cantidad} de daño (-${d.cantidad} PV)`), ...s.log],
+        log: [nuevoEvento(`El grupo sufre ${d.cantidad} de daño (-${d.cantidad} PV)`, 'aviso'), ...s.log],
       }));
       break;
     }
@@ -440,7 +441,7 @@ function procesarMensaje(
     }
     case 'error': {
       const d = datos as { mensaje: string };
-      set((s) => ({ log: [nuevoEvento(`⚠ ${d.mensaje}`), ...s.log] }));
+      set((s) => ({ log: [nuevoEvento(d.mensaje, 'aviso'), ...s.log] }));
       break;
     }
     default:

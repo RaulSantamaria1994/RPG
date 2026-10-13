@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useState } from 'react';
 import { FlatList, Modal, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../../navigation/types';
-import { Boton, BarraRecurso, Insignia, Tarjeta } from '../../components';
+import { Boton, BarraRecurso, IconoEvento, Insignia, Tarjeta } from '../../components';
 import { api } from '../../services/api';
 import { useSalaStore } from '../../store/salaStore';
 import type { NodoResumen } from '../../types';
@@ -115,7 +116,9 @@ export default function MasterSalaScreen({ navigation }: Props) {
                 <View key={p.texto} style={styles.palabraFila}>
                   <Text style={[styles.palabraTexto, usada && styles.palabraUsada]}>{p.texto}</Text>
                   {usada && <Insignia texto="agotada" />}
-                  {bloqueadaPor && !usada && <Insignia texto={`🔒 ${bloqueadaPor}`} tono="aviso" />}
+                  {bloqueadaPor && !usada && (
+                    <Insignia texto={bloqueadaPor} tono="aviso" icono="lock-closed-outline" />
+                  )}
                 </View>
               );
             })}
@@ -138,8 +141,9 @@ export default function MasterSalaScreen({ navigation }: Props) {
             {estado.combate.enemigos.map((en) => (
               <View key={en.enemigo_id} style={styles.filaEnemigo}>
                 <Text style={styles.enemigoNombre} numberOfLines={1}>
-                  {en.nombre} {en.derrotado ? '☠' : ''}
-                  {en.aturdido ? ' 💫' : ''}
+                  {en.nombre}{' '}
+                  {en.derrotado && <Ionicons name="skull-outline" size={13} color={color.textoTenue} />}
+                  {en.aturdido && <Ionicons name="sparkles-outline" size={13} color={color.aviso} />}
                 </Text>
                 <View style={{ flex: 1 }}>
                   <BarraRecurso etiqueta="PV" actual={en.vida} maximo={en.vida_max} />
@@ -214,6 +218,11 @@ export default function MasterSalaScreen({ navigation }: Props) {
           renderItem={({ item }) => (
             <Text style={styles.logTexto}>
               <Text style={styles.logHora}>{item.hora} </Text>
+              {item.icono && (
+                <>
+                  <IconoEvento icono={item.icono} />{' '}
+                </>
+              )}
               {item.texto}
             </Text>
           )}

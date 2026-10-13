@@ -161,4 +161,8 @@ export interface EventoLog {
   id: string;
   hora: string;
   texto: string;
+  /** Qué icono mostrar junto al texto, si procede — nunca un emoji
+   * incrustado en el texto. Las pantallas deciden qué icono de librería
+   * corresponde a cada valor. */
+  icono?: 'muerte' | 'aviso';
 }

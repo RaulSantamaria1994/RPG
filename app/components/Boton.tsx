@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react';
 import { ActivityIndicator, StyleSheet, Text, TouchableOpacity, View, type ViewStyle } from 'react-native';
 import { color, radio, espacio } from '../theme';
 
@@ -6,6 +7,9 @@ type Variante = 'primario' | 'secundario' | 'peligro' | 'fantasma';
 type Props = {
   texto: string;
   subtexto?: string;
+  /** Icono (de @expo/vector-icons) a mostrar a la izquierda del texto —
+   * nunca un emoji suelto. */
+  icono?: ReactNode;
   onPress: () => void;
   variante?: Variante;
   disabled?: boolean;
@@ -19,6 +23,7 @@ type Props = {
 export default function Boton({
   texto,
   subtexto,
+  icono,
   onPress,
   variante = 'primario',
   disabled,
@@ -44,7 +49,10 @@ export default function Boton({
         <ActivityIndicator color={estilos.texto.color} />
       ) : (
         <View>
-          <Text style={[estiloBase.texto, estilos.texto]}>{texto}</Text>
+          <View style={estiloBase.filaTexto}>
+            {icono}
+            <Text style={[estiloBase.texto, estilos.texto]}>{texto}</Text>
+          </View>
           {subtexto ? <Text style={[estiloBase.subtexto, estilos.subtexto]}>{subtexto}</Text> : null}
         </View>
       )}
@@ -61,6 +69,7 @@ const estiloBase = StyleSheet.create({
     justifyContent: 'center',
     borderWidth: 1,
   },
+  filaTexto: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 },
   texto: { fontSize: 15, fontWeight: '700' },
   subtexto: { fontSize: 12, marginTop: 3, textAlign: 'center' },
   deshabilitado: { opacity: 0.45 },
