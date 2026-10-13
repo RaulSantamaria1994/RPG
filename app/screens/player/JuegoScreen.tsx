@@ -158,6 +158,14 @@ export default function JuegoScreen({ navigation }: Props) {
           </View>
         </View>
         <View style={styles.accionesCabecera}>
+          <TouchableOpacity onPress={() => navigation.navigate('Diario')} hitSlop={8} testID="boton-diario">
+            <Ionicons name="bookmark-outline" size={22} color={color.textoSecundario} />
+            {(estado?.diario?.length ?? 0) > 0 && (
+              <View style={styles.insigniaContador}>
+                <Text style={styles.insigniaContadorTexto}>{estado?.diario?.length}</Text>
+              </View>
+            )}
+          </TouchableOpacity>
           <TouchableOpacity onPress={() => navigation.navigate('Ayuda')} hitSlop={8} testID="boton-ayuda">
             <Ionicons name="help-circle-outline" size={22} color={color.textoSecundario} />
           </TouchableOpacity>
@@ -743,6 +751,19 @@ const styles = StyleSheet.create({
   atributoChipTexto: { color: color.textoSecundario, fontSize: 11, fontWeight: '600' },
   accionesCabecera: { flexDirection: 'row', alignItems: 'center', gap: espacio.md },
   salir: { color: color.peligro, fontWeight: '600' },
+  insigniaContador: {
+    position: 'absolute',
+    top: -4,
+    right: -6,
+    minWidth: 15,
+    height: 15,
+    borderRadius: radio.pill,
+    backgroundColor: color.acentoFuerte,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 3,
+  },
+  insigniaContadorTexto: { color: color.textoSobreAcento, fontSize: 9, fontWeight: '700' },
   dadoFlotante: {
     position: 'absolute',
     top: 120,

@@ -4,6 +4,11 @@
   "version": 1,
   "muerte_permanente": false,
   "nodo_inicial": "n001",
+  "pistas": {
+    "pista_perdida": "Perseguisteis al hombre pero se os escapó entre la gente. Habéis perdido su rastro.",
+    "alerta_guardias": "Al forzar la puerta lateral habéis hecho ruido. Los guardias del almacén están alerta.",
+    "sabe_plan": "Habéis escuchado las voces junto a las cajas selladas: ahora conocéis el plan que están discutiendo."
+  },
   "hechizos": [
     {
       "hechizo_id": "grito_de_cuervo",

@@ -7,5 +7,6 @@ import type { EventoLog } from '../types';
 export default function IconoEvento({ icono }: { icono: EventoLog['icono'] }) {
   if (icono === 'muerte') return <Ionicons name="skull-outline" size={12} color={color.textoTenue} />;
   if (icono === 'aviso') return <Ionicons name="alert-circle-outline" size={12} color={color.aviso} />;
+  if (icono === 'pista') return <Ionicons name="bookmark-outline" size={12} color={color.narrativo} />;
   return null;
 }

@@ -118,13 +118,28 @@ async def _procesar_posible_muerte(
     return True
 
 
+def _diario_pistas(sala: Sala, flags: dict) -> list[dict]:
+    """Traduce las flags narrativas activas a un registro legible de "lo que
+    sabéis", en el orden en que se fueron descubriendo (el mismo orden de
+    inserción de `flags`, que Python preserva). Las flags internas (ya
+    excluidas de `flags` por `_estado_publico`) y las que la historia no
+    documenta en `pistas` no generan entrada — siguen existiendo como
+    mecanismo de desbloqueo, pero no todas tienen por qué ser una pista
+    legible para el grupo.
+    """
+    pistas = sala.historia.contenido.get("pistas") or {}
+    return [{"flag": k, "texto": pistas[k]} for k, v in flags.items() if v and k in pistas]
+
+
 def _estado_publico(sala: Sala) -> dict:
     estado = sala.estado_sala
     nodo = sala.historia.contenido["nodos"][estado.nodo_actual_id]
+    flags = {k: v for k, v in (estado.flags or {}).items() if not k.startswith("__")}
     return {
         "nodo_actual_id": estado.nodo_actual_id,
         "nodo": nodo,
-        "flags": {k: v for k, v in (estado.flags or {}).items() if not k.startswith("__")},
+        "flags": flags,
+        "diario": _diario_pistas(sala, flags),
         "palabras_clave_usadas": estado.palabras_clave_usadas,
         "inventario_grupo": estado.inventario_grupo,
         "fase": estado.fase,

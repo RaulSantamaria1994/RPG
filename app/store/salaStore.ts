@@ -178,7 +178,18 @@ function procesarMensaje(
       break;
     }
     case 'nodo_actualizado': {
-      set({ estado: datos as unknown as EstadoPublico, confirmacionesGrupales: {}, votosGrupales: null });
+      const nuevoEstado = datos as unknown as EstadoPublico;
+      set((s) => {
+        const flagsAnteriores = new Set((s.estado?.diario ?? []).map((e) => e.flag));
+        const pistasNuevas = (nuevoEstado.diario ?? []).filter((e) => !flagsAnteriores.has(e.flag));
+        const eventosPistas = pistasNuevas.map((p) => nuevoEvento(`Nueva pista: ${p.texto}`, 'pista')).reverse();
+        return {
+          estado: nuevoEstado,
+          confirmacionesGrupales: {},
+          votosGrupales: null,
+          log: [...eventosPistas, ...s.log],
+        };
+      });
       break;
     }
     case 'palabra_clave_bloqueada': {

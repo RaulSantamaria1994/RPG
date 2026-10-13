@@ -97,6 +97,14 @@ export default function MasterSalaScreen({ navigation }: Props) {
           <Text style={styles.codigo}>{sala.codigo}</Text>
         </View>
         <View style={styles.accionesCabecera}>
+          <TouchableOpacity onPress={() => navigation.navigate('Diario')} hitSlop={8} testID="boton-diario-master">
+            <Ionicons name="bookmark-outline" size={22} color={color.textoSecundario} />
+            {(estado?.diario?.length ?? 0) > 0 && (
+              <View style={styles.insigniaContador}>
+                <Text style={styles.insigniaContadorTexto}>{estado?.diario?.length}</Text>
+              </View>
+            )}
+          </TouchableOpacity>
           <TouchableOpacity onPress={() => navigation.navigate('Ayuda')} hitSlop={8} testID="boton-ayuda-master">
             <Ionicons name="help-circle-outline" size={22} color={color.textoSecundario} />
           </TouchableOpacity>
@@ -349,6 +357,19 @@ const styles = StyleSheet.create({
   codigo: { ...tipo.titulo, fontSize: 24, letterSpacing: 4 },
   accionesCabecera: { flexDirection: 'row', alignItems: 'center', gap: espacio.md },
   salir: { color: color.peligro, fontWeight: '600' },
+  insigniaContador: {
+    position: 'absolute',
+    top: -4,
+    right: -6,
+    minWidth: 15,
+    height: 15,
+    borderRadius: radio.pill,
+    backgroundColor: color.acentoFuerte,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 3,
+  },
+  insigniaContadorTexto: { color: color.textoSobreAcento, fontSize: 9, fontWeight: '700' },
   panelPrincipal: { flex: 1 },
   finalBanner: { backgroundColor: color.acentoSuave, padding: espacio.md, borderRadius: radio.md, borderWidth: 1, borderColor: color.acento },
   finalBannerTexto: { color: color.texto, fontWeight: '600' },

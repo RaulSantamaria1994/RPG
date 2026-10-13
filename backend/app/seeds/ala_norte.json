@@ -5,6 +5,15 @@
   "muerte_permanente": false,
   "nodo_inicial": "n001",
   "nodo_muerte_total": "n_muerte_total",
+  "pistas": {
+    "flag_aliado_a": "El guardia del pasillo se ha convertido en un aliado silencioso: no dirá nada de lo que ha visto esta noche, y os ha dado un botiquín.",
+    "conoce_ala_norte": "Sabéis que ha habido tres casos antes que el de esta noche, todos en turno de noche, todos en habitaciones del ala norte — donde hay una pared que no debería estar ahí según los planos viejos.",
+    "flag_aliado_b": "La residente de guardia es ahora vuestra aliada: lleva un mes documentando lo que pasa en el hospital y os ha enseñado sus notas.",
+    "conoce_patron": "El paciente se incorpora solo, siempre hay un corte de cuatro segundos exactos en la grabación, y su identidad aparece registrada seis veces distintas en los últimos veinte años. No es un caso aislado: es un patrón.",
+    "flag_contacto_real": "El paciente del box 4 os habla con claridad por primera vez: dice que entra por una puerta y sale por otra que no es la suya, buscando «la puerta correcta».",
+    "flag_contacto_confianza": "Le habéis ofrecido ayuda al paciente del box 4. Os ha pedido que le ayudéis a encontrar la puerta correcta: no puede hacerlo solo, desde dentro.",
+    "flag_contacto_tenue": "Habéis dejado de forcejear con el paciente y le habéis pedido perdón. Hay una tregua frágil entre vosotros, pero no la confianza real que podríais haber ganado."
+  },
   "desenlace_tetrico_generico": "No hay un momento exacto en el que puedas decir que empezó a ir mal, solo el momento, mucho más tarde de lo que debería, en que te das cuenta de que ya no va a ir bien. El ala norte no hace ruido cuando te reclama. Simplemente deja de devolverte, y en algún punto de la noche el resto del grupo sigue adelante sin ti, con un hueco en la formación que nadie sabe explicar del todo, ni buscará explicar. Tu historia termina aquí.",
   "desenlaces_tetricos": {
     "thalia_ticona": "Has visto morir a gente antes — es tu trabajo, o lo era — y siempre pensaste que sabrías reconocer el momento, que la UCI te habría enseñado al menos eso. No es así. No hay monitor que pite, no hay protocolo que seguir, solo la sensación, muy familiar y por eso mismo insoportable, de que el cuerpo deja de responder a lo que le pides. Por una vez no dices \"¡el diablo!\". No te queda tiempo ni aire para la broma que llevas repitiendo toda la noche. El ala norte que conocías mejor que nadie, cada atajo, cada puerta que no debería estar donde está, resulta que también te conocía a ti — y ha estado esperando. El resto del grupo sigue adelante sin la única persona que sabía de verdad dónde pisaba.",

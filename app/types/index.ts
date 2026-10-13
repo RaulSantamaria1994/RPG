@@ -127,10 +127,19 @@ export interface EstadoCombate {
   dificultad_negociacion?: number;
 }
 
+export interface EntradaDiario {
+  flag: string;
+  texto: string;
+}
+
 export interface EstadoPublico {
   nodo_actual_id: string;
   nodo: Nodo;
   flags: Record<string, unknown>;
+  /** Lo que el grupo ha descubierto hasta ahora, traducido a texto legible
+   * — las flags narrativas en sí son opacas, esto es lo que de verdad se le
+   * muestra al jugador. En el orden en que se fue descubriendo. */
+  diario: EntradaDiario[];
   palabras_clave_usadas: string[];
   inventario_grupo: ObjetoInventario[];
   fase: 'exploracion' | 'combate';
@@ -164,5 +173,5 @@ export interface EventoLog {
   /** Qué icono mostrar junto al texto, si procede — nunca un emoji
    * incrustado en el texto. Las pantallas deciden qué icono de librería
    * corresponde a cada valor. */
-  icono?: 'muerte' | 'aviso';
+  icono?: 'muerte' | 'aviso' | 'pista';
 }

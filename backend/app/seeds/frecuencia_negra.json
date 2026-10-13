@@ -5,6 +5,12 @@
   "muerte_permanente": false,
   "nodo_inicial": "n001",
   "nodo_muerte_total": "n_final_muerte_total",
+  "pistas": {
+    "alerta_guardias": "Forzar la verja oxidada ha hecho ruido. Los guardias de la torre están alerta.",
+    "sabe_ritual": "Tras la puerta entornada habéis oído la melodía tarareada: ahora entendéis de qué ritual se trata.",
+    "corto_energia": "Habéis cortado la energía de la torre antes de subir.",
+    "espero_antes": "Habéis dejado la energía encendida y subido con cautela."
+  },
   "desenlace_tetrico_generico": "No hay un momento exacto en el que puedas decir que empezó a ir mal, solo el instante, demasiado tarde, en que la estática dentro de la Torre Argenta deja de sonar a ruido de fondo y empieza a sonar a tu nombre. Nadie grita, nadie corre: simplemente dejas de responder, y el resto del grupo sigue adelante con un hueco en la formación que nadie sabrá explicar del todo. Tu historia termina aquí.",
   "desenlaces_tetricos": {
     "mateo_ferreira": "Has cerrado casos que otros daban por imposibles a base de no soltar nunca la presa, de seguir tirando del hilo cuando todo el mundo con sentido común ya lo habría cortado. Esta vez el hilo tira de vuelta. No hay esposas que poner, no hay informe que redactar, solo la misma sensación de las novatadas de academia —la de estar completamente fuera de tu profundidad— que llevabas treinta años sin sentir. Intentas, por pura costumbre, memorizar un detalle más antes de que la estática se lo lleve todo. El resto del grupo sigue adelante sin quien siempre encontraba el cabo suelto.",

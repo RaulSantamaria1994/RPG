@@ -7,6 +7,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import HomeScreen from './screens/HomeScreen';
 import AyudaScreen from './screens/AyudaScreen';
+import DiarioScreen from './screens/DiarioScreen';
 import CrearSalaScreen from './screens/master/CrearSalaScreen';
 import MasterSalaScreen from './screens/master/MasterSalaScreen';
 import UnirseSalaScreen from './screens/player/UnirseSalaScreen';
@@ -65,6 +66,7 @@ export default function App() {
         >
           <Stack.Screen name="Home" component={HomeScreen} options={{ headerShown: false }} />
           <Stack.Screen name="Ayuda" component={AyudaScreen} options={{ title: 'Cómo se juega' }} />
+          <Stack.Screen name="Diario" component={DiarioScreen} options={{ title: 'Diario de pistas' }} />
           <Stack.Screen
             name="MasterCrearSala"
             component={CrearSalaScreen}
