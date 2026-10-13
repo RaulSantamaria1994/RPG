@@ -4,9 +4,10 @@ export type MensajeWs = { tipo: string; datos: Record<string, unknown> };
 type Escuchador = (mensaje: MensajeWs) => void;
 
 // Códigos que el backend usa para cerrar el socket cuando la sesión ya no es
-// válida (token caducado/incorrecto o la sala ya no existe): no tiene sentido
-// reintentar reconectar en bucle, hay que avisar y volver al inicio.
-const CODIGOS_SESION_INVALIDA = new Set([4401, 4404]);
+// válida (token caducado/incorrecto, la sala ya no existe, o el máster te ha
+// expulsado): no tiene sentido reintentar reconectar en bucle, hay que avisar
+// y volver al inicio.
+const CODIGOS_SESION_INVALIDA = new Set([4401, 4404, 4403]);
 
 export class ClienteSala {
   private socket: WebSocket | null = null;
@@ -42,7 +43,7 @@ export class ClienteSala {
       if (this.cerradoManualmente) return;
 
       if (CODIGOS_SESION_INVALIDA.has(evento.code)) {
-        this.escuchadores.forEach((fn) => fn({ tipo: '_sesion_invalida', datos: {} }));
+        this.escuchadores.forEach((fn) => fn({ tipo: '_sesion_invalida', datos: { codigo: evento.code } }));
         return;
       }
 

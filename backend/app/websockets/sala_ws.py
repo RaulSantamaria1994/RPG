@@ -793,6 +793,43 @@ async def _manejar_marcar_activo(db, sala: Sala, conexion: ConexionJugador, dato
     )
 
 
+async def _manejar_expulsar_jugador(db, sala: Sala, conexion: ConexionJugador, datos: dict) -> None:
+    """Expulsión definitiva (a diferencia de "marcar ausente", que es
+    reversible): borra el personaje, así que su token deja de servir y no
+    puede volver a entrar con él — tendría que unirse de nuevo desde cero
+    si el máster se lo permite."""
+    if conexion.rol != "master":
+        await _enviar_error(conexion, "Solo el máster puede expulsar a un jugador.")
+        return
+    try:
+        personaje_id = str(datos["personaje_id"])
+        personaje = db.get(Personaje, uuid.UUID(personaje_id))
+    except (KeyError, ValueError):
+        await _enviar_error(conexion, "Datos incompletos.")
+        return
+    if personaje is None or personaje.sala_id != sala.id:
+        await _enviar_error(conexion, "Ese personaje no existe en esta sala.")
+        return
+
+    nombre = personaje.nombre
+    jugador_nombre = personaje.jugador_nombre
+    objetivo = gestor.conexion_de_personaje(str(sala.id), personaje_id)
+
+    db.delete(personaje)
+    db.commit()
+
+    await gestor.broadcast(
+        str(sala.id),
+        {
+            "tipo": "jugador_expulsado",
+            "datos": {"personaje_id": personaje_id, "nombre": nombre, "jugador_nombre": jugador_nombre},
+        },
+    )
+
+    if objetivo:
+        await objetivo.websocket.close(code=4403)
+
+
 async def _manejar_combate_accion(db, sala: Sala, conexion: ConexionJugador, datos: dict) -> None:
     estado = sala.estado_sala
     combate = estado.combate
@@ -1097,6 +1134,7 @@ MANEJADORES = {
     "override_resultado": _manejar_override_resultado,
     "marcar_ausente": _manejar_marcar_ausente,
     "marcar_activo": _manejar_marcar_activo,
+    "expulsar_jugador": _manejar_expulsar_jugador,
     "combate_accion": _manejar_combate_accion,
     "intercambio_proponer": _manejar_intercambio_proponer,
     "intercambio_confirmar": _manejar_intercambio_confirmar,
@@ -1121,6 +1159,15 @@ async def sala_websocket(websocket: WebSocket, codigo: str, token: str = Query(.
     db = SessionLocal()
     sala = db.query(Sala).filter(Sala.codigo == codigo.upper()).first()
     if not sala or str(sala.id) != payload.sala_id:
+        await websocket.close(code=4404)
+        db.close()
+        return
+
+    # Un jugador expulsado conserva un token con firma válida, pero su
+    # personaje ya no existe: no se le deja volver a entrar con él.
+    if payload.rol == "jugador" and (
+        not payload.personaje_id or db.get(Personaje, uuid.UUID(payload.personaje_id)) is None
+    ):
         await websocket.close(code=4404)
         db.close()
         return

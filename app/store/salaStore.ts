@@ -148,13 +148,17 @@ function procesarMensaje(
 
   switch (tipo) {
     case '_sesion_invalida': {
+      const d = datos as { codigo?: number };
       get().cliente?.desconectar();
       set({
         rol: null,
         sala: null,
         token: null,
         personaje: null,
-        mensajeSesion: 'Tu sesión anterior ya no es válida (la sala pudo cerrarse o expirar).',
+        mensajeSesion:
+          d.codigo === 4403
+            ? 'El máster te ha expulsado de la sala.'
+            : 'Tu sesión anterior ya no es válida (la sala pudo cerrarse o expirar).',
         ...ESTADO_INICIAL_TRANSITORIO,
       });
       break;
@@ -293,6 +297,14 @@ function procesarMensaje(
           s.personaje?.id === d.personaje_id
             ? { personaje_id: d.personaje_id, personaje_nombre: d.personaje_nombre, texto: d.epilogo }
             : s.epilogoPersonal,
+      }));
+      break;
+    }
+    case 'jugador_expulsado': {
+      const d = datos as { personaje_id: string; nombre: string; jugador_nombre: string };
+      set((s) => ({
+        personajes: s.personajes.filter((p) => p.id !== d.personaje_id),
+        log: [nuevoEvento(`${d.nombre} (${d.jugador_nombre}) ha sido expulsado de la sala`), ...s.log],
       }));
       break;
     }

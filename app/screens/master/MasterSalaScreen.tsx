@@ -37,6 +37,7 @@ export default function MasterSalaScreen({ navigation }: Props) {
   const [nodos, setNodos] = useState<NodoResumen[]>([]);
   const [selectorVisible, setSelectorVisible] = useState(false);
   const [filtro, setFiltro] = useState('');
+  const [expulsionArmada, setExpulsionArmada] = useState<string | null>(null);
 
   useEffect(() => {
     conectar();
@@ -161,18 +162,40 @@ export default function MasterSalaScreen({ navigation }: Props) {
               </View>
               <BarraRecurso etiqueta="PV" actual={p.vida_actual} maximo={p.vida_max} />
               <BarraRecurso etiqueta="Maná" actual={p.mana_actual} maximo={p.mana_max} sinAlerta />
-              {p.estado !== 'muerto' && (
-                <TouchableOpacity
-                  style={styles.botonAusente}
-                  onPress={() =>
-                    enviar(p.estado === 'ausente' ? 'marcar_activo' : 'marcar_ausente', { personaje_id: p.id })
-                  }
-                >
-                  <Text style={styles.botonAusenteTexto}>
-                    {p.estado === 'ausente' ? 'Reactivar' : 'Marcar ausente'}
-                  </Text>
-                </TouchableOpacity>
-              )}
+              <View style={styles.filaAccionesJugador}>
+                {p.estado !== 'muerto' && (
+                  <TouchableOpacity
+                    style={styles.botonAusente}
+                    onPress={() =>
+                      enviar(p.estado === 'ausente' ? 'marcar_activo' : 'marcar_ausente', { personaje_id: p.id })
+                    }
+                  >
+                    <Text style={styles.botonAusenteTexto}>
+                      {p.estado === 'ausente' ? 'Reactivar' : 'Marcar ausente'}
+                    </Text>
+                  </TouchableOpacity>
+                )}
+                {expulsionArmada === p.id ? (
+                  <View style={styles.filaConfirmarExpulsion}>
+                    <TouchableOpacity
+                      style={styles.botonExpulsarConfirmar}
+                      onPress={() => {
+                        enviar('expulsar_jugador', { personaje_id: p.id });
+                        setExpulsionArmada(null);
+                      }}
+                    >
+                      <Text style={styles.botonExpulsarConfirmarTexto}>¿Seguro? Expulsar</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity onPress={() => setExpulsionArmada(null)}>
+                      <Text style={styles.cancelarExpulsion}>Cancelar</Text>
+                    </TouchableOpacity>
+                  </View>
+                ) : (
+                  <TouchableOpacity style={styles.botonExpulsar} onPress={() => setExpulsionArmada(p.id)}>
+                    <Text style={styles.botonExpulsarTexto}>Expulsar</Text>
+                  </TouchableOpacity>
+                )}
+              </View>
             </View>
           ))}
         </Tarjeta>
@@ -297,6 +320,25 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   botonAusenteTexto: { color: color.texto, fontSize: 11, fontWeight: '600' },
+  filaAccionesJugador: { flexDirection: 'row', alignItems: 'center', gap: espacio.sm, marginTop: 2, flexWrap: 'wrap' },
+  botonExpulsar: {
+    backgroundColor: 'transparent',
+    borderWidth: 1,
+    borderColor: color.peligro,
+    borderRadius: radio.sm,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+  },
+  botonExpulsarTexto: { color: color.peligro, fontSize: 11, fontWeight: '600' },
+  filaConfirmarExpulsion: { flexDirection: 'row', alignItems: 'center', gap: espacio.sm },
+  botonExpulsarConfirmar: {
+    backgroundColor: color.peligroFuerte,
+    borderRadius: radio.sm,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+  },
+  botonExpulsarConfirmarTexto: { color: '#fff', fontSize: 11, fontWeight: '700' },
+  cancelarExpulsion: { color: color.textoSecundario, fontSize: 11 },
   input: {
     backgroundColor: color.superficieAlt,
     borderRadius: radio.md,
