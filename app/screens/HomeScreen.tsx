@@ -50,6 +50,15 @@ export default function HomeScreen({ navigation }: Props) {
           </View>
         </TouchableOpacity>
       </View>
+
+      <TouchableOpacity
+        style={styles.enlaceAyuda}
+        onPress={() => navigation.navigate('Ayuda')}
+        activeOpacity={0.7}
+      >
+        <Ionicons name="help-circle-outline" size={16} color={color.textoSecundario} />
+        <Text style={styles.enlaceAyudaTexto}>¿Cómo se juega?</Text>
+      </TouchableOpacity>
     </View>
   );
 }
@@ -94,4 +103,6 @@ const styles = StyleSheet.create({
   opcionPrimaria: { backgroundColor: color.acentoSuave, borderColor: color.acento },
   opcionTitulo: { color: color.texto, fontSize: 17, fontWeight: '700' },
   opcionDescripcion: { color: color.textoSecundario, fontSize: 13, marginTop: 2 },
+  enlaceAyuda: { flexDirection: 'row', alignItems: 'center', gap: 6, padding: espacio.sm },
+  enlaceAyudaTexto: { color: color.textoSecundario, fontSize: 13 },
 });

@@ -6,6 +6,7 @@ import { ActivityIndicator, StyleSheet, View } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import HomeScreen from './screens/HomeScreen';
+import AyudaScreen from './screens/AyudaScreen';
 import CrearSalaScreen from './screens/master/CrearSalaScreen';
 import MasterSalaScreen from './screens/master/MasterSalaScreen';
 import UnirseSalaScreen from './screens/player/UnirseSalaScreen';
@@ -13,6 +14,7 @@ import SeleccionPersonajeScreen from './screens/player/SeleccionPersonajeScreen'
 import JuegoScreen from './screens/player/JuegoScreen';
 import type { RootStackParamList } from './navigation/types';
 import { useSalaStore } from './store/salaStore';
+import { color } from './theme';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
@@ -55,13 +57,14 @@ export default function App() {
         <Stack.Navigator
           initialRouteName={rutaInicialDesdeSesion()}
           screenOptions={{
-            headerStyle: { backgroundColor: '#1a1523' },
-            headerTintColor: '#fff',
+            headerStyle: { backgroundColor: color.fondo },
+            headerTintColor: color.texto,
             headerShadowVisible: false,
-            contentStyle: { backgroundColor: '#1a1523' },
+            contentStyle: { backgroundColor: color.fondo },
           }}
         >
           <Stack.Screen name="Home" component={HomeScreen} options={{ headerShown: false }} />
+          <Stack.Screen name="Ayuda" component={AyudaScreen} options={{ title: 'Cómo se juega' }} />
           <Stack.Screen
             name="MasterCrearSala"
             component={CrearSalaScreen}
@@ -94,5 +97,5 @@ export default function App() {
 }
 
 const styles = StyleSheet.create({
-  cargando: { flex: 1, backgroundColor: '#1a1523', alignItems: 'center', justifyContent: 'center' },
+  cargando: { flex: 1, backgroundColor: color.fondo, alignItems: 'center', justifyContent: 'center' },
 });

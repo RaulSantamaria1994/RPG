@@ -157,9 +157,14 @@ export default function JuegoScreen({ navigation }: Props) {
             ))}
           </View>
         </View>
-        <TouchableOpacity onPress={salir}>
-          <Text style={styles.salir}>Salir</Text>
-        </TouchableOpacity>
+        <View style={styles.accionesCabecera}>
+          <TouchableOpacity onPress={() => navigation.navigate('Ayuda')} hitSlop={8} testID="boton-ayuda">
+            <Ionicons name="help-circle-outline" size={22} color={color.textoSecundario} />
+          </TouchableOpacity>
+          <TouchableOpacity onPress={salir}>
+            <Text style={styles.salir}>Salir</Text>
+          </TouchableOpacity>
+        </View>
       </View>
 
       <Animated.View style={[styles.dadoFlotante, { opacity: opacidadDado }]} pointerEvents="none">
@@ -736,6 +741,7 @@ const styles = StyleSheet.create({
     paddingVertical: 2,
   },
   atributoChipTexto: { color: color.textoSecundario, fontSize: 11, fontWeight: '600' },
+  accionesCabecera: { flexDirection: 'row', alignItems: 'center', gap: espacio.md },
   salir: { color: color.peligro, fontWeight: '600' },
   dadoFlotante: {
     position: 'absolute',
