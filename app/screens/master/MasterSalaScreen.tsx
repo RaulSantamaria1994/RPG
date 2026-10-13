@@ -96,9 +96,14 @@ export default function MasterSalaScreen({ navigation }: Props) {
           <Text style={styles.codigoEtiqueta}>Código de sala</Text>
           <Text style={styles.codigo}>{sala.codigo}</Text>
         </View>
-        <TouchableOpacity onPress={salir}>
-          <Text style={styles.salir}>Salir</Text>
-        </TouchableOpacity>
+        <View style={styles.accionesCabecera}>
+          <TouchableOpacity onPress={() => navigation.navigate('Ayuda')} hitSlop={8} testID="boton-ayuda-master">
+            <Ionicons name="help-circle-outline" size={22} color={color.textoSecundario} />
+          </TouchableOpacity>
+          <TouchableOpacity onPress={salir}>
+            <Text style={styles.salir}>Salir</Text>
+          </TouchableOpacity>
+        </View>
       </View>
 
       <ScrollView style={styles.panelPrincipal} contentContainerStyle={{ padding: espacio.lg, gap: espacio.md }}>
@@ -342,6 +347,7 @@ const styles = StyleSheet.create({
   },
   codigoEtiqueta: { color: color.textoSecundario, fontSize: 11 },
   codigo: { ...tipo.titulo, fontSize: 24, letterSpacing: 4 },
+  accionesCabecera: { flexDirection: 'row', alignItems: 'center', gap: espacio.md },
   salir: { color: color.peligro, fontWeight: '600' },
   panelPrincipal: { flex: 1 },
   finalBanner: { backgroundColor: color.acentoSuave, padding: espacio.md, borderRadius: radio.md, borderWidth: 1, borderColor: color.acento },
