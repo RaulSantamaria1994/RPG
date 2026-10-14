@@ -8,7 +8,9 @@ desequipar lo devuelve.
 
 import uuid
 
+from app.engine.validator import validar_historia
 from app.models.estado_sala import EstadoSala
+from app.models.historia import Historia
 from app.models.personaje import Personaje
 
 
@@ -231,6 +233,65 @@ def test_equipar_un_objeto_que_no_esta_en_el_fondo_comun_da_error(client, histor
         ws.send_json({"tipo": "equipar_objeto", "datos": {"objeto_id": "no_existe"}})
         error = _recibir_hasta(ws, "error")
         assert error["datos"]["mensaje"] == "Ese objeto no está en el inventario común."
+
+
+HISTORIA_ARMA_Y_GRIMORIO_AL_LLEGAR = {
+    "historia_id": "prueba_equipo_al_llegar",
+    "titulo": "Prueba: arma y grimorio al llegar",
+    "version": 1,
+    "nodo_inicial": "n_salida",
+    "nodos": {
+        "n_salida": {"tipo": "narrativo", "texto": "..", "es_final": False, "nodo_siguiente": "n_hallazgo"},
+        "n_hallazgo": {
+            "tipo": "narrativo",
+            "texto": "Encontráis un machete oxidado y un cuaderno con anotaciones arcanas.",
+            "es_final": False,
+            "nodo_siguiente": "n_final",
+            "objetos_otorgados": [
+                {"objeto_id": "machete", "nombre": "Machete oxidado", "categoria": "arma", "bono_dano": 4},
+                {
+                    "objeto_id": "cuaderno",
+                    "nombre": "Cuaderno arcano",
+                    "categoria": "grimorio",
+                    "hechizo_id": "grito_de_cuervo",
+                },
+            ],
+        },
+        "n_final": {"tipo": "narrativo", "texto": "Fin.", "es_final": True, "tipo_final": "heroico"},
+    },
+}
+
+
+def test_un_arma_o_grimorio_otorgados_por_la_historia_llegan_con_su_bono_y_su_hechizo(client, db):
+    # Reproduce el camino real de una recompensa narrativa (no una
+    # inyección directa en BD): si `otorgar_objeto` no copiara bono_dano/
+    # hechizo_id, el objeto llegaría al inventario común pero quedaría
+    # mudo — equipable pero sin ningún efecto mecánico.
+    resultado = validar_historia(HISTORIA_ARMA_Y_GRIMORIO_AL_LLEGAR)
+    assert resultado.valida, resultado.errores
+    historia = Historia(
+        historia_id=HISTORIA_ARMA_Y_GRIMORIO_AL_LLEGAR["historia_id"],
+        titulo=HISTORIA_ARMA_Y_GRIMORIO_AL_LLEGAR["titulo"],
+        version=1,
+        contenido=HISTORIA_ARMA_Y_GRIMORIO_AL_LLEGAR,
+        validada=True,
+    )
+    db.add(historia)
+    db.commit()
+
+    resp = client.post("/salas", json={"master_nombre": "M", "historia_id": historia.historia_id})
+    assert resp.status_code == 201, resp.text
+    sala = resp.json()
+    codigo = sala["sala"]["codigo"]
+
+    with client.websocket_connect(f"/ws/sala/{codigo}?token={sala['master_token']}") as ws_master:
+        _recibir_hasta(ws_master, "estado_inicial")
+        ws_master.send_json({"tipo": "override_nodo", "datos": {"nodo_id": "n_hallazgo"}})
+
+        actualizado = _recibir_hasta(ws_master, "nodo_actualizado")
+        por_id = {o["objeto_id"]: o for o in actualizado["datos"]["inventario_grupo"]}
+        assert por_id["machete"]["bono_dano"] == 4
+        assert por_id["cuaderno"]["hechizo_id"] == "grito_de_cuervo"
 
 
 def test_el_master_no_puede_equipar_objetos(client, historia_cuervo_negro, db):

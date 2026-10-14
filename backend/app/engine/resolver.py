@@ -179,6 +179,14 @@ def otorgar_objeto(
         item["efecto"] = objeto["efecto"]
     if "consumible" in objeto:
         item["consumible"] = objeto["consumible"]
+    # Solo relevantes para lo equipable (ver `_manejar_equipar_objeto` en
+    # sala_ws.py): sin copiarlos aquí, un arma o un grimorio otorgados por
+    # la propia historia llegarían al inventario sin su bono de daño o sin
+    # saber qué hechizo prestan.
+    if "bono_dano" in objeto:
+        item["bono_dano"] = objeto["bono_dano"]
+    if "hechizo_id" in objeto:
+        item["hechizo_id"] = objeto["hechizo_id"]
 
     if destino == "grupo" or personaje is None:
         inventario = list(estado.inventario_grupo or [])
