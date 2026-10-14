@@ -47,6 +47,8 @@ interface SalaState {
   actualizarCodigoSala: (nuevoCodigo: string) => void;
 }
 
+const MAX_LOG_PERSISTIDO = 200;
+
 function nuevoEvento(texto: string, icono?: EventoLog['icono']): EventoLog {
   return {
     id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
@@ -133,14 +135,19 @@ export const useSalaStore = create<SalaState>()(
     {
       name: 'rpg-sesion',
       storage: createJSONStorage(() => AsyncStorage),
-      // Solo persistimos lo necesario para retomar la sesión al reabrir la
-      // app; todo lo demás (log, estado de la partida, cliente WS...) se
-      // vuelve a pedir al servidor al reconectar.
+      // El estado de la partida (nodo, flags, personajes...) no hace falta
+      // persistirlo: el servidor lo manda entero en `estado_inicial` en
+      // cuanto reconecta. El registro de actividad es distinto — vive solo
+      // en el cliente, el servidor no lo recuerda — así que sin esto,
+      // recargar la página borraba de un plumazo todo lo que acababa de
+      // pasar. Se recorta a las últimas entradas para no acumular un blob
+      // cada vez más grande en el almacenamiento del dispositivo.
       partialize: (state) => ({
         rol: state.rol,
         sala: state.sala,
         token: state.token,
         personaje: state.personaje,
+        log: state.log.slice(0, MAX_LOG_PERSISTIDO),
       }),
     }
   )
@@ -185,10 +192,16 @@ function procesarMensaje(
       const listaPersonajes: Personaje[] = personajes ?? [];
       set((s) => {
         const propio = listaPersonajes.find((p) => p.id === s.personaje?.id);
+        // Si ya había registro de actividad (restaurado del dispositivo tras
+        // recargar, o de antes de que la conexión se cayera y reintentara
+        // sola) marcamos dónde retoma la sesión, para no confundir "lo que
+        // pasó antes" con lo que llega a partir de ahora.
+        const reconectando = s.log.length > 0;
         return {
           estado: estado as EstadoPublico,
           personajes: listaPersonajes,
           personaje: propio ? { ...s.personaje, ...propio } : s.personaje,
+          log: reconectando ? [nuevoEvento('Te has reconectado a la sala'), ...s.log] : s.log,
         };
       });
       break;
