@@ -14,6 +14,10 @@ export default function HomeScreen({ navigation }: Props) {
   return (
     <View style={styles.contenedor}>
       <View style={styles.encabezado}>
+        <View style={styles.atmosfera}>
+          <View style={styles.resplandor} />
+          <Ionicons name="eye-outline" size={52} color={color.narrativo} style={{ opacity: 0.8 }} />
+        </View>
         <Text style={styles.titulo}>RPG Narrativo</Text>
         <Text style={styles.subtitulo}>Historias de terror cósmico para jugar entre amigos</Text>
       </View>
@@ -73,6 +77,21 @@ const styles = StyleSheet.create({
     gap: espacio.xl,
   },
   encabezado: { alignItems: 'center', gap: espacio.sm, maxWidth: 360 },
+  atmosfera: {
+    width: 96,
+    height: 96,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: espacio.sm,
+  },
+  resplandor: {
+    position: 'absolute',
+    width: 96,
+    height: 96,
+    borderRadius: 48,
+    backgroundColor: color.acentoSuave,
+    opacity: 0.6,
+  },
   titulo: { ...tipo.titulo, fontSize: 34, textAlign: 'center' },
   subtitulo: { ...tipo.nota, textAlign: 'center' },
   avisoSesion: {

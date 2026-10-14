@@ -234,6 +234,27 @@ export default function JuegoScreen({ navigation }: Props) {
           {nodo?.texto}
         </Text>
 
+        {personajes.filter((p) => p.id !== personaje.id).length > 0 && (
+          <Tarjeta style={{ gap: espacio.sm }}>
+            <Text style={styles.tituloSeccion}>GRUPO</Text>
+            {personajes
+              .filter((p) => p.id !== personaje.id)
+              .map((p) => (
+                <View key={p.id} style={styles.companeroBloque}>
+                  <View style={styles.companeroCabecera}>
+                    <Text style={styles.companeroNombre} numberOfLines={1}>
+                      {p.nombre}
+                    </Text>
+                    {p.estado === 'ausente' && <Insignia texto="ausente" tono="aviso" />}
+                    {p.estado === 'muerto' && <Insignia texto="caído" tono="peligro" />}
+                  </View>
+                  <BarraRecurso etiqueta="PV" actual={p.vida_actual} maximo={p.vida_max} />
+                  <BarraRecurso etiqueta="Maná" actual={p.mana_actual} maximo={p.mana_max} sinAlerta />
+                </View>
+              ))}
+          </Tarjeta>
+        )}
+
         {nodo?.tipo === 'interactivo' && !enCombate && !soyAusente && !soyMuerto && faltanJugadores === 0 && (
           <View style={{ gap: espacio.sm }}>
             {nodo.palabras_clave?.map((p) => {
@@ -830,6 +851,9 @@ const styles = StyleSheet.create({
     paddingLeft: espacio.md,
   },
   tituloSeccion: { ...tipo.seccion },
+  companeroBloque: { gap: 6, paddingVertical: espacio.xs, borderTopWidth: 1, borderTopColor: color.bordeSutil },
+  companeroCabecera: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: espacio.sm },
+  companeroNombre: { color: color.texto, fontWeight: '700', fontSize: 13, flex: 1 },
   filaTituloCombate: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   tarjetaPalabra: { gap: espacio.xs },
   filaPalabraCabecera: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', gap: espacio.sm },
