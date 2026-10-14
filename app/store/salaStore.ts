@@ -2,7 +2,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
 import { ClienteSala, type MensajeWs } from '../services/websocket';
-import type { EstadoPublico, EventoLog, Personaje, Sala } from '../types';
+import type { AccionCombateTipo, EstadoPublico, EventoLog, Personaje, Sala } from '../types';
 
 export interface PropuestaIntercambio {
   clave: string;
@@ -39,6 +39,12 @@ interface SalaState {
   reintentandoConexion: boolean;
   cliente: ClienteSala | null;
   ultimaTirada: { dado?: number; total?: number; exito: boolean; quien: string } | null;
+  /** La última acción de combate resuelta — solo para disparar el icono y
+   * la animación específicos de atacar/huir/negociar/hechizo/etc. en la
+   * pantalla; el texto legible de lo ocurrido va siempre al `log`. `en` es
+   * una marca de tiempo que cambia en cada acción, incluso si se repite el
+   * mismo tipo, para que la animación se reinicie cada vez. */
+  ultimaAccionCombate: { tipo: AccionCombateTipo; exito?: boolean; en: number } | null;
   mensajeSesion: string | null;
   epilogoPersonal: EpilogoPersonal | null;
 
@@ -75,6 +81,7 @@ const ESTADO_INICIAL_TRANSITORIO = {
   reintentandoConexion: false,
   cliente: null,
   ultimaTirada: null,
+  ultimaAccionCombate: null as { tipo: AccionCombateTipo; exito?: boolean; en: number } | null,
   epilogoPersonal: null as EpilogoPersonal | null,
 };
 
@@ -298,27 +305,40 @@ function procesarMensaje(
         const quien =
           d.personaje_nombre ?? s.personajes.find((p) => p.id === d.personaje_id)?.nombre ?? 'Un jugador';
         let texto: string;
+        let tipoAnim: AccionCombateTipo;
+        let exitoAnim: boolean | undefined;
         if (d.origen === 'enemigo' && d.accion === 'aturdido') {
           texto = 'Un enemigo aturdido pierde su turno';
+          tipoAnim = 'enemigo_aturdido';
         } else if (d.accion === 'objeto') {
           const nombreObjeto = d.objeto?.nombre ?? 'un objeto';
           texto =
             d.efecto?.tipo === 'dano'
               ? `${quien} usa "${nombreObjeto}": ${d.efecto.cantidad ?? 0} de daño`
               : `${quien} usa "${nombreObjeto}"`;
+          tipoAnim = 'objeto';
         } else if (d.accion === 'hechizo') {
           const exito = d.tirada?.exito;
           texto = exito
             ? `${quien} lanza ${d.hechizo}: ${d.efecto?.tipo === 'dano' ? `${d.efecto.dano} de daño` : d.efecto?.tipo === 'aturdido' ? 'enemigo aturdido' : d.efecto?.tipo === 'curacion' ? `${d.efecto.cantidad} de curación` : 'efecto aplicado'}`
             : `${quien} falla al lanzar ${d.hechizo}`;
+          tipoAnim = 'hechizo';
+          exitoAnim = exito;
         } else if (d.accion === 'huir') {
           texto = d.tirada?.exito ? `${quien} consigue huir` : `${quien} no logra huir`;
+          tipoAnim = 'huir';
+          exitoAnim = d.tirada?.exito;
         } else if (d.accion === 'negociar') {
           texto = d.tirada?.exito ? `${quien} consigue negociar` : `${quien} no logra negociar`;
+          tipoAnim = 'negociar';
+          exitoAnim = d.tirada?.exito;
         } else if (d.origen === 'jugador') {
           texto = `${quien} ataca: ${d.dano_aplicado ?? 0} de daño`;
+          tipoAnim = 'atacar';
+          exitoAnim = d.tirada?.exito;
         } else {
           texto = `Un enemigo ataca: ${d.dano_aplicado ?? 0} de daño`;
+          tipoAnim = 'enemigo_ataca';
         }
         return {
           log: [nuevoEvento(texto), ...s.log],
@@ -326,6 +346,7 @@ function procesarMensaje(
             d.origen === 'jugador' && d.tirada
               ? { dado: d.tirada.dado, total: d.tirada.total, exito: !!d.tirada.exito, quien }
               : s.ultimaTirada,
+          ultimaAccionCombate: { tipo: tipoAnim, exito: exitoAnim, en: Date.now() },
         };
       });
       break;

@@ -148,6 +148,19 @@ export interface EstadoPublico {
   tipo_final: string | null;
 }
 
+/** Qué clase de acción de combate acaba de resolverse — así la interfaz
+ * puede mostrar un icono y una animación propios de atacar, huir,
+ * negociar o lanzar un hechizo, en vez de un aviso genérico igual para
+ * todo. Las dos últimas son reacciones del enemigo, no del jugador. */
+export type AccionCombateTipo =
+  | 'atacar'
+  | 'huir'
+  | 'negociar'
+  | 'hechizo'
+  | 'objeto'
+  | 'enemigo_ataca'
+  | 'enemigo_aturdido';
+
 export interface TiradaResultado {
   dado?: number;
   modificador?: number;

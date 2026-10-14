@@ -1,4 +1,5 @@
-import { StyleSheet, Text, View } from 'react-native';
+import { useEffect, useRef } from 'react';
+import { Animated, StyleSheet, Text, View } from 'react-native';
 import { color, radio } from '../theme';
 
 type Props = {
@@ -24,11 +25,28 @@ export default function BarraRecurso({ etiqueta, actual, maximo, sinAlerta }: Pr
         ? color.aviso
         : color.exito;
 
+  // El valor ya llega cambiado desde el servidor (sube o baja de golpe),
+  // así que sin esto la barra saltaba en seco de un ancho a otro; animar
+  // la transición deja claro de un vistazo cuánto se acaba de perder o
+  // recuperar en vez de solo el número final.
+  const progreso = useRef(new Animated.Value(proporcion)).current;
+  useEffect(() => {
+    Animated.timing(progreso, { toValue: proporcion, duration: 450, useNativeDriver: false }).start();
+  }, [proporcion]);
+
   return (
     <View style={estilos.fila}>
       <Text style={estilos.etiqueta}>{etiqueta}</Text>
       <View style={estilos.pista}>
-        <View style={[estilos.relleno, { width: `${proporcion * 100}%`, backgroundColor: colorBarra }]} />
+        <Animated.View
+          style={[
+            estilos.relleno,
+            {
+              width: progreso.interpolate({ inputRange: [0, 1], outputRange: ['0%', '100%'] }),
+              backgroundColor: colorBarra,
+            },
+          ]}
+        />
       </View>
       <Text style={estilos.valor}>
         {actual}/{maximo}

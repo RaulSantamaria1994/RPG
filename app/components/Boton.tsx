@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
-import { ActivityIndicator, StyleSheet, Text, TouchableOpacity, View, type ViewStyle } from 'react-native';
+import { ActivityIndicator, Animated, StyleSheet, Text, TouchableOpacity, View, type ViewStyle } from 'react-native';
 import { color, radio, espacio } from '../theme';
+import { useEscalaPresion } from '../hooks/useEscalaPresion';
 
 type Variante = 'primario' | 'secundario' | 'peligro' | 'fantasma';
 
@@ -32,31 +33,36 @@ export default function Boton({
   style,
 }: Props) {
   const estilos = ESTILOS_VARIANTE[variante];
+  const { escala, presionar, soltar } = useEscalaPresion();
   return (
-    <TouchableOpacity
-      style={[
-        estiloBase.base,
-        estilos.contenedor,
-        flex && { flex: 1 },
-        (disabled || cargando) && estiloBase.deshabilitado,
-        style,
-      ]}
-      onPress={onPress}
-      disabled={disabled || cargando}
-      activeOpacity={0.75}
-    >
-      {cargando ? (
-        <ActivityIndicator color={estilos.texto.color} />
-      ) : (
-        <View>
-          <View style={estiloBase.filaTexto}>
-            {icono}
-            <Text style={[estiloBase.texto, estilos.texto]}>{texto}</Text>
+    <Animated.View style={[flex && { flex: 1 }, { transform: [{ scale: escala }] }]}>
+      <TouchableOpacity
+        style={[
+          estiloBase.base,
+          estilos.contenedor,
+          flex && { flex: 1 },
+          (disabled || cargando) && estiloBase.deshabilitado,
+          style,
+        ]}
+        onPress={onPress}
+        onPressIn={presionar}
+        onPressOut={soltar}
+        disabled={disabled || cargando}
+        activeOpacity={0.75}
+      >
+        {cargando ? (
+          <ActivityIndicator color={estilos.texto.color} />
+        ) : (
+          <View>
+            <View style={estiloBase.filaTexto}>
+              {icono}
+              <Text style={[estiloBase.texto, estilos.texto]}>{texto}</Text>
+            </View>
+            {subtexto ? <Text style={[estiloBase.subtexto, estilos.subtexto]}>{subtexto}</Text> : null}
           </View>
-          {subtexto ? <Text style={[estiloBase.subtexto, estilos.subtexto]}>{subtexto}</Text> : null}
-        </View>
-      )}
-    </TouchableOpacity>
+        )}
+      </TouchableOpacity>
+    </Animated.View>
   );
 }
 

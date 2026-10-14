@@ -3,7 +3,8 @@ import { Animated, FlatList, ScrollView, StyleSheet, Text, TouchableOpacity, Vie
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../../navigation/types';
-import { Boton, BarraRecurso, IconoEvento, IndicadorConexion, Insignia, Tarjeta } from '../../components';
+import { Boton, BarraRecurso, EfectoCombate, IconoEvento, IndicadorConexion, Insignia, Tarjeta } from '../../components';
+import { useEscalaPresion } from '../../hooks/useEscalaPresion';
 import { api } from '../../services/api';
 import { useSalaStore } from '../../store/salaStore';
 import type { Atributo, Hechizo } from '../../types';
@@ -31,6 +32,20 @@ const COLOR_TIPO_NODO: Record<string, string> = {
 const EFECTOS_HECHIZO_COMBATE = new Set(['dano_directo', 'restaura_vida_o_mana', 'aturdir_enemigo']);
 const EFECTOS_OBJETO_COMBATE = new Set(['curar_vida', 'curar_mana', 'dano']);
 
+/** El botón "Atacar" vive dentro de un `.map` por enemigo, y un hook no se
+ * puede llamar directamente ahí dentro — de ahí este pequeño componente
+ * aparte, solo para darle el mismo tacto de pulsación que `Boton`. */
+function BotonAtacar({ onPress }: { onPress: () => void }) {
+  const { escala, presionar, soltar } = useEscalaPresion();
+  return (
+    <Animated.View style={{ transform: [{ scale: escala }] }}>
+      <TouchableOpacity style={styles.botonAtacar} onPress={onPress} onPressIn={presionar} onPressOut={soltar}>
+        <Text style={styles.botonAtacarTexto}>Atacar</Text>
+      </TouchableOpacity>
+    </Animated.View>
+  );
+}
+
 export default function JuegoScreen({ navigation }: Props) {
   const sala = useSalaStore((s) => s.sala);
   const personaje = useSalaStore((s) => s.personaje);
@@ -44,6 +59,7 @@ export default function JuegoScreen({ navigation }: Props) {
   const votosGrupales = useSalaStore((s) => s.votosGrupales);
   const propuestasIntercambio = useSalaStore((s) => s.propuestasIntercambio);
   const ultimaTirada = useSalaStore((s) => s.ultimaTirada);
+  const ultimaAccionCombate = useSalaStore((s) => s.ultimaAccionCombate);
   const epilogoPersonal = useSalaStore((s) => s.epilogoPersonal);
   const conectar = useSalaStore((s) => s.conectar);
   const desconectar = useSalaStore((s) => s.desconectar);
@@ -178,6 +194,10 @@ export default function JuegoScreen({ navigation }: Props) {
           </TouchableOpacity>
         </View>
       </View>
+
+      {ultimaAccionCombate && (
+        <EfectoCombate key={ultimaAccionCombate.en} tipo={ultimaAccionCombate.tipo} exito={ultimaAccionCombate.exito} />
+      )}
 
       <Animated.View style={[styles.dadoFlotante, { opacity: opacidadDado }]} pointerEvents="none">
         {lanzando ? (
@@ -451,12 +471,9 @@ export default function JuegoScreen({ navigation }: Props) {
                     )}
                   </Text>
                   {esMiTurno && !en.derrotado && (
-                    <TouchableOpacity
-                      style={styles.botonAtacar}
+                    <BotonAtacar
                       onPress={() => lanzarDado('combate_accion', { accion: 'atacar', enemigo_id: en.enemigo_id })}
-                    >
-                      <Text style={styles.botonAtacarTexto}>Atacar</Text>
-                    </TouchableOpacity>
+                    />
                   )}
                 </View>
                 <BarraRecurso etiqueta="PV" actual={en.vida} maximo={en.vida_max} />
