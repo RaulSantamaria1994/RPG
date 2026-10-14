@@ -56,6 +56,8 @@ export interface Personaje {
   inventario: ObjetoInventario[];
   hechizos_conocidos: string[];
   rasgos: string[];
+  arma_equipada?: ObjetoInventario | null;
+  hechizo_equipado?: ObjetoInventario | null;
   estado: string;
   es_master?: boolean;
 }
@@ -65,6 +67,16 @@ export interface ObjetoInventario {
   nombre: string;
   efecto?: { tipo: string; cantidad?: number } | null;
   consumible?: boolean;
+  /** 'arma' y 'grimorio' son equipables desde la pestaña de Equipo. El
+   * valor 'hechizo' es otra cosa, histórica: un objeto otorgado con esa
+   * categoría nunca llega a ser un objeto físico — enseña el hechizo a
+   * todo el grupo en el momento en que se otorga (ver `otorgar_objeto` en
+   * el backend), así que jamás aparece en un inventario. */
+  categoria?: 'arma' | 'grimorio' | 'hechizo';
+  /** Solo en categoria 'arma': bono de daño que suma al atacar con ella equipada. */
+  bono_dano?: number;
+  /** Solo en categoria 'grimorio': qué hechizo del catálogo deja lanzar. */
+  hechizo_id?: string;
 }
 
 export interface Hechizo {

@@ -169,6 +169,8 @@ def _personaje_publico(p: Personaje) -> dict:
         "inventario": p.inventario,
         "hechizos_conocidos": p.hechizos_conocidos,
         "rasgos": p.rasgos,
+        "arma_equipada": p.arma_equipada,
+        "hechizo_equipado": p.hechizo_equipado,
         "estado": p.estado,
         "fuerza": p.fuerza,
         "astucia": p.astucia,
@@ -1111,7 +1113,10 @@ async def _manejar_combate_accion(db, sala: Sala, conexion: ConexionJugador, dat
         ):
             await _enviar_error(conexion, "Ese hechizo no se puede usar en combate.")
             return
-        if hechizo_id not in (personaje.hechizos_conocidos or []):
+        # Un grimorio equipado presta el hechizo aunque el personaje nunca
+        # lo haya aprendido — por eso no basta con mirar hechizos_conocidos.
+        grimorio_id = (personaje.hechizo_equipado or {}).get("hechizo_id")
+        if hechizo_id not in (personaje.hechizos_conocidos or []) and hechizo_id != grimorio_id:
             await _enviar_error(conexion, "No conoces ese hechizo.")
             return
         if personaje.mana_actual < hechizo["coste_mana"]:
@@ -1292,6 +1297,104 @@ async def _manejar_intercambio_confirmar(db, sala: Sala, conexion: ConexionJugad
     )
 
 
+# A qué ranura del personaje va cada categoría de objeto equipable, y a la
+# inversa, qué ranura (en los términos que ya usa el cliente) pide liberar
+# un desequipar. "hechizo" como categoría ya significa otra cosa (ver
+# `otorgar_objeto`): enseña el hechizo a todo el grupo en vez de quedar
+# como objeto físico, así que un grimorio equipable usa "grimorio".
+_CAMPO_POR_CATEGORIA = {"arma": "arma_equipada", "grimorio": "hechizo_equipado"}
+_CAMPO_POR_RANURA = {"arma": "arma_equipada", "hechizo": "hechizo_equipado"}
+
+
+async def _manejar_equipar_objeto(db, sala: Sala, conexion: ConexionJugador, datos: dict) -> None:
+    if conexion.rol != "jugador":
+        await _enviar_error(conexion, "Solo un jugador puede equipar objetos.")
+        return
+    try:
+        objeto_id = datos["objeto_id"]
+    except KeyError:
+        await _enviar_error(conexion, "Falta el objeto a equipar.")
+        return
+
+    personaje = db.get(Personaje, uuid.UUID(conexion.personaje_id))
+    estado = sala.estado_sala
+    inventario_grupo = list(estado.inventario_grupo or [])
+    objeto = next((o for o in inventario_grupo if o.get("objeto_id") == objeto_id), None)
+    if objeto is None:
+        await _enviar_error(conexion, "Ese objeto no está en el inventario común.")
+        return
+
+    campo = _CAMPO_POR_CATEGORIA.get(objeto.get("categoria"))
+    if campo is None:
+        await _enviar_error(conexion, "Ese objeto no se puede equipar.")
+        return
+
+    # Si ya llevaba algo en esa ranura, vuelve al inventario común — un
+    # cambio de equipo no hace desaparecer el objeto anterior.
+    anterior = getattr(personaje, campo)
+    inventario_grupo.remove(objeto)
+    if anterior is not None:
+        inventario_grupo.append(anterior)
+    setattr(personaje, campo, objeto)
+    estado.inventario_grupo = inventario_grupo
+    flag_modified(estado, "inventario_grupo")
+    db.commit()
+
+    await gestor.broadcast(
+        str(sala.id),
+        {
+            "tipo": "equipo_cambiado",
+            "datos": {
+                "personaje_nombre": personaje.nombre,
+                "objeto_nombre": objeto.get("nombre", objeto_id),
+                "ranura": "arma" if campo == "arma_equipada" else "hechizo",
+                "accion": "equipar",
+            },
+        },
+    )
+    await gestor.broadcast(str(sala.id), {"tipo": "personaje_actualizado", "datos": _personaje_publico(personaje)})
+    await _broadcast_nodo(sala)
+
+
+async def _manejar_desequipar_objeto(db, sala: Sala, conexion: ConexionJugador, datos: dict) -> None:
+    if conexion.rol != "jugador":
+        await _enviar_error(conexion, "Solo un jugador puede desequipar objetos.")
+        return
+    campo = _CAMPO_POR_RANURA.get(datos.get("ranura"))
+    if campo is None:
+        await _enviar_error(conexion, "Ranura no reconocida.")
+        return
+
+    personaje = db.get(Personaje, uuid.UUID(conexion.personaje_id))
+    objeto = getattr(personaje, campo)
+    if objeto is None:
+        await _enviar_error(conexion, "No tienes nada equipado en esa ranura.")
+        return
+
+    setattr(personaje, campo, None)
+    estado = sala.estado_sala
+    inventario_grupo = list(estado.inventario_grupo or [])
+    inventario_grupo.append(objeto)
+    estado.inventario_grupo = inventario_grupo
+    flag_modified(estado, "inventario_grupo")
+    db.commit()
+
+    await gestor.broadcast(
+        str(sala.id),
+        {
+            "tipo": "equipo_cambiado",
+            "datos": {
+                "personaje_nombre": personaje.nombre,
+                "objeto_nombre": objeto.get("nombre", objeto.get("objeto_id")),
+                "ranura": datos["ranura"],
+                "accion": "desequipar",
+            },
+        },
+    )
+    await gestor.broadcast(str(sala.id), {"tipo": "personaje_actualizado", "datos": _personaje_publico(personaje)})
+    await _broadcast_nodo(sala)
+
+
 MANEJADORES = {
     "interactuar": _manejar_interactuar,
     "continuar": _manejar_continuar,
@@ -1304,6 +1407,8 @@ MANEJADORES = {
     "combate_accion": _manejar_combate_accion,
     "intercambio_proponer": _manejar_intercambio_proponer,
     "intercambio_confirmar": _manejar_intercambio_confirmar,
+    "equipar_objeto": _manejar_equipar_objeto,
+    "desequipar_objeto": _manejar_desequipar_objeto,
 }
 
 

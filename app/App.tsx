@@ -13,6 +13,7 @@ import MasterSalaScreen from './screens/master/MasterSalaScreen';
 import UnirseSalaScreen from './screens/player/UnirseSalaScreen';
 import SeleccionPersonajeScreen from './screens/player/SeleccionPersonajeScreen';
 import JuegoScreen from './screens/player/JuegoScreen';
+import EquipoScreen from './screens/player/EquipoScreen';
 import type { RootStackParamList } from './navigation/types';
 import { useSalaStore } from './store/salaStore';
 import { color } from './theme';
@@ -67,6 +68,7 @@ export default function App() {
           <Stack.Screen name="Home" component={HomeScreen} options={{ headerShown: false }} />
           <Stack.Screen name="Ayuda" component={AyudaScreen} options={{ title: 'Cómo se juega' }} />
           <Stack.Screen name="Diario" component={DiarioScreen} options={{ title: 'Diario de pistas' }} />
+          <Stack.Screen name="Equipo" component={EquipoScreen} options={{ title: 'Equipo' }} />
           <Stack.Screen
             name="MasterCrearSala"
             component={CrearSalaScreen}

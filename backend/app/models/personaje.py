@@ -41,6 +41,11 @@ class Personaje(Base):
     hechizos_conocidos: Mapped[list] = mapped_column(JSONVariant, nullable=False, default=list)
     rasgos: Mapped[list] = mapped_column(JSONVariant, nullable=False, default=list)
 
+    # Objeto equipado del inventario común (categoria "arma"/"grimorio" de
+    # ObjetoInventario), o None si no lleva nada en esa ranura.
+    arma_equipada: Mapped[dict | None] = mapped_column(JSONVariant, nullable=True, default=None)
+    hechizo_equipado: Mapped[dict | None] = mapped_column(JSONVariant, nullable=True, default=None)
+
     # activo | inconsciente | muerto
     estado: Mapped[str] = mapped_column(String(20), nullable=False, default="activo")
 

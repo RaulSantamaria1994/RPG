@@ -364,6 +364,23 @@ function procesarMensaje(
       }
       break;
     }
+    case 'equipo_cambiado': {
+      // El cambio de estado en sí (arma_equipada/hechizo_equipado,
+      // inventario_grupo) ya llega por personaje_actualizado/nodo_actualizado;
+      // esto es solo para que quede constancia en el registro de la partida.
+      const d = datos as {
+        personaje_nombre: string;
+        objeto_nombre: string;
+        ranura: 'arma' | 'hechizo';
+        accion: 'equipar' | 'desequipar';
+      };
+      const texto =
+        d.accion === 'equipar'
+          ? `${d.personaje_nombre} equipa "${d.objeto_nombre}" como ${d.ranura}`
+          : `${d.personaje_nombre} desequipa "${d.objeto_nombre}"`;
+      set((s) => ({ log: [nuevoEvento(texto), ...s.log] }));
+      break;
+    }
     case 'personaje_actualizado': {
       const d = datos as unknown as Personaje;
       set((s) => {

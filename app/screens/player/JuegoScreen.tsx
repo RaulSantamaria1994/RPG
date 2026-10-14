@@ -186,6 +186,9 @@ export default function JuegoScreen({ navigation }: Props) {
               </View>
             )}
           </TouchableOpacity>
+          <TouchableOpacity onPress={() => navigation.navigate('Equipo')} hitSlop={8} testID="boton-equipo">
+            <MaterialCommunityIcons name="sword-cross" size={22} color={color.textoSecundario} />
+          </TouchableOpacity>
           <TouchableOpacity onPress={() => navigation.navigate('Ayuda')} hitSlop={8} testID="boton-ayuda">
             <Ionicons name="help-circle-outline" size={22} color={color.textoSecundario} />
           </TouchableOpacity>
@@ -481,6 +484,8 @@ export default function JuegoScreen({ navigation }: Props) {
                   <Text style={styles.enemigoSubtexto}>
                     <MaterialCommunityIcons name="dice-d20-outline" size={11} color={color.textoTenue} /> Fuerza vs
                     defensa ({en.atributos?.defensa ?? 10})
+                    {!!personaje.arma_equipada?.bono_dano &&
+                      ` · ${personaje.arma_equipada.nombre} (+${personaje.arma_equipada.bono_dano} daño)`}
                   </Text>
                 )}
               </Tarjeta>
@@ -519,7 +524,8 @@ export default function JuegoScreen({ navigation }: Props) {
                   ].filter((o) => o.efecto?.tipo && EFECTOS_OBJETO_COMBATE.has(o.efecto.tipo));
                   const hechizosCombate = hechizos.filter(
                     (h) =>
-                      personaje.hechizos_conocidos.includes(h.hechizo_id) &&
+                      (personaje.hechizos_conocidos.includes(h.hechizo_id) ||
+                        personaje.hechizo_equipado?.hechizo_id === h.hechizo_id) &&
                       h.efecto &&
                       EFECTOS_HECHIZO_COMBATE.has(h.efecto)
                   );

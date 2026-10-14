@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { FlatList, Modal, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../../navigation/types';
 import { Boton, BarraRecurso, EfectoCombate, IconoEvento, IndicadorConexion, Insignia, Tarjeta } from '../../components';
@@ -255,6 +255,22 @@ export default function MasterSalaScreen({ navigation }: Props) {
               </View>
               <BarraRecurso etiqueta="PV" actual={p.vida_actual} maximo={p.vida_max} />
               <BarraRecurso etiqueta="Maná" actual={p.mana_actual} maximo={p.mana_max} sinAlerta />
+              {(p.arma_equipada || p.hechizo_equipado) && (
+                <View style={styles.filaEquipo}>
+                  {p.arma_equipada && (
+                    <View style={styles.chipEquipo}>
+                      <MaterialCommunityIcons name="sword-cross" size={12} color={color.combate} />
+                      <Text style={styles.equipoTexto}>{p.arma_equipada.nombre}</Text>
+                    </View>
+                  )}
+                  {p.hechizo_equipado && (
+                    <View style={styles.chipEquipo}>
+                      <MaterialCommunityIcons name="auto-fix" size={12} color={color.narrativo} />
+                      <Text style={styles.equipoTexto}>{p.hechizo_equipado.nombre}</Text>
+                    </View>
+                  )}
+                </View>
+              )}
               <View style={styles.filaAccionesJugador}>
                 {p.estado !== 'muerto' && (
                   <TouchableOpacity
@@ -521,6 +537,9 @@ const styles = StyleSheet.create({
   jugadorCabecera: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: espacio.sm },
   jugadorNombre: { color: color.texto, fontWeight: '700', flex: 1 },
   jugadorDe: { color: color.textoTenue, fontWeight: '400' },
+  filaEquipo: { flexDirection: 'row', gap: espacio.sm },
+  chipEquipo: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+  equipoTexto: { color: color.textoSecundario, fontSize: 11 },
   botonAusente: {
     backgroundColor: color.superficieAlt,
     borderWidth: 1,

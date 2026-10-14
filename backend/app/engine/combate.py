@@ -104,7 +104,9 @@ def resolver_ataque_jugador(
 
 
 def _dano_base(personaje: Personaje) -> int:
-    return max(1, personaje.fuerza // 2 + 2)
+    base = max(1, personaje.fuerza // 2 + 2)
+    bono_arma = (personaje.arma_equipada or {}).get("bono_dano", 0)
+    return base + bono_arma
 
 
 def resolver_ataque_enemigo(

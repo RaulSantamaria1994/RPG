@@ -36,6 +36,8 @@ class PersonajeOut(BaseModel):
     inventario: list
     hechizos_conocidos: list
     rasgos: list
+    arma_equipada: dict | None
+    hechizo_equipado: dict | None
     estado: str
     es_master: bool
 
