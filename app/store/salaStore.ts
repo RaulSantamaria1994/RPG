@@ -32,6 +32,11 @@ interface SalaState {
   votosGrupales: { votados: number; total: number } | null;
   propuestasIntercambio: PropuestaIntercambio[];
   conectado: boolean;
+  /** Solo tiene sentido cuando `conectado` es false: distingue "todavía no
+   * se ha logrado la primera conexión" de "se tenía y se acaba de perder,
+   * reintentando sola". Así la pantalla puede decir "Conectando…" o
+   * "Reconectando…" según toque. */
+  reintentandoConexion: boolean;
   cliente: ClienteSala | null;
   ultimaTirada: { dado?: number; total?: number; exito: boolean; quien: string } | null;
   mensajeSesion: string | null;
@@ -67,6 +72,7 @@ const ESTADO_INICIAL_TRANSITORIO = {
   votosGrupales: null as { votados: number; total: number } | null,
   propuestasIntercambio: [] as PropuestaIntercambio[],
   conectado: false,
+  reintentandoConexion: false,
   cliente: null,
   ultimaTirada: null,
   epilogoPersonal: null as EpilogoPersonal | null,
@@ -93,12 +99,12 @@ export const useSalaStore = create<SalaState>()(
         const nuevoCliente = new ClienteSala(sala.codigo, token);
         nuevoCliente.suscribir((mensaje) => procesarMensaje(mensaje, set, get));
         nuevoCliente.conectar();
-        set({ cliente: nuevoCliente, conectado: true });
+        set({ cliente: nuevoCliente });
       },
 
       desconectar: () => {
         get().cliente?.desconectar();
-        set({ cliente: null, conectado: false });
+        set({ cliente: null, conectado: false, reintentandoConexion: false });
       },
 
       enviar: (tipo, datos = {}) => get().cliente?.enviar(tipo, datos),
@@ -129,7 +135,7 @@ export const useSalaStore = create<SalaState>()(
         const nuevoCliente = new ClienteSala(nuevoCodigo, token);
         nuevoCliente.suscribir((mensaje) => procesarMensaje(mensaje, set, get));
         nuevoCliente.conectar();
-        set({ sala: { ...sala, codigo: nuevoCodigo }, cliente: nuevoCliente, conectado: true });
+        set({ sala: { ...sala, codigo: nuevoCodigo }, cliente: nuevoCliente });
       },
     }),
     {
@@ -171,6 +177,11 @@ function procesarMensaje(
   const { tipo, datos } = mensaje;
 
   switch (tipo) {
+    case '_estado_conexion': {
+      const d = datos as { conectado: boolean; reintentando: boolean };
+      set({ conectado: d.conectado, reintentandoConexion: d.reintentando });
+      break;
+    }
     case '_sesion_invalida': {
       const d = datos as { codigo?: number };
       get().cliente?.desconectar();

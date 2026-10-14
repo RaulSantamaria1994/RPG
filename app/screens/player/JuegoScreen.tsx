@@ -3,7 +3,7 @@ import { Animated, FlatList, ScrollView, StyleSheet, Text, TouchableOpacity, Vie
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../../navigation/types';
-import { Boton, BarraRecurso, IconoEvento, Insignia, Tarjeta } from '../../components';
+import { Boton, BarraRecurso, IconoEvento, IndicadorConexion, Insignia, Tarjeta } from '../../components';
 import { api } from '../../services/api';
 import { useSalaStore } from '../../store/salaStore';
 import type { Atributo, Hechizo } from '../../types';
@@ -36,6 +36,8 @@ export default function JuegoScreen({ navigation }: Props) {
   const personaje = useSalaStore((s) => s.personaje);
   const personajes = useSalaStore((s) => s.personajes);
   const estado = useSalaStore((s) => s.estado);
+  const conectado = useSalaStore((s) => s.conectado);
+  const reintentandoConexion = useSalaStore((s) => s.reintentandoConexion);
   const log = useSalaStore((s) => s.log);
   const palabrasBloqueadas = useSalaStore((s) => s.palabrasBloqueadas);
   const confirmacionesGrupales = useSalaStore((s) => s.confirmacionesGrupales);
@@ -143,6 +145,7 @@ export default function JuegoScreen({ navigation }: Props) {
 
   return (
     <View style={styles.contenedor}>
+      <IndicadorConexion conectado={conectado} reintentando={reintentandoConexion} />
       <View style={styles.cabecera}>
         <View style={{ flex: 1, gap: 6 }}>
           <Text style={styles.nombrePersonaje}>{personaje.nombre}</Text>

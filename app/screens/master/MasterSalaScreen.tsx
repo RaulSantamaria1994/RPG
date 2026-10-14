@@ -3,7 +3,7 @@ import { FlatList, Modal, ScrollView, StyleSheet, Text, TextInput, TouchableOpac
 import { Ionicons } from '@expo/vector-icons';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../../navigation/types';
-import { Boton, BarraRecurso, IconoEvento, Insignia, Tarjeta } from '../../components';
+import { Boton, BarraRecurso, IconoEvento, IndicadorConexion, Insignia, Tarjeta } from '../../components';
 import { api } from '../../services/api';
 import { useSalaStore } from '../../store/salaStore';
 import type { NodoResumen } from '../../types';
@@ -29,6 +29,8 @@ export default function MasterSalaScreen({ navigation }: Props) {
   const sala = useSalaStore((s) => s.sala);
   const token = useSalaStore((s) => s.token);
   const estado = useSalaStore((s) => s.estado);
+  const conectado = useSalaStore((s) => s.conectado);
+  const reintentandoConexion = useSalaStore((s) => s.reintentandoConexion);
   const personajes = useSalaStore((s) => s.personajes);
   const log = useSalaStore((s) => s.log);
   const palabrasBloqueadas = useSalaStore((s) => s.palabrasBloqueadas);
@@ -139,6 +141,7 @@ export default function MasterSalaScreen({ navigation }: Props) {
 
   return (
     <View style={styles.contenedor}>
+      <IndicadorConexion conectado={conectado} reintentando={reintentandoConexion} />
       <View style={styles.cabecera}>
         <View>
           <Text style={styles.codigoEtiqueta}>Código de sala</Text>

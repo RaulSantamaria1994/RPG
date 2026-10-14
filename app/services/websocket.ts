@@ -24,6 +24,10 @@ export class ClienteSala {
 
   conectar(): void {
     this.cerradoManualmente = false;
+    // Se avisa de que (todavía/de nuevo) no hay conexión en cuanto se
+    // intenta — `reintentando` distingue el primer intento ("Conectando…")
+    // de una recuperación tras perder la conexión ("Reconectando…").
+    this.notificar({ tipo: '_estado_conexion', datos: { conectado: false, reintentando: this.intentosReconexion > 0 } });
     this.socket = new WebSocket(`${WS_BASE_URL}/ws/sala/${this.codigo}?token=${this.token}`);
 
     this.socket.onmessage = (evento) => {
@@ -37,18 +41,23 @@ export class ClienteSala {
 
     this.socket.onopen = () => {
       this.intentosReconexion = 0;
+      this.notificar({ tipo: '_estado_conexion', datos: { conectado: true, reintentando: false } });
     };
 
     this.socket.onclose = (evento) => {
       if (this.cerradoManualmente) return;
 
       if (CODIGOS_SESION_INVALIDA.has(evento.code)) {
-        this.escuchadores.forEach((fn) => fn({ tipo: '_sesion_invalida', datos: { codigo: evento.code } }));
+        this.notificar({ tipo: '_sesion_invalida', datos: { codigo: evento.code } });
         return;
       }
 
       const espera = Math.min(1000 * 2 ** this.intentosReconexion, 10000);
       this.intentosReconexion += 1;
+      // Se avisa ya aquí (no solo al reintentar en conectar()) para que la
+      // interfaz refleje la pérdida de conexión al instante, sin esperar a
+      // que termine la cuenta atrás del siguiente intento.
+      this.notificar({ tipo: '_estado_conexion', datos: { conectado: false, reintentando: true } });
       setTimeout(() => this.conectar(), espera);
     };
   }
@@ -68,5 +77,9 @@ export class ClienteSala {
   suscribir(fn: Escuchador): () => void {
     this.escuchadores.add(fn);
     return () => this.escuchadores.delete(fn);
+  }
+
+  private notificar(mensaje: MensajeWs): void {
+    this.escuchadores.forEach((fn) => fn(mensaje));
   }
 }
