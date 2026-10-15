@@ -1,5 +1,6 @@
 from functools import lru_cache
 
+from pydantic import field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -22,6 +23,20 @@ class Settings(BaseSettings):
     sala_expiracion_dias: int = 30
     # Cada cuánto se ejecuta esa limpieza en segundo plano, en horas.
     limpieza_intervalo_horas: int = 24
+
+    @field_validator("database_url")
+    @classmethod
+    def _usar_driver_psycopg(cls, v: str) -> str:
+        # Railway, Render y la mayoría de proveedores inyectan la URL de
+        # Postgres con el esquema genérico "postgres://"/"postgresql://" (el
+        # que entiende libpq), no el que espera SQLAlchemy para elegir el
+        # driver psycopg3 que trae este proyecto. Sin esto, arrancar contra
+        # esa URL tal cual falla porque SQLAlchemy intenta cargar psycopg2.
+        if v.startswith("postgres://"):
+            return "postgresql+psycopg://" + v[len("postgres://"):]
+        if v.startswith("postgresql://"):
+            return "postgresql+psycopg://" + v[len("postgresql://"):]
+        return v
 
 
 @lru_cache

@@ -84,6 +84,10 @@ cd backend && python -m pytest
 cd app && npx tsc --noEmit --noUnusedLocals --noUnusedParameters
 ```
 
+## Desplegar el backend en un servidor externo
+
+Para dejar de depender de tu propio ordenador, el backend ya trae un `Dockerfile` listo para desplegar en un PaaS como Railway. Guía paso a paso en [`DEPLOY.md`](./DEPLOY.md).
+
 ## Compilar un APK
 
 El workflow `.github/workflows/build-apk.yml` compila un APK de depuración de Android bajo demanda (`Actions → Build Android APK → Run workflow`), apuntando al backend que se le indique, y lo publica como release de GitHub.
