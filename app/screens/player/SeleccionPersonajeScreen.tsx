@@ -5,6 +5,7 @@ import type { RootStackParamList } from '../../navigation/types';
 import { Boton, Tarjeta } from '../../components';
 import { api, ErrorApi } from '../../services/api';
 import { useSalaStore } from '../../store/salaStore';
+import { useAcento } from '../../store/configStore';
 import type { Atributo, HabilidadPasiva, PersonajePregenerado, Sala } from '../../types';
 import { color, espacio, radio, tipo } from '../../theme';
 
@@ -22,6 +23,7 @@ const PUNTOS_TOTALES = 12;
 export default function SeleccionPersonajeScreen({ route, navigation }: Props) {
   const { codigo } = route.params;
   const iniciarComoJugador = useSalaStore((s) => s.iniciarComoJugador);
+  const acento = useAcento();
 
   const [sala, setSala] = useState<Sala | null>(null);
   const [pregenerados, setPregenerados] = useState<PersonajePregenerado[]>([]);
@@ -134,13 +136,19 @@ export default function SeleccionPersonajeScreen({ route, navigation }: Props) {
 
       <View style={styles.tabs}>
         <TouchableOpacity
-          style={[styles.tab, modo === 'pregenerado' && styles.tabActivo]}
+          style={[
+            styles.tab,
+            modo === 'pregenerado' && { backgroundColor: acento.acentoSuave, borderColor: acento.acentoFuerte },
+          ]}
           onPress={() => setModo('pregenerado')}
         >
           <Text style={[styles.tabTexto, modo === 'pregenerado' && styles.tabTextoActivo]}>Pregenerado</Text>
         </TouchableOpacity>
         <TouchableOpacity
-          style={[styles.tab, modo === 'personalizado' && styles.tabActivo]}
+          style={[
+            styles.tab,
+            modo === 'personalizado' && { backgroundColor: acento.acentoSuave, borderColor: acento.acentoFuerte },
+          ]}
           onPress={() => setModo('personalizado')}
         >
           <Text style={[styles.tabTexto, modo === 'personalizado' && styles.tabTextoActivo]}>Personalizado</Text>
@@ -192,7 +200,11 @@ export default function SeleccionPersonajeScreen({ route, navigation }: Props) {
               <Text style={styles.atributoNombre}>{ETIQUETA_ATRIBUTO[a]}</Text>
               <TouchableOpacity
                 onPress={() => ajustarPunto(a, -1)}
-                style={[styles.botonPunto, puntos[a] <= 1 && styles.botonPuntoDeshabilitado]}
+                style={[
+                  styles.botonPunto,
+                  { backgroundColor: acento.acento },
+                  puntos[a] <= 1 && styles.botonPuntoDeshabilitado,
+                ]}
                 disabled={puntos[a] <= 1}
               >
                 <Text style={styles.botonPuntoTexto}>−</Text>
@@ -202,6 +214,7 @@ export default function SeleccionPersonajeScreen({ route, navigation }: Props) {
                 onPress={() => ajustarPunto(a, 1)}
                 style={[
                   styles.botonPunto,
+                  { backgroundColor: acento.acento },
                   (puntos[a] >= 5 || puntosUsados >= PUNTOS_TOTALES) && styles.botonPuntoDeshabilitado,
                 ]}
                 disabled={puntos[a] >= 5 || puntosUsados >= PUNTOS_TOTALES}
@@ -259,7 +272,6 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: color.bordeSutil,
   },
-  tabActivo: { backgroundColor: color.acentoSuave, borderColor: color.acentoFuerte },
   tabTexto: { color: color.textoSecundario, fontWeight: '600' },
   tabTextoActivo: { color: color.texto },
   tarjetaTitulo: { color: color.texto, fontWeight: '700', fontSize: 16 },

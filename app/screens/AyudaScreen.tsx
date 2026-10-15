@@ -2,12 +2,15 @@ import type { ReactNode } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { Tarjeta } from '../components';
+import { useAcento } from '../store/configStore';
 import { color, espacio, tipo } from '../theme';
 
 type Seccion = {
   icono: ReactNode;
   titulo: string;
-  acento: string;
+  /** undefined = usa el acento elegible en Opciones (la sección de
+   * Inventario); el resto tiene un color semántico fijo. */
+  acento?: string;
   parrafos: string[];
 };
 
@@ -51,7 +54,6 @@ const SECCIONES: Seccion[] = [
   {
     icono: <Ionicons name="bag-handle-outline" size={18} color={color.texto} />,
     titulo: 'Inventario',
-    acento: color.acento,
     parrafos: [
       'Hay objetos personales (solo tuyos, aunque puedes dárselos a otro jugador) y objetos del grupo: esos los puede usar cualquiera, sin tener que pedirlos primero.',
     ],
@@ -68,6 +70,7 @@ const SECCIONES: Seccion[] = [
 ];
 
 export default function AyudaScreen() {
+  const acento = useAcento();
   return (
     <ScrollView contentContainerStyle={styles.contenedor}>
       <Text style={styles.titulo}>Cómo se juega</Text>
@@ -77,7 +80,7 @@ export default function AyudaScreen() {
       </Text>
 
       {SECCIONES.map((s) => (
-        <Tarjeta key={s.titulo} acento={s.acento} style={styles.tarjeta}>
+        <Tarjeta key={s.titulo} acento={s.acento ?? acento.acento} style={styles.tarjeta}>
           <View style={styles.cabeceraSeccion}>
             {s.icono}
             <Text style={styles.tituloSeccion}>{s.titulo}</Text>

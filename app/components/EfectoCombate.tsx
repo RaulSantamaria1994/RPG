@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react';
 import { Animated, StyleSheet, Text } from 'react-native';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
+import { useAcento } from '../store/configStore';
 import { color, espacio, radio } from '../theme';
 import type { AccionCombateTipo } from '../types';
 
@@ -107,9 +108,13 @@ export default function EfectoCombate({ tipo, exito }: Props) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  const acento = useAcento();
   const cfg = CONFIG[tipo];
   const Icono = cfg.libreria === 'mc' ? MaterialCommunityIcons : Ionicons;
-  const colorBorde = exito === true ? color.exito : exito === false ? color.peligro : cfg.colorBase;
+  // 'objeto' es el único tipo cuyo color base es el acento elegible en
+  // Opciones (ver CONFIG más arriba); el resto son colores semánticos fijos.
+  const colorBase = tipo === 'objeto' ? acento.acento : cfg.colorBase;
+  const colorBorde = exito === true ? color.exito : exito === false ? color.peligro : colorBase;
 
   const escala = progreso.interpolate({ inputRange: [0, 1], outputRange: [0.4, 1] });
   const rotar =
@@ -126,7 +131,7 @@ export default function EfectoCombate({ tipo, exito }: Props) {
       <Animated.View
         style={{ transform: [{ rotate: rotar }, { translateX: tipo === 'enemigo_ataca' ? desplazar : 0 }] }}
       >
-        <Icono name={cfg.icono as never} size={20} color={cfg.colorBase} />
+        <Icono name={cfg.icono as never} size={20} color={colorBase} />
       </Animated.View>
       <Text style={[estilos.texto, { color: colorBorde }]}>{cfg.etiqueta(exito)}</Text>
     </Animated.View>

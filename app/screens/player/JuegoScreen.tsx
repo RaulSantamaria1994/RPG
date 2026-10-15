@@ -7,6 +7,7 @@ import { Boton, BarraRecurso, EfectoCombate, IconoEvento, IndicadorConexion, Ins
 import { useEscalaPresion } from '../../hooks/useEscalaPresion';
 import { api } from '../../services/api';
 import { useSalaStore } from '../../store/salaStore';
+import { useAcento } from '../../store/configStore';
 import type { Atributo, Hechizo } from '../../types';
 import { color, espacio, radio, tipo } from '../../theme';
 
@@ -65,6 +66,19 @@ export default function JuegoScreen({ navigation }: Props) {
   const desconectar = useSalaStore((s) => s.desconectar);
   const enviar = useSalaStore((s) => s.enviar);
   const reiniciar = useSalaStore((s) => s.reiniciar);
+  const acento = useAcento();
+  // Los estilos de arriba son estáticos (calculados una vez al cargar el
+  // módulo); los que dependen del acento elegible en Opciones se recalculan
+  // aquí en cada render y se mezclan en el JSX, para que el cambio de color
+  // se vea al instante sin tener que convertir toda la hoja de estilos.
+  const estilosAcento = {
+    insigniaContador: { backgroundColor: acento.acentoFuerte },
+    dadoFlotante: { borderColor: acento.acento },
+    finalBanner: { backgroundColor: acento.acentoSuave, borderColor: acento.acento },
+    botonHechizo: { borderColor: acento.acento },
+    turnoBannerActivo: { backgroundColor: acento.acentoSuave, borderColor: acento.acentoFuerte },
+    botonDestinatario: { borderColor: acento.acento },
+  };
 
   const [objetoParaDar, setObjetoParaDar] = useState<string | null>(null);
   const [palabraExpandida, setPalabraExpandida] = useState<string | null>(null);
@@ -181,7 +195,7 @@ export default function JuegoScreen({ navigation }: Props) {
           <TouchableOpacity onPress={() => navigation.navigate('Diario')} hitSlop={8} testID="boton-diario">
             <Ionicons name="bookmark-outline" size={22} color={color.textoSecundario} />
             {(estado?.diario?.length ?? 0) > 0 && (
-              <View style={styles.insigniaContador}>
+              <View style={[styles.insigniaContador, estilosAcento.insigniaContador]}>
                 <Text style={styles.insigniaContadorTexto}>{estado?.diario?.length}</Text>
               </View>
             )}
@@ -202,7 +216,10 @@ export default function JuegoScreen({ navigation }: Props) {
         <EfectoCombate key={ultimaAccionCombate.en} tipo={ultimaAccionCombate.tipo} exito={ultimaAccionCombate.exito} />
       )}
 
-      <Animated.View style={[styles.dadoFlotante, { opacity: opacidadDado }]} pointerEvents="none">
+      <Animated.View
+        style={[styles.dadoFlotante, estilosAcento.dadoFlotante, { opacity: opacidadDado }]}
+        pointerEvents="none"
+      >
         {lanzando ? (
           <View style={styles.filaDado}>
             <MaterialCommunityIcons name="dice-d20" size={26} color={color.texto} />
@@ -225,7 +242,7 @@ export default function JuegoScreen({ navigation }: Props) {
 
       <ScrollView contentContainerStyle={{ padding: espacio.lg, gap: espacio.md }}>
         {estado?.finalizada && (
-          <View style={styles.finalBanner}>
+          <View style={[styles.finalBanner, estilosAcento.finalBanner]}>
             <Text style={styles.finalBannerTexto}>Fin de la historia — final: {estado.tipo_final}</Text>
           </View>
         )}
@@ -420,7 +437,7 @@ export default function JuegoScreen({ navigation }: Props) {
                             return (
                               <TouchableOpacity
                                 key={h}
-                                style={styles.botonHechizo}
+                                style={[styles.botonHechizo, estilosAcento.botonHechizo]}
                                 onPress={() => tirar({ via: 'hechizo', hechizo_id: h })}
                               >
                                 <Text style={styles.botonHechizoTexto}>
@@ -455,7 +472,7 @@ export default function JuegoScreen({ navigation }: Props) {
               <MaterialCommunityIcons name="sword-cross" size={14} color={color.textoSecundario} />
               <Text style={styles.tituloSeccion}>COMBATE — RONDA {estado!.combate!.ronda}</Text>
             </View>
-            <View style={[styles.turnoBanner, esMiTurno && styles.turnoBannerActivo]}>
+            <View style={[styles.turnoBanner, esMiTurno && [styles.turnoBannerActivo, estilosAcento.turnoBannerActivo]]}>
               <Text style={styles.turnoBannerTexto}>
                 {esMiTurno && <Ionicons name="play" size={13} color={color.texto} />}
                 {esMiTurno ? ' Es tu turno' : `Esperando a ${personajeEnTurno?.nombre ?? 'otro jugador'}…`}
@@ -564,7 +581,7 @@ export default function JuegoScreen({ navigation }: Props) {
                           {objetosUsables.map((o, idx) => (
                             <TouchableOpacity
                               key={`${idx}-${o.objeto_id}`}
-                              style={styles.botonHechizo}
+                              style={[styles.botonHechizo, estilosAcento.botonHechizo]}
                               onPress={() => {
                                 if (o.efecto?.tipo === 'dano') {
                                   setObjetoAtaqueElegido(o.objeto_id);
@@ -596,7 +613,7 @@ export default function JuegoScreen({ navigation }: Props) {
                             .map((en) => (
                               <TouchableOpacity
                                 key={en.enemigo_id}
-                                style={styles.botonHechizo}
+                                style={[styles.botonHechizo, estilosAcento.botonHechizo]}
                                 onPress={() => {
                                   enviar('combate_accion', {
                                     accion: 'objeto',
@@ -624,7 +641,7 @@ export default function JuegoScreen({ navigation }: Props) {
                           {hechizosCombate.map((h) => (
                             <TouchableOpacity
                               key={h.hechizo_id}
-                              style={styles.botonHechizo}
+                              style={[styles.botonHechizo, estilosAcento.botonHechizo]}
                               onPress={() => setHechizoElegido(h.hechizo_id)}
                             >
                               <Text style={styles.botonHechizoTexto}>
@@ -649,7 +666,7 @@ export default function JuegoScreen({ navigation }: Props) {
                                 .map((destino) => (
                                   <TouchableOpacity
                                     key={destino.id}
-                                    style={styles.botonHechizo}
+                                    style={[styles.botonHechizo, estilosAcento.botonHechizo]}
                                     onPress={() => {
                                       lanzarDado('combate_accion', {
                                         accion: 'hechizo',
@@ -668,7 +685,7 @@ export default function JuegoScreen({ navigation }: Props) {
                                 .map((en) => (
                                   <TouchableOpacity
                                     key={en.enemigo_id}
-                                    style={styles.botonHechizo}
+                                    style={[styles.botonHechizo, estilosAcento.botonHechizo]}
                                     onPress={() => {
                                       lanzarDado('combate_accion', {
                                         accion: 'hechizo',
@@ -723,7 +740,7 @@ export default function JuegoScreen({ navigation }: Props) {
               Común para todos: cualquiera puede usar estos objetos, sin pedirlos.
             </Text>
             {estado!.inventario_grupo.map((o, idx) => (
-              <Tarjeta key={`${idx}-${o.objeto_id}`} acento={color.acento} style={{ paddingVertical: espacio.sm }}>
+              <Tarjeta key={`${idx}-${o.objeto_id}`} acento={acento.acento} style={{ paddingVertical: espacio.sm }}>
                 <Text style={styles.objetoNombre}>{o.nombre}</Text>
               </Tarjeta>
             ))}
@@ -747,7 +764,7 @@ export default function JuegoScreen({ navigation }: Props) {
                       .map((otro) => (
                         <TouchableOpacity
                           key={otro.id}
-                          style={styles.botonDestinatario}
+                          style={[styles.botonDestinatario, estilosAcento.botonDestinatario]}
                           onPress={() => {
                             enviar('intercambio_proponer', {
                               objeto_id: o.objeto_id,

@@ -3,6 +3,7 @@ export type RootStackParamList = {
   Ayuda: undefined;
   Diario: undefined;
   Equipo: undefined;
+  Opciones: undefined;
   MasterCrearSala: undefined;
   MasterSala: undefined;
   JugadorUnirseSala: undefined;

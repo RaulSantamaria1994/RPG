@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
 import { StyleSheet, View, type ViewStyle } from 'react-native';
+import { useAcento } from '../store/configStore';
 import { color, radio, espacio } from '../theme';
 
 type Props = {
@@ -15,12 +16,13 @@ type Props = {
  * color dado (p. ej. el color del tipo de nodo), útil para orientar al
  * jugador de un vistazo. */
 export default function Tarjeta({ children, acento, seleccionada, atenuada, style }: Props) {
+  const acentoElegido = useAcento();
   return (
     <View
       style={[
         estilos.base,
         acento ? { borderLeftWidth: 3, borderLeftColor: acento } : null,
-        seleccionada ? estilos.seleccionada : null,
+        seleccionada ? { borderColor: acentoElegido.acentoFuerte, backgroundColor: acentoElegido.acentoSuave } : null,
         atenuada ? estilos.atenuada : null,
         style,
       ]}
@@ -39,6 +41,5 @@ const estilos = StyleSheet.create({
     borderColor: color.borde,
     gap: espacio.xs,
   },
-  seleccionada: { borderColor: color.acentoFuerte, backgroundColor: color.acentoSuave },
   atenuada: { opacity: 0.55 },
 });

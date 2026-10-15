@@ -3,6 +3,7 @@ import { Ionicons } from '@expo/vector-icons';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../navigation/types';
 import { useSalaStore } from '../store/salaStore';
+import { useAcento } from '../store/configStore';
 import { color, espacio, radio, tipo } from '../theme';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Home'>;
@@ -10,12 +11,22 @@ type Props = NativeStackScreenProps<RootStackParamList, 'Home'>;
 export default function HomeScreen({ navigation }: Props) {
   const mensajeSesion = useSalaStore((s) => s.mensajeSesion);
   const limpiarMensajeSesion = useSalaStore((s) => s.limpiarMensajeSesion);
+  const acento = useAcento();
 
   return (
     <View style={styles.contenedor}>
+      <TouchableOpacity
+        style={styles.botonOpciones}
+        onPress={() => navigation.navigate('Opciones')}
+        hitSlop={8}
+        testID="boton-opciones"
+      >
+        <Ionicons name="settings-outline" size={22} color={color.textoSecundario} />
+      </TouchableOpacity>
+
       <View style={styles.encabezado}>
         <View style={styles.atmosfera}>
-          <View style={styles.resplandor} />
+          <View style={[styles.resplandor, { backgroundColor: acento.acentoSuave }]} />
           <Ionicons name="eye-outline" size={52} color={color.narrativo} style={{ opacity: 0.8 }} />
         </View>
         <Text style={styles.titulo}>RPG Narrativo</Text>
@@ -31,7 +42,7 @@ export default function HomeScreen({ navigation }: Props) {
 
       <View style={styles.opciones}>
         <TouchableOpacity
-          style={[styles.opcion, styles.opcionPrimaria]}
+          style={[styles.opcion, styles.opcionPrimaria, { backgroundColor: acento.acentoSuave, borderColor: acento.acento }]}
           onPress={() => navigation.navigate('MasterCrearSala')}
           activeOpacity={0.85}
         >
@@ -76,6 +87,7 @@ const styles = StyleSheet.create({
     padding: espacio.xl,
     gap: espacio.xl,
   },
+  botonOpciones: { position: 'absolute', top: espacio.xl, right: espacio.xl, zIndex: 1 },
   encabezado: { alignItems: 'center', gap: espacio.sm, maxWidth: 360 },
   atmosfera: {
     width: 96,

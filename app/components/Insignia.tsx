@@ -1,16 +1,16 @@
 import type { ComponentProps } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useAcento } from '../store/configStore';
 import { color, radio } from '../theme';
 
 type Tono = 'neutro' | 'aviso' | 'peligro' | 'exito' | 'acento';
 
-const TONOS: Record<Tono, { fondo: string; texto: string }> = {
+const TONOS_FIJOS: Record<Exclude<Tono, 'acento'>, { fondo: string; texto: string }> = {
   neutro: { fondo: color.superficieAlt, texto: color.textoSecundario },
   aviso: { fondo: color.avisoSuave, texto: color.aviso },
   peligro: { fondo: color.peligroSuave, texto: color.peligro },
   exito: { fondo: color.exitoSuave, texto: color.exito },
-  acento: { fondo: color.acentoSuave, texto: color.acentoFuerte },
 };
 
 type Props = {
@@ -25,7 +25,8 @@ type Props = {
  * confirmados"). Sustituye al texto de color suelto que antes llevaba
  * cada pantalla por su cuenta. */
 export default function Insignia({ texto, tono = 'neutro', icono }: Props) {
-  const t = TONOS[tono];
+  const acento = useAcento();
+  const t = tono === 'acento' ? { fondo: acento.acentoSuave, texto: acento.acentoFuerte } : TONOS_FIJOS[tono];
   return (
     <View style={[estilos.base, { backgroundColor: t.fondo }]}>
       {icono && <Ionicons name={icono} size={11} color={t.texto} />}

@@ -5,6 +5,7 @@ import type { RootStackParamList } from '../../navigation/types';
 import { Boton } from '../../components';
 import { api, ErrorApi } from '../../services/api';
 import { useSalaStore } from '../../store/salaStore';
+import { useAcento } from '../../store/configStore';
 import type { HistoriaResumen } from '../../types';
 import { color, espacio, radio, tipo } from '../../theme';
 
@@ -12,6 +13,7 @@ type Props = NativeStackScreenProps<RootStackParamList, 'MasterCrearSala'>;
 
 export default function CrearSalaScreen({ navigation }: Props) {
   const iniciarComoMaster = useSalaStore((s) => s.iniciarComoMaster);
+  const acento = useAcento();
 
   const [historias, setHistorias] = useState<HistoriaResumen[]>([]);
   const [historiaId, setHistoriaId] = useState<string | null>(null);
@@ -80,7 +82,10 @@ export default function CrearSalaScreen({ navigation }: Props) {
         historias.map((h) => (
           <TouchableOpacity
             key={h.historia_id}
-            style={[styles.opcionHistoria, historiaId === h.historia_id && styles.opcionHistoriaSeleccionada]}
+            style={[
+              styles.opcionHistoria,
+              historiaId === h.historia_id && { borderColor: acento.acentoFuerte, backgroundColor: acento.acentoSuave },
+            ]}
             onPress={() => setHistoriaId(h.historia_id)}
             activeOpacity={0.85}
           >
@@ -117,7 +122,7 @@ export default function CrearSalaScreen({ navigation }: Props) {
         <Switch
           value={muertePermanente}
           onValueChange={setMuertePermanente}
-          trackColor={{ true: color.acento, false: color.bordeSutil }}
+          trackColor={{ true: acento.acento, false: color.bordeSutil }}
           thumbColor="#fff"
         />
       </View>
@@ -153,7 +158,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
   },
-  opcionHistoriaSeleccionada: { borderColor: color.acentoFuerte, backgroundColor: color.acentoSuave },
   opcionHistoriaTexto: { color: color.texto, fontWeight: '600' },
   opcionHistoriaVersion: { color: color.textoTenue },
   filaSwitch: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: espacio.md, gap: espacio.md },

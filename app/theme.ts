@@ -6,6 +6,23 @@ import { Platform } from 'react-native';
  * tener que copiar valores hex de otra.
  */
 
+/** Paleta de acentos que se puede elegir en Opciones — el morado es el
+ * original de toda la vida. Cada entrada define las tres variantes que ya
+ * usaba `color.acento*` (sólido, fuerte para estados activos, suave para
+ * fondos tenues), elegidas para mantener el mismo nivel de contraste sobre
+ * el fondo oscuro de la app que tenía el morado original. */
+export const PALETA_ACENTOS = {
+  morado: { nombre: 'Morado', acento: '#8a5fd0', acentoFuerte: '#a97fe0', acentoSuave: '#3d2360' },
+  carmesi: { nombre: 'Carmesí', acento: '#c2555f', acentoFuerte: '#d97b83', acentoSuave: '#3a2228' },
+  esmeralda: { nombre: 'Esmeralda', acento: '#4fa876', acentoFuerte: '#6fc292', acentoSuave: '#1f3a2c' },
+  azul: { nombre: 'Azul noche', acento: '#4f7fc2', acentoFuerte: '#74a0e0', acentoSuave: '#1f2d4a' },
+  ambar: { nombre: 'Ámbar', acento: '#c2975f', acentoFuerte: '#e0b87f', acentoSuave: '#3a2c1a' },
+  grafito: { nombre: 'Grafito', acento: '#6f6a80', acentoFuerte: '#8f89a0', acentoSuave: '#2a2735' },
+} as const;
+
+export type AcentoId = keyof typeof PALETA_ACENTOS;
+export const ACENTO_POR_DEFECTO: AcentoId = 'morado';
+
 export const color = {
   // Capas de fondo, de más oscura a más clara.
   fondo: '#140f1e',
@@ -16,9 +33,13 @@ export const color = {
   bordeSutil: '#453a5c',
 
   // Acento principal (marca) y su variante fuerte para estados activos.
-  acento: '#8a5fd0',
-  acentoFuerte: '#a97fe0',
-  acentoSuave: '#3d2360',
+  // Valores iniciales = paleta por defecto; un componente que quiera
+  // reaccionar a un cambio de acento elegido en Opciones debe leerlo del
+  // hook `useAcento` (en store/configStore.ts) en vez de esta copia
+  // estática — estos tres solo sirven de valor de arranque/fallback.
+  acento: PALETA_ACENTOS[ACENTO_POR_DEFECTO].acento,
+  acentoFuerte: PALETA_ACENTOS[ACENTO_POR_DEFECTO].acentoFuerte,
+  acentoSuave: PALETA_ACENTOS[ACENTO_POR_DEFECTO].acentoSuave,
 
   // Texto.
   texto: '#f3e9ff',

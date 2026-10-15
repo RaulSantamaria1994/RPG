@@ -6,6 +6,7 @@ import type { RootStackParamList } from '../../navigation/types';
 import { Boton, BarraRecurso, EfectoCombate, IconoEvento, IndicadorConexion, Insignia, Tarjeta } from '../../components';
 import { api } from '../../services/api';
 import { useSalaStore } from '../../store/salaStore';
+import { useAcento } from '../../store/configStore';
 import type { NodoResumen } from '../../types';
 import { color, espacio, radio, tipo } from '../../theme';
 
@@ -39,6 +40,15 @@ export default function MasterSalaScreen({ navigation }: Props) {
   const desconectar = useSalaStore((s) => s.desconectar);
   const enviar = useSalaStore((s) => s.enviar);
   const reiniciar = useSalaStore((s) => s.reiniciar);
+  const acento = useAcento();
+  // Igual que en JuegoScreen: los estilos de abajo son estáticos, estos se
+  // recalculan en cada render para que el cambio de acento en Opciones se
+  // vea al instante.
+  const estilosAcento = {
+    insigniaContador: { backgroundColor: acento.acentoFuerte },
+    finalBanner: { backgroundColor: acento.acentoSuave, borderColor: acento.acento },
+    botonAusente: { borderColor: acento.acento },
+  };
 
   const [nodos, setNodos] = useState<NodoResumen[]>([]);
   const [selectorVisible, setSelectorVisible] = useState(false);
@@ -155,7 +165,7 @@ export default function MasterSalaScreen({ navigation }: Props) {
           <TouchableOpacity onPress={() => navigation.navigate('Diario')} hitSlop={8} testID="boton-diario-master">
             <Ionicons name="bookmark-outline" size={22} color={color.textoSecundario} />
             {(estado?.diario?.length ?? 0) > 0 && (
-              <View style={styles.insigniaContador}>
+              <View style={[styles.insigniaContador, estilosAcento.insigniaContador]}>
                 <Text style={styles.insigniaContadorTexto}>{estado?.diario?.length}</Text>
               </View>
             )}
@@ -171,13 +181,13 @@ export default function MasterSalaScreen({ navigation }: Props) {
 
       <ScrollView style={styles.panelPrincipal} contentContainerStyle={{ padding: espacio.lg, gap: espacio.md }}>
         {estado?.finalizada && (
-          <View style={styles.finalBanner}>
+          <View style={[styles.finalBanner, estilosAcento.finalBanner]}>
             <Text style={styles.finalBannerTexto}>Partida finalizada — final: {estado.tipo_final}</Text>
           </View>
         )}
 
         {faltanJugadores > 0 && (
-          <View style={styles.finalBanner}>
+          <View style={[styles.finalBanner, estilosAcento.finalBanner]}>
             <Text style={styles.finalBannerTexto}>
               Esperando a {faltanJugadores} jugador{faltanJugadores !== 1 ? 'es' : ''} más para
               empezar ({personajes.length}/{sala.min_jugadores}). Podéis seguir usando "Forzar salto
@@ -274,7 +284,7 @@ export default function MasterSalaScreen({ navigation }: Props) {
               <View style={styles.filaAccionesJugador}>
                 {p.estado !== 'muerto' && (
                   <TouchableOpacity
-                    style={styles.botonAusente}
+                    style={[styles.botonAusente, estilosAcento.botonAusente]}
                     onPress={() =>
                       enviar(p.estado === 'ausente' ? 'marcar_activo' : 'marcar_ausente', { personaje_id: p.id })
                     }
@@ -286,7 +296,7 @@ export default function MasterSalaScreen({ navigation }: Props) {
                 )}
                 {p.estado !== 'muerto' && (
                   <TouchableOpacity
-                    style={styles.botonAusente}
+                    style={[styles.botonAusente, estilosAcento.botonAusente]}
                     onPress={() => setAjusteAbierto(ajusteAbierto === p.id ? null : p.id)}
                   >
                     <Text style={styles.botonAusenteTexto}>

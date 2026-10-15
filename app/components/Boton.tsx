@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 import { ActivityIndicator, Animated, StyleSheet, Text, TouchableOpacity, View, type ViewStyle } from 'react-native';
 import { color, radio, espacio } from '../theme';
+import { useAcento } from '../store/configStore';
 import { useEscalaPresion } from '../hooks/useEscalaPresion';
 
 type Variante = 'primario' | 'secundario' | 'peligro' | 'fantasma';
@@ -33,6 +34,16 @@ export default function Boton({
   style,
 }: Props) {
   const estilos = ESTILOS_VARIANTE[variante];
+  const acento = useAcento();
+  // Solo primario y secundario usan el acento (relleno sólido el primero,
+  // borde el segundo) — los otros dos no lo tocan, así que no hace falta
+  // sobrescribir nada para ellos.
+  const contenedorAcento: ViewStyle | undefined =
+    variante === 'primario'
+      ? { backgroundColor: acento.acento, borderColor: acento.acento }
+      : variante === 'secundario'
+        ? { borderColor: acento.acento }
+        : undefined;
   const { escala, presionar, soltar } = useEscalaPresion();
   return (
     <Animated.View style={[flex && { flex: 1 }, { transform: [{ scale: escala }] }]}>
@@ -40,6 +51,7 @@ export default function Boton({
         style={[
           estiloBase.base,
           estilos.contenedor,
+          contenedorAcento,
           flex && { flex: 1 },
           (disabled || cargando) && estiloBase.deshabilitado,
           style,

@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react';
 import { Animated, StyleSheet, Text, View } from 'react-native';
+import { useAcento } from '../store/configStore';
 import { color, radio } from '../theme';
 
 type Props = {
@@ -16,9 +17,10 @@ type Props = {
  * el texto plano "PV 10/16" que había antes, y cambia de color si el
  * personaje está en apuros. */
 export default function BarraRecurso({ etiqueta, actual, maximo, sinAlerta }: Props) {
+  const acento = useAcento();
   const proporcion = maximo > 0 ? Math.max(0, Math.min(1, actual / maximo)) : 0;
   const colorBarra = sinAlerta
-    ? color.acento
+    ? acento.acento
     : proporcion <= 0.25
       ? color.peligro
       : proporcion <= 0.5
