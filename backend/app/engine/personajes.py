@@ -61,9 +61,9 @@ def construir_personalizado(
             f"Debes repartir exactamente {PUNTOS_PERSONALIZADO_TOTAL} puntos en total."
         )
 
-    habilidades_validas = {
-        h["id"] for h in historia_contenido.get("habilidades_pasivas_personalizado", [])
-    }
+    habilidades_validas = set()
+    for h in historia_contenido.get("habilidades_pasivas_personalizado", []):
+        habilidades_validas.add(h["id"])
     if habilidades_validas and habilidad_pasiva not in habilidades_validas:
         raise ErrorCreacionPersonaje("Esa habilidad pasiva no está disponible para esta historia.")
 

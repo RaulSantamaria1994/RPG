@@ -17,6 +17,42 @@ function formatearId(id: string): string {
   return id.replace(/_/g, ' ').replace(/^\w/, (c) => c.toUpperCase());
 }
 
+/** Texto de resumen de la tirada que pide una palabra clave, según cómo esté
+ * configurada (tirada enfrentada, con dificultad normal, votación sin tirada,
+ * o decisión directa sin tirada). */
+function resumenDeLaTirada(
+  p: { modo_interaccion?: string; atributo?: Atributo; dificultad?: number },
+  esVotacion: boolean
+): string {
+  const nombreAtributo = p.atributo ? ETIQUETA_ATRIBUTO[p.atributo] : '?';
+  if (p.modo_interaccion === 'opuesta') {
+    return `${nombreAtributo} contra un rival`;
+  }
+  if (p.dificultad) {
+    return `${nombreAtributo} · dificultad ${p.dificultad}`;
+  }
+  if (esVotacion) {
+    return 'Sin tirada — gana la opción más votada por el grupo';
+  }
+  return 'Sin tirada — se resuelve al confirmar';
+}
+
+/** Texto que acompaña al enunciado de una palabra clave cuando se vota en
+ * grupo, o cuando el grupo entero tiene que confirmarla para resolverse. */
+function sufijoModoGrupal(esVotacion: boolean, modoInteraccion?: string): string {
+  if (esVotacion) return ' (vota el grupo)';
+  if (modoInteraccion === 'grupal') return ' (confirma todo el grupo)';
+  return '';
+}
+
+/** Cuánto cura, o cuánto daña, un objeto usable en combate, en un texto
+ * listo para mostrar junto a su nombre. */
+function textoEfectoObjeto(tipo: string | undefined, cantidad: number): string {
+  if (tipo === 'curar_vida') return `+${cantidad} PV`;
+  if (tipo === 'curar_mana') return `+${cantidad} maná`;
+  return `${cantidad} de daño`;
+}
+
 const ETIQUETA_ATRIBUTO: Record<Atributo, string> = {
   fuerza: 'Fuerza',
   astucia: 'Astucia',
@@ -142,11 +178,33 @@ export default function JuegoScreen({ navigation }: Props) {
   const soyAusente = personaje.estado === 'ausente';
   const soyMuerto = personaje.estado === 'muerto';
 
+  const companeros: typeof personajes = [];
+  for (const p of personajes) {
+    if (p.id !== personaje.id) {
+      companeros.push(p);
+    }
+  }
+
+  const propuestasParaMi = [];
+  for (const p of propuestasIntercambio) {
+    if (p.destino_personaje_id === personaje.id) {
+      propuestasParaMi.push(p);
+    }
+  }
+
   const idEnTurno = enCombate
     ? estado!.combate!.orden_iniciativa[estado!.combate!.turno_index]?.split(':')[1]
     : null;
-  const personajeEnTurno =
-    idEnTurno === personaje.id ? personaje : personajes.find((p) => p.id === idEnTurno);
+  let personajeEnTurno: typeof personaje | undefined;
+  if (idEnTurno === personaje.id) {
+    personajeEnTurno = personaje;
+  } else {
+    for (const p of personajes) {
+      if (p.id === idEnTurno) {
+        personajeEnTurno = p;
+      }
+    }
+  }
 
   function lanzarDado(tipoAccion: string, datos: Record<string, unknown> = {}) {
     setLanzando(true);
@@ -277,24 +335,22 @@ export default function JuegoScreen({ navigation }: Props) {
           {nodo?.texto}
         </Text>
 
-        {personajes.filter((p) => p.id !== personaje.id).length > 0 && (
+        {companeros.length > 0 && (
           <Tarjeta style={{ gap: espacio.sm }}>
             <Text style={styles.tituloSeccion}>GRUPO</Text>
-            {personajes
-              .filter((p) => p.id !== personaje.id)
-              .map((p) => (
-                <View key={p.id} style={styles.companeroBloque}>
-                  <View style={styles.companeroCabecera}>
-                    <Text style={styles.companeroNombre} numberOfLines={1}>
-                      {p.nombre}
-                    </Text>
-                    {p.estado === 'ausente' && <Insignia texto="ausente" tono="aviso" />}
-                    {p.estado === 'muerto' && <Insignia texto="caído" tono="peligro" />}
-                  </View>
-                  <BarraRecurso etiqueta="PV" actual={p.vida_actual} maximo={p.vida_max} />
-                  <BarraRecurso etiqueta="Maná" actual={p.mana_actual} maximo={p.mana_max} sinAlerta />
+            {companeros.map((p) => (
+              <View key={p.id} style={styles.companeroBloque}>
+                <View style={styles.companeroCabecera}>
+                  <Text style={styles.companeroNombre} numberOfLines={1}>
+                    {p.nombre}
+                  </Text>
+                  {p.estado === 'ausente' && <Insignia texto="ausente" tono="aviso" />}
+                  {p.estado === 'muerto' && <Insignia texto="caído" tono="peligro" />}
                 </View>
-              ))}
+                <BarraRecurso etiqueta="PV" actual={p.vida_actual} maximo={p.vida_max} />
+                <BarraRecurso etiqueta="Maná" actual={p.mana_actual} maximo={p.mana_max} sinAlerta />
+              </View>
+            ))}
           </Tarjeta>
         )}
 
@@ -307,24 +363,62 @@ export default function JuegoScreen({ navigation }: Props) {
               const deshabilitada = usada || bloqueada;
               const expandida = palabraExpandida === clave;
 
-              const hechizosDisponibles = personaje.hechizos_conocidos.filter((h) => {
-                if (h === p.hechizo_id_alternativo) return true;
-                if (!p.categoria_hechizo_alternativa) return false;
-                return hechizos.find((x) => x.hechizo_id === h)?.categoria === p.categoria_hechizo_alternativa;
-              });
+              const hechizosDisponibles: string[] = [];
+              for (const h of personaje.hechizos_conocidos) {
+                let disponible = false;
+                if (h === p.hechizo_id_alternativo) {
+                  disponible = true;
+                } else if (p.categoria_hechizo_alternativa) {
+                  let categoriaDelHechizo: string | undefined;
+                  for (const x of hechizos) {
+                    if (x.hechizo_id === h) {
+                      categoriaDelHechizo = x.categoria;
+                    }
+                  }
+                  disponible = categoriaDelHechizo === p.categoria_hechizo_alternativa;
+                }
+                if (disponible) {
+                  hechizosDisponibles.push(h);
+                }
+              }
 
               const esVotacion = p.modo_interaccion === 'grupal' && !p.dificultad;
               const confirmacion = confirmacionesGrupales[clave];
 
               const requiereTirada = p.modo_interaccion === 'opuesta' || !!p.dificultad;
-              const resumenTirada =
-                p.modo_interaccion === 'opuesta'
-                  ? `${p.atributo ? ETIQUETA_ATRIBUTO[p.atributo] : '?'} contra un rival`
-                  : p.dificultad
-                    ? `${p.atributo ? ETIQUETA_ATRIBUTO[p.atributo] : '?'} · dificultad ${p.dificultad}`
-                    : esVotacion
-                      ? 'Sin tirada — gana la opción más votada por el grupo'
-                      : 'Sin tirada — se resuelve al confirmar';
+              const resumenTirada = resumenDeLaTirada(p, esVotacion);
+
+              let contenidoRequisito;
+              if (p.modo_interaccion === 'opuesta') {
+                contenidoRequisito = (
+                  <Text style={styles.requisitoTexto}>
+                    Tirada enfrentada: tu {p.atributo ? ETIQUETA_ATRIBUTO[p.atributo] : '?'} (
+                    {p.atributo ? personaje[p.atributo] : '?'}) contra un rival con modificador{' '}
+                    {p.npc_modificador ?? 0}.
+                  </Text>
+                );
+              } else if (p.dificultad) {
+                let coletilla = '.';
+                if (p.modo_interaccion === 'grupal') {
+                  coletilla = ' — cuenta la mejor tirada del grupo, según la regla.';
+                }
+                contenidoRequisito = (
+                  <Text style={styles.requisitoTexto}>
+                    Necesitas sacar {p.dificultad} o más tirando 1d20 +{' '}
+                    {p.atributo ? ETIQUETA_ATRIBUTO[p.atributo] : '?'} (tu{' '}
+                    {p.atributo ? ETIQUETA_ATRIBUTO[p.atributo] : '?'}:{' '}
+                    {p.atributo ? personaje[p.atributo] : '?'})
+                    {coletilla}
+                    {p.dano_fallo ? ` Si falla, ${p.dano_fallo.cantidad} de daño.` : ''}
+                  </Text>
+                );
+              } else {
+                contenidoRequisito = (
+                  <Text style={styles.requisitoTexto}>
+                    Esta acción no requiere tirada: se resuelve al confirmar.
+                  </Text>
+                );
+              }
 
               function tirar(datosExtra: Record<string, unknown> = {}) {
                 const conDado =
@@ -354,11 +448,7 @@ export default function JuegoScreen({ navigation }: Props) {
                         <View style={{ flex: 1 }}>
                           <Text style={styles.textoPalabra}>
                             {p.texto}
-                            {esVotacion
-                              ? ' (vota el grupo)'
-                              : p.modo_interaccion === 'grupal'
-                                ? ' (confirma todo el grupo)'
-                                : ''}
+                            {sufijoModoGrupal(esVotacion, p.modo_interaccion)}
                           </Text>
                           {!deshabilitada && (
                             <Text style={styles.subtextoPalabra}>
@@ -386,28 +476,7 @@ export default function JuegoScreen({ navigation }: Props) {
 
                       {expandida && !deshabilitada && (
                         <View style={styles.panelExpandido}>
-                          {p.modo_interaccion === 'opuesta' ? (
-                            <Text style={styles.requisitoTexto}>
-                              Tirada enfrentada: tu {p.atributo ? ETIQUETA_ATRIBUTO[p.atributo] : '?'} (
-                              {p.atributo ? personaje[p.atributo] : '?'}) contra un rival con modificador{' '}
-                              {p.npc_modificador ?? 0}.
-                            </Text>
-                          ) : p.dificultad ? (
-                            <Text style={styles.requisitoTexto}>
-                              Necesitas sacar {p.dificultad} o más tirando 1d20 +{' '}
-                              {p.atributo ? ETIQUETA_ATRIBUTO[p.atributo] : '?'} (tu{' '}
-                              {p.atributo ? ETIQUETA_ATRIBUTO[p.atributo] : '?'}:{' '}
-                              {p.atributo ? personaje[p.atributo] : '?'})
-                              {p.modo_interaccion === 'grupal'
-                                ? ' — cuenta la mejor tirada del grupo, según la regla.'
-                                : '.'}
-                              {p.dano_fallo ? ` Si falla, ${p.dano_fallo.cantidad} de daño.` : ''}
-                            </Text>
-                          ) : (
-                            <Text style={styles.requisitoTexto}>
-                              Esta acción no requiere tirada: se resuelve al confirmar.
-                            </Text>
-                          )}
+                          {contenidoRequisito}
 
                           <Boton
                             texto={requiereTirada ? 'Tirar dado' : 'Confirmar'}
@@ -433,7 +502,12 @@ export default function JuegoScreen({ navigation }: Props) {
                           )}
 
                           {hechizosDisponibles.map((h) => {
-                            const info = hechizos.find((x) => x.hechizo_id === h);
+                            let info;
+                            for (const x of hechizos) {
+                              if (x.hechizo_id === h) {
+                                info = x;
+                              }
+                            }
                             return (
                               <TouchableOpacity
                                 key={h}
@@ -535,18 +609,50 @@ export default function JuegoScreen({ navigation }: Props) {
                 </View>
 
                 {(() => {
-                  const objetosUsables = [
-                    ...personaje.inventario.map((o) => ({ ...o, deGrupo: false })),
-                    ...(estado?.inventario_grupo ?? []).map((o) => ({ ...o, deGrupo: true })),
-                  ].filter((o) => o.efecto?.tipo && EFECTOS_OBJETO_COMBATE.has(o.efecto.tipo));
-                  const hechizosCombate = hechizos.filter(
-                    (h) =>
-                      (personaje.hechizos_conocidos.includes(h.hechizo_id) ||
-                        personaje.hechizo_equipado?.hechizo_id === h.hechizo_id) &&
-                      h.efecto &&
-                      EFECTOS_HECHIZO_COMBATE.has(h.efecto)
-                  );
-                  const hechizo = hechizosCombate.find((h) => h.hechizo_id === hechizoElegido);
+                  const objetosUsables = [];
+                  for (const o of personaje.inventario) {
+                    if (o.efecto?.tipo && EFECTOS_OBJETO_COMBATE.has(o.efecto.tipo)) {
+                      objetosUsables.push({ ...o, deGrupo: false });
+                    }
+                  }
+                  for (const o of estado?.inventario_grupo ?? []) {
+                    if (o.efecto?.tipo && EFECTOS_OBJETO_COMBATE.has(o.efecto.tipo)) {
+                      objetosUsables.push({ ...o, deGrupo: true });
+                    }
+                  }
+
+                  const hechizosCombate = [];
+                  for (const h of hechizos) {
+                    const loConoce =
+                      personaje.hechizos_conocidos.includes(h.hechizo_id) ||
+                      personaje.hechizo_equipado?.hechizo_id === h.hechizo_id;
+                    if (loConoce && h.efecto && EFECTOS_HECHIZO_COMBATE.has(h.efecto)) {
+                      hechizosCombate.push(h);
+                    }
+                  }
+
+                  let hechizo;
+                  for (const h of hechizosCombate) {
+                    if (h.hechizo_id === hechizoElegido) {
+                      hechizo = h;
+                    }
+                  }
+
+                  const enemigosVivos = [];
+                  for (const en of estado!.combate!.enemigos) {
+                    if (!en.derrotado) {
+                      enemigosVivos.push(en);
+                    }
+                  }
+
+                  // Un personaje muerto de forma permanente no se puede
+                  // revivir con esto — ver el gasto de maná y el turno en nada.
+                  const destinatariosElegibles = [];
+                  for (const p of personajes) {
+                    if (p.estado !== 'ausente' && p.estado !== 'muerto') {
+                      destinatariosElegibles.push(p);
+                    }
+                  }
 
                   return (
                     <View style={{ gap: espacio.sm }}>
@@ -592,12 +698,7 @@ export default function JuegoScreen({ navigation }: Props) {
                               }}
                             >
                               <Text style={styles.botonHechizoTexto}>
-                                {o.nombre} —{' '}
-                                {o.efecto?.tipo === 'curar_vida'
-                                  ? `+${o.efecto?.cantidad ?? 0} PV`
-                                  : o.efecto?.tipo === 'curar_mana'
-                                    ? `+${o.efecto?.cantidad ?? 0} maná`
-                                    : `${o.efecto?.cantidad ?? 0} de daño`}
+                                {o.nombre} — {textoEfectoObjeto(o.efecto?.tipo, o.efecto?.cantidad ?? 0)}
                                 {o.deGrupo ? ' (del grupo)' : ''}
                               </Text>
                             </TouchableOpacity>
@@ -608,25 +709,23 @@ export default function JuegoScreen({ navigation }: Props) {
                       {seccionCombate === 'objeto' && objetoAtaqueElegido && (
                         <View style={styles.panelExpandido}>
                           <Text style={styles.requisitoTexto}>Elige a qué enemigo usarlo:</Text>
-                          {estado!.combate!.enemigos
-                            .filter((en) => !en.derrotado)
-                            .map((en) => (
-                              <TouchableOpacity
-                                key={en.enemigo_id}
-                                style={[styles.botonHechizo, estilosAcento.botonHechizo]}
-                                onPress={() => {
-                                  enviar('combate_accion', {
-                                    accion: 'objeto',
-                                    objeto_id: objetoAtaqueElegido,
-                                    enemigo_id: en.enemigo_id,
-                                  });
-                                  setObjetoAtaqueElegido(null);
-                                  setSeccionCombate(null);
-                                }}
-                              >
-                                <Text style={styles.botonHechizoTexto}>{en.nombre}</Text>
-                              </TouchableOpacity>
-                            ))}
+                          {enemigosVivos.map((en) => (
+                            <TouchableOpacity
+                              key={en.enemigo_id}
+                              style={[styles.botonHechizo, estilosAcento.botonHechizo]}
+                              onPress={() => {
+                                enviar('combate_accion', {
+                                  accion: 'objeto',
+                                  objeto_id: objetoAtaqueElegido,
+                                  enemigo_id: en.enemigo_id,
+                                });
+                                setObjetoAtaqueElegido(null);
+                                setSeccionCombate(null);
+                              }}
+                            >
+                              <Text style={styles.botonHechizoTexto}>{en.nombre}</Text>
+                            </TouchableOpacity>
+                          ))}
                           <TouchableOpacity onPress={() => setObjetoAtaqueElegido(null)}>
                             <Text style={styles.botonApoyoTexto}>‹ Elegir otro objeto</Text>
                           </TouchableOpacity>
@@ -658,47 +757,40 @@ export default function JuegoScreen({ navigation }: Props) {
                         <View style={styles.panelExpandido}>
                           <Text style={styles.requisitoTexto}>Elige el objetivo de {hechizo.nombre}:</Text>
                           {hechizo.efecto === 'restaura_vida_o_mana'
-                            ? personajes
-                                // Un personaje muerto de forma permanente no
-                                // se puede revivir con esto — ver el gasto de
-                                // maná y el turno en nada.
-                                .filter((p) => p.estado !== 'ausente' && p.estado !== 'muerto')
-                                .map((destino) => (
-                                  <TouchableOpacity
-                                    key={destino.id}
-                                    style={[styles.botonHechizo, estilosAcento.botonHechizo]}
-                                    onPress={() => {
-                                      lanzarDado('combate_accion', {
-                                        accion: 'hechizo',
-                                        hechizo_id: hechizo.hechizo_id,
-                                        objetivo_personaje_id: destino.id,
-                                      });
-                                      setHechizoElegido(null);
-                                      setSeccionCombate(null);
-                                    }}
-                                  >
-                                    <Text style={styles.botonHechizoTexto}>{destino.nombre}</Text>
-                                  </TouchableOpacity>
-                                ))
-                            : estado!.combate!.enemigos
-                                .filter((en) => !en.derrotado)
-                                .map((en) => (
-                                  <TouchableOpacity
-                                    key={en.enemigo_id}
-                                    style={[styles.botonHechizo, estilosAcento.botonHechizo]}
-                                    onPress={() => {
-                                      lanzarDado('combate_accion', {
-                                        accion: 'hechizo',
-                                        hechizo_id: hechizo.hechizo_id,
-                                        objetivo_enemigo_id: en.enemigo_id,
-                                      });
-                                      setHechizoElegido(null);
-                                      setSeccionCombate(null);
-                                    }}
-                                  >
-                                    <Text style={styles.botonHechizoTexto}>{en.nombre}</Text>
-                                  </TouchableOpacity>
-                                ))}
+                            ? destinatariosElegibles.map((destino) => (
+                                <TouchableOpacity
+                                  key={destino.id}
+                                  style={[styles.botonHechizo, estilosAcento.botonHechizo]}
+                                  onPress={() => {
+                                    lanzarDado('combate_accion', {
+                                      accion: 'hechizo',
+                                      hechizo_id: hechizo.hechizo_id,
+                                      objetivo_personaje_id: destino.id,
+                                    });
+                                    setHechizoElegido(null);
+                                    setSeccionCombate(null);
+                                  }}
+                                >
+                                  <Text style={styles.botonHechizoTexto}>{destino.nombre}</Text>
+                                </TouchableOpacity>
+                              ))
+                            : enemigosVivos.map((en) => (
+                                <TouchableOpacity
+                                  key={en.enemigo_id}
+                                  style={[styles.botonHechizo, estilosAcento.botonHechizo]}
+                                  onPress={() => {
+                                    lanzarDado('combate_accion', {
+                                      accion: 'hechizo',
+                                      hechizo_id: hechizo.hechizo_id,
+                                      objetivo_enemigo_id: en.enemigo_id,
+                                    });
+                                    setHechizoElegido(null);
+                                    setSeccionCombate(null);
+                                  }}
+                                >
+                                  <Text style={styles.botonHechizoTexto}>{en.nombre}</Text>
+                                </TouchableOpacity>
+                              ))}
                           <TouchableOpacity onPress={() => setHechizoElegido(null)}>
                             <Text style={styles.botonApoyoTexto}>‹ Elegir otro hechizo</Text>
                           </TouchableOpacity>
@@ -712,26 +804,24 @@ export default function JuegoScreen({ navigation }: Props) {
           </View>
         )}
 
-        {propuestasIntercambio
-          .filter((p) => p.destino_personaje_id === personaje.id)
-          .map((p) => (
-            <Tarjeta key={p.clave} acento={color.aviso} style={styles.tarjetaPropuesta}>
-              <Text style={styles.propuestaTexto}>
-                {p.origen_personaje_nombre} te ofrece "{p.objeto_nombre}"
-              </Text>
-              <TouchableOpacity
-                style={styles.botonAceptar}
-                onPress={() =>
-                  enviar('intercambio_confirmar', {
-                    origen_personaje_id: p.origen_personaje_id,
-                    objeto_id: p.objeto_id,
-                  })
-                }
-              >
-                <Text style={styles.botonAceptarTexto}>Aceptar</Text>
-              </TouchableOpacity>
-            </Tarjeta>
-          ))}
+        {propuestasParaMi.map((p) => (
+          <Tarjeta key={p.clave} acento={color.aviso} style={styles.tarjetaPropuesta}>
+            <Text style={styles.propuestaTexto}>
+              {p.origen_personaje_nombre} te ofrece "{p.objeto_nombre}"
+            </Text>
+            <TouchableOpacity
+              style={styles.botonAceptar}
+              onPress={() =>
+                enviar('intercambio_confirmar', {
+                  origen_personaje_id: p.origen_personaje_id,
+                  objeto_id: p.objeto_id,
+                })
+              }
+            >
+              <Text style={styles.botonAceptarTexto}>Aceptar</Text>
+            </TouchableOpacity>
+          </Tarjeta>
+        ))}
 
         {(estado?.inventario_grupo.length ?? 0) > 0 && (
           <View style={{ gap: espacio.sm }}>
@@ -759,8 +849,7 @@ export default function JuegoScreen({ navigation }: Props) {
                 </TouchableOpacity>
                 {objetoParaDar === o.objeto_id && (
                   <View style={styles.filaDestinatarios}>
-                    {personajes
-                      .filter((otro) => otro.id !== personaje.id)
+                    {companeros
                       .map((otro) => (
                         <TouchableOpacity
                           key={otro.id}

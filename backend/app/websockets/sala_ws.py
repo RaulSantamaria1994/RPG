@@ -51,7 +51,11 @@ def _personajes_no_master(db, sala_id) -> list[Personaje]:
 def _filtrar_confirmables(personajes: list[Personaje]) -> list[Personaje]:
     """Todos menos quienes el máster haya marcado como ausentes, o quienes ya
     hayan muerto de forma permanente — ver `_personajes_confirmables`."""
-    return [p for p in personajes if p.estado not in ("ausente", "muerto")]
+    confirmables = []
+    for p in personajes:
+        if p.estado not in ("ausente", "muerto"):
+            confirmables.append(p)
+    return confirmables
 
 
 def _personajes_confirmables(db, sala_id) -> list[Personaje]:
@@ -103,11 +107,15 @@ async def _procesar_posible_muerte(
     if personaje.estado != "muerto":
         return False
 
-    otros_vivos = any(
-        p.estado != "muerto"
-        for p in (personajes_sala if personajes_sala is not None else _personajes_no_master(db, sala.id))
-        if p.id != personaje.id
-    )
+    if personajes_sala is not None:
+        resto_del_equipo = personajes_sala
+    else:
+        resto_del_equipo = _personajes_no_master(db, sala.id)
+
+    otros_vivos = False
+    for p in resto_del_equipo:
+        if p.id != personaje.id and p.estado != "muerto":
+            otros_vivos = True
     if otros_vivos:
         await gestor.broadcast(
             str(sala.id),
@@ -136,13 +144,20 @@ def _diario_pistas(sala: Sala, flags: dict) -> list[dict]:
     legible para el grupo.
     """
     pistas = sala.historia.contenido.get("pistas") or {}
-    return [{"flag": k, "texto": pistas[k]} for k, v in flags.items() if v and k in pistas]
+    diario = []
+    for k, v in flags.items():
+        if v and k in pistas:
+            diario.append({"flag": k, "texto": pistas[k]})
+    return diario
 
 
 def _estado_publico(sala: Sala) -> dict:
     estado = sala.estado_sala
     nodo = sala.historia.contenido["nodos"][estado.nodo_actual_id]
-    flags = {k: v for k, v in (estado.flags or {}).items() if not k.startswith("__")}
+    flags = {}
+    for k, v in (estado.flags or {}).items():
+        if not k.startswith("__"):
+            flags[k] = v
     return {
         "nodo_actual_id": estado.nodo_actual_id,
         "nodo": nodo,
@@ -180,7 +195,10 @@ def _personaje_publico(p: Personaje) -> dict:
 
 
 async def _enviar_error(conexion: ConexionJugador, mensaje: str, **extra) -> None:
-    await gestor.enviar_a(conexion, {"tipo": "error", "datos": {"mensaje": mensaje, **extra}})
+    datos_error = {"mensaje": mensaje}
+    for clave, valor in extra.items():
+        datos_error[clave] = valor
+    await gestor.enviar_a(conexion, {"tipo": "error", "datos": datos_error})
 
 
 async def _broadcast_nodo(sala: Sala) -> None:
@@ -218,7 +236,11 @@ async def _avanzar_y_notificar(db, sala: Sala, nodo_id: str) -> None:
                 "datos": {"objetos": resumen["objetos_otorgados"], "destino": "grupo"},
             },
         )
-        if any(o.get("categoria") == "hechizo" for o in resumen["objetos_otorgados"]):
+        algun_objeto_es_hechizo = False
+        for o in resumen["objetos_otorgados"]:
+            if o.get("categoria") == "hechizo":
+                algun_objeto_es_hechizo = True
+        if algun_objeto_es_hechizo:
             for p in personajes_sala:
                 await gestor.broadcast(
                     str(sala.id), {"tipo": "personaje_actualizado", "datos": _personaje_publico(p)}
@@ -228,7 +250,10 @@ async def _avanzar_y_notificar(db, sala: Sala, nodo_id: str) -> None:
         dano_info = resumen["dano_al_llegar"]
         await gestor.broadcast(str(sala.id), {"tipo": "dano_al_llegar", "datos": dano_info})
         afectados_ids = set(dano_info["afectados"])
-        afectados = [p for p in personajes_sala if str(p.id) in afectados_ids]
+        afectados = []
+        for p in personajes_sala:
+            if str(p.id) in afectados_ids:
+                afectados.append(p)
         for p in afectados:
             await gestor.broadcast(
                 str(sala.id), {"tipo": "personaje_actualizado", "datos": _personaje_publico(p)}
@@ -255,7 +280,9 @@ async def _avanzar_turnos_invalidos(db, sala: Sala) -> None:
     if not combate or combate.get("terminado"):
         return
 
-    personajes = {str(p.id): p for p in _personajes_no_master(db, sala.id)}
+    personajes = {}
+    for p in _personajes_no_master(db, sala.id):
+        personajes[str(p.id)] = p
     total = len(combate["orden_iniciativa"])
 
     for _ in range(total):
@@ -328,9 +355,10 @@ async def _reaccion_enemigo(
     )
     flag_modified(estado, "combate")
     db.commit()
-    await gestor.broadcast(
-        str(sala.id), {"tipo": "combate_resultado", "datos": {"origen": "enemigo", **resultado}}
-    )
+    datos_resultado = {"origen": "enemigo"}
+    for clave, valor in resultado.items():
+        datos_resultado[clave] = valor
+    await gestor.broadcast(str(sala.id), {"tipo": "combate_resultado", "datos": datos_resultado})
     await gestor.broadcast(
         str(sala.id), {"tipo": "personaje_actualizado", "datos": _personaje_publico(personaje)}
     )
@@ -338,7 +366,10 @@ async def _reaccion_enemigo(
     if await _procesar_posible_muerte(db, sala, personaje):
         return True
 
-    activos = [p for p in _personajes_no_master(db, sala.id) if p.estado == "activo"]
+    activos = []
+    for p in _personajes_no_master(db, sala.id):
+        if p.estado == "activo":
+            activos.append(p)
     if not activos:
         combate["terminado"] = True
         combate["resultado"] = "derrota"
@@ -412,6 +443,11 @@ async def _resolver_individual(
         )
         db.commit()
 
+        cambios_para_mostrar = {}
+        for k, v in cambios.items():
+            if k != "nodo_destino":
+                cambios_para_mostrar[k] = v
+
         await gestor.broadcast(
             str(sala.id),
             {
@@ -422,7 +458,7 @@ async def _resolver_individual(
                     "palabra_clave": palabra["texto"],
                     "tirada": tirada_payload,
                     "exito": exito,
-                    "cambios": {k: v for k, v in cambios.items() if k != "nodo_destino"},
+                    "cambios": cambios_para_mostrar,
                 },
             },
         )
@@ -529,15 +565,24 @@ async def _resolver_grupal_tirada(
     estado = sala.estado_sala
 
     regla = palabra.get("regla_grupal", "mejor_resultado")
-    resultados = [
-        {"personaje": p.nombre, **resolver_tirada(getattr(p, palabra["atributo"]), palabra["dificultad"]).to_dict()}
-        for p in participantes
-    ]
-    exito = (
-        all(r["exito"] for r in resultados)
-        if regla == "todos_aciertan"
-        else any(r["exito"] for r in resultados)
-    )
+    resultados = []
+    for p in participantes:
+        tirada_de_p = resolver_tirada(getattr(p, palabra["atributo"]), palabra["dificultad"]).to_dict()
+        fila_resultado = {"personaje": p.nombre}
+        for clave, valor in tirada_de_p.items():
+            fila_resultado[clave] = valor
+        resultados.append(fila_resultado)
+
+    if regla == "todos_aciertan":
+        exito = True
+        for r in resultados:
+            if not r["exito"]:
+                exito = False
+    else:
+        exito = False
+        for r in resultados:
+            if r["exito"]:
+                exito = True
     tirada_payload = {"resultados": resultados, "regla": regla, "exito": exito}
 
     cambios = aplicar_resultado(
@@ -582,11 +627,11 @@ async def _resolver_grupal_tirada(
 def _opciones_grupales_sin_dificultad(nodo: dict) -> list[dict]:
     """Las palabras clave en modo grupal sin dificultad de un mismo nodo
     forman, juntas, una única decisión por votación."""
-    return [
-        p
-        for p in nodo.get("palabras_clave", []) or []
-        if p.get("modo_interaccion") == "grupal" and not p.get("dificultad")
-    ]
+    opciones = []
+    for p in nodo.get("palabras_clave", []) or []:
+        if p.get("modo_interaccion") == "grupal" and not p.get("dificultad"):
+            opciones.append(p)
+    return opciones
 
 
 async def _resolver_grupal_voto(
@@ -622,10 +667,21 @@ async def _resolver_grupal_voto(
     for texto_elegido in votos.values():
         recuento[texto_elegido] = recuento.get(texto_elegido, 0) + 1
     maximo = max(recuento.values())
-    ganadoras = sorted(texto for texto, n in recuento.items() if n == maximo)
+    ganadoras = []
+    for texto, n in recuento.items():
+        if n == maximo:
+            ganadoras.append(texto)
+    ganadoras.sort()
     empate = len(ganadoras) > 1
-    texto_ganador = ganadoras[secrets.randbelow(len(ganadoras))] if empate else ganadoras[0]
-    palabra_ganadora = next((p for p in opciones if p["texto"] == texto_ganador), palabra)
+    if empate:
+        texto_ganador = ganadoras[secrets.randbelow(len(ganadoras))]
+    else:
+        texto_ganador = ganadoras[0]
+
+    palabra_ganadora = palabra
+    for p in opciones:
+        if p["texto"] == texto_ganador:
+            palabra_ganadora = p
 
     estado = sala.estado_sala
     cambios = aplicar_resultado(
@@ -669,10 +725,14 @@ async def _manejar_interactuar(db, sala: Sala, conexion: ConexionJugador, datos:
 
     faltan = _faltan_jugadores_para_empezar(db, sala)
     if faltan > 0:
+        if faltan == 1:
+            terminacion_falta = ""
+        else:
+            terminacion_falta = "n"
         await _enviar_error(
             conexion,
             f"Hacen falta al menos {sala.min_jugadores} jugadores para empezar a jugar "
-            f"(falta{'n' if faltan != 1 else ''} {faltan}).",
+            f"(falta{terminacion_falta} {faltan}).",
         )
         return
 
@@ -709,10 +769,14 @@ async def _manejar_interactuar(db, sala: Sala, conexion: ConexionJugador, datos:
 async def _manejar_continuar(db, sala: Sala, conexion: ConexionJugador, datos: dict) -> None:
     faltan = _faltan_jugadores_para_empezar(db, sala)
     if faltan > 0:
+        if faltan == 1:
+            terminacion_falta = ""
+        else:
+            terminacion_falta = "n"
         await _enviar_error(
             conexion,
             f"Hacen falta al menos {sala.min_jugadores} jugadores para empezar a jugar "
-            f"(falta{'n' if faltan != 1 else ''} {faltan}).",
+            f"(falta{terminacion_falta} {faltan}).",
         )
         return
 
@@ -954,18 +1018,14 @@ async def _manejar_combate_accion(db, sala: Sala, conexion: ConexionJugador, dat
         )
         flag_modified(estado, "combate")
         db.commit()
-        await gestor.broadcast(
-            str(sala.id),
-            {
-                "tipo": "combate_resultado",
-                "datos": {
-                    "origen": "jugador",
-                    "personaje_id": str(personaje.id),
-                    "personaje_nombre": personaje.nombre,
-                    **resultado,
-                },
-            },
-        )
+        datos_resultado = {
+            "origen": "jugador",
+            "personaje_id": str(personaje.id),
+            "personaje_nombre": personaje.nombre,
+        }
+        for clave, valor in resultado.items():
+            datos_resultado[clave] = valor
+        await gestor.broadcast(str(sala.id), {"tipo": "combate_resultado", "datos": datos_resultado})
         if combate_engine.evaluar_fin_combate(combate) == "victoria":
             flag_modified(estado, "combate")
             db.commit()
@@ -1033,10 +1093,17 @@ async def _manejar_combate_accion(db, sala: Sala, conexion: ConexionJugador, dat
         # en el inventario personal de quien lo usa.
         inventario_grupo = list(estado.inventario_grupo or [])
         inventario_personal = list(personaje.inventario or [])
-        objeto = next((o for o in inventario_grupo if o.get("objeto_id") == objeto_id), None)
-        origen = "grupo" if objeto is not None else None
-        if objeto is None:
-            objeto = next((o for o in inventario_personal if o.get("objeto_id") == objeto_id), None)
+
+        objeto = None
+        for o in inventario_grupo:
+            if o.get("objeto_id") == objeto_id:
+                objeto = o
+        if objeto is not None:
+            origen = "grupo"
+        else:
+            for o in inventario_personal:
+                if o.get("objeto_id") == objeto_id:
+                    objeto = o
             origen = "personal" if objeto is not None else None
 
         efecto = (objeto or {}).get("efecto") or {}
@@ -1073,6 +1140,13 @@ async def _manejar_combate_accion(db, sala: Sala, conexion: ConexionJugador, dat
                 flag_modified(personaje, "inventario")
 
         db.commit()
+        if tipo_efecto == "dano":
+            efecto_para_mostrar = {}
+            for clave, valor in efecto.items():
+                efecto_para_mostrar[clave] = valor
+            efecto_para_mostrar["enemigo_id"] = enemigo_objetivo_id
+        else:
+            efecto_para_mostrar = efecto
         await gestor.broadcast(
             str(sala.id),
             {
@@ -1083,7 +1157,7 @@ async def _manejar_combate_accion(db, sala: Sala, conexion: ConexionJugador, dat
                     "personaje_id": str(personaje.id),
                     "personaje_nombre": personaje.nombre,
                     "objeto": objeto,
-                    "efecto": {**efecto, "enemigo_id": enemigo_objetivo_id} if tipo_efecto == "dano" else efecto,
+                    "efecto": efecto_para_mostrar,
                 },
             },
         )
@@ -1215,7 +1289,10 @@ async def _manejar_intercambio_proponer(db, sala: Sala, conexion: ConexionJugado
         await _enviar_error(conexion, "Datos incompletos.")
         return
 
-    objeto = next((o for o in (origen.inventario or []) if o.get("objeto_id") == objeto_id), None)
+    objeto = None
+    for o in origen.inventario or []:
+        if o.get("objeto_id") == objeto_id:
+            objeto = o
     if objeto is None:
         await _enviar_error(conexion, "No tienes ese objeto en tu inventario.")
         return
@@ -1260,7 +1337,10 @@ async def _manejar_intercambio_confirmar(db, sala: Sala, conexion: ConexionJugad
         return
 
     inventario_origen = list(origen.inventario or [])
-    objeto = next((o for o in inventario_origen if o.get("objeto_id") == objeto_id), None)
+    objeto = None
+    for o in inventario_origen:
+        if o.get("objeto_id") == objeto_id:
+            objeto = o
     if objeto is None:
         # El cliente que propuso ya no tiene el objeto (lo usó, lo dio a
         # otro...): además del error, hay que decirle al destinatario cuál
@@ -1319,7 +1399,10 @@ async def _manejar_equipar_objeto(db, sala: Sala, conexion: ConexionJugador, dat
     personaje = db.get(Personaje, uuid.UUID(conexion.personaje_id))
     estado = sala.estado_sala
     inventario_grupo = list(estado.inventario_grupo or [])
-    objeto = next((o for o in inventario_grupo if o.get("objeto_id") == objeto_id), None)
+    objeto = None
+    for o in inventario_grupo:
+        if o.get("objeto_id") == objeto_id:
+            objeto = o
     if objeto is None:
         await _enviar_error(conexion, "Ese objeto no está en el inventario común.")
         return
@@ -1451,17 +1534,18 @@ async def sala_websocket(websocket: WebSocket, codigo: str, token: str = Query(.
         gestor.conectar(str(sala.id), conexion)
         sala.ultima_actividad_en = datetime.now(timezone.utc)
         db.commit()
-        await gestor.enviar_a(
-            conexion,
-            {
-                "tipo": "estado_inicial",
-                "datos": {
-                    "sala": {"codigo": sala.codigo, "nombre": sala.nombre, "titulo_historia": sala.historia.titulo},
-                    **_estado_publico(sala),
-                    "personajes": [_personaje_publico(p) for p in _personajes_no_master(db, sala.id)],
-                },
-            },
-        )
+        personajes_publicos = []
+        for p in _personajes_no_master(db, sala.id):
+            personajes_publicos.append(_personaje_publico(p))
+
+        datos_estado_inicial = {
+            "sala": {"codigo": sala.codigo, "nombre": sala.nombre, "titulo_historia": sala.historia.titulo},
+        }
+        for clave, valor in _estado_publico(sala).items():
+            datos_estado_inicial[clave] = valor
+        datos_estado_inicial["personajes"] = personajes_publicos
+
+        await gestor.enviar_a(conexion, {"tipo": "estado_inicial", "datos": datos_estado_inicial})
         personaje_conectado = (
             db.get(Personaje, uuid.UUID(conexion.personaje_id)) if conexion.personaje_id else None
         )

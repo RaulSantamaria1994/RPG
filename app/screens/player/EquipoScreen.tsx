@@ -8,7 +8,12 @@ import type { Hechizo, ObjetoInventario } from '../../types';
 import { color, espacio, tipo } from '../../theme';
 
 function nombreGrimorio(objeto: ObjetoInventario, hechizos: Hechizo[]): string {
-  const hechizo = hechizos.find((h) => h.hechizo_id === objeto.hechizo_id);
+  let hechizo;
+  for (const h of hechizos) {
+    if (h.hechizo_id === objeto.hechizo_id) {
+      hechizo = h;
+    }
+  }
   return hechizo ? `${objeto.nombre} — permite lanzar "${hechizo.nombre}"` : objeto.nombre;
 }
 
@@ -32,8 +37,15 @@ export default function EquipoScreen() {
 
   if (!personaje) return null;
 
-  const armas = inventarioGrupo.filter((o) => o.categoria === 'arma');
-  const grimorios = inventarioGrupo.filter((o) => o.categoria === 'grimorio');
+  const armas = [];
+  const grimorios = [];
+  for (const o of inventarioGrupo) {
+    if (o.categoria === 'arma') {
+      armas.push(o);
+    } else if (o.categoria === 'grimorio') {
+      grimorios.push(o);
+    }
+  }
 
   return (
     <ScrollView contentContainerStyle={styles.contenedor}>

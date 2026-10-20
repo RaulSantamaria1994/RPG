@@ -28,15 +28,13 @@ from app.models.personaje import Personaje
 
 
 def iniciar_combate(nodo: dict, personajes: list[Personaje]) -> dict:
-    enemigos = [
-        {
-            **enemigo,
-            "vida": enemigo.get("vida"),
-            "vida_max": enemigo.get("vida"),
-            "derrotado": False,
-        }
-        for enemigo in nodo.get("enemigos", [])
-    ]
+    enemigos = []
+    for enemigo in nodo.get("enemigos", []):
+        copia_enemigo = dict(enemigo)
+        copia_enemigo["vida"] = enemigo.get("vida")
+        copia_enemigo["vida_max"] = enemigo.get("vida")
+        copia_enemigo["derrotado"] = False
+        enemigos.append(copia_enemigo)
 
     participantes: list[tuple[str, int]] = []
     for personaje in personajes:
@@ -45,10 +43,16 @@ def iniciar_combate(nodo: dict, personajes: list[Personaje]) -> dict:
 
     participantes.sort(key=lambda p: p[1], reverse=True)
 
+    orden_iniciativa = []
+    iniciativa_valores = {}
+    for id_participante, iniciativa in participantes:
+        orden_iniciativa.append(id_participante)
+        iniciativa_valores[id_participante] = iniciativa
+
     return {
         "enemigos": enemigos,
-        "orden_iniciativa": [p[0] for p in participantes],
-        "iniciativa_valores": {p[0]: p[1] for p in participantes},
+        "orden_iniciativa": orden_iniciativa,
+        "iniciativa_valores": iniciativa_valores,
         "turno_index": 0,
         "ronda": 1,
         "terminado": False,
@@ -59,14 +63,20 @@ def iniciar_combate(nodo: dict, personajes: list[Personaje]) -> dict:
 
 
 def enemigo_en_combate(combate: dict, enemigo_id: str) -> dict | None:
-    return next((e for e in combate["enemigos"] if e["enemigo_id"] == enemigo_id), None)
+    for e in combate["enemigos"]:
+        if e["enemigo_id"] == enemigo_id:
+            return e
+    return None
 
 
 def elegir_enemigo_reactivo(combate: dict) -> dict | None:
     """Enemigo que responde cuando la acción del jugador no apuntaba a
     ninguno en concreto (huir, negociar, usar un objeto, curarse): uno al
     azar de entre los que siguen en pie, o None si ya no queda ninguno."""
-    vivos = [e for e in combate["enemigos"] if not e["derrotado"]]
+    vivos = []
+    for e in combate["enemigos"]:
+        if not e["derrotado"]:
+            vivos.append(e)
     if not vivos:
         return None
     return vivos[secrets.randbelow(len(vivos))]
@@ -145,7 +155,13 @@ def avanzar_turno(combate: dict) -> None:
 
 def evaluar_fin_combate(combate: dict) -> str | None:
     """Devuelve 'victoria' si todos los enemigos están derrotados, o None."""
-    if combate["enemigos"] and all(e["derrotado"] for e in combate["enemigos"]):
+    if not combate["enemigos"]:
+        return None
+    todos_derrotados = True
+    for e in combate["enemigos"]:
+        if not e["derrotado"]:
+            todos_derrotados = False
+    if todos_derrotados:
         combate["terminado"] = True
         combate["resultado"] = "victoria"
         return "victoria"

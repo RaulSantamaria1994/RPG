@@ -38,12 +38,12 @@ export default function Boton({
   // Solo primario y secundario usan el acento (relleno sólido el primero,
   // borde el segundo) — los otros dos no lo tocan, así que no hace falta
   // sobrescribir nada para ellos.
-  const contenedorAcento: ViewStyle | undefined =
-    variante === 'primario'
-      ? { backgroundColor: acento.acento, borderColor: acento.acento }
-      : variante === 'secundario'
-        ? { borderColor: acento.acento }
-        : undefined;
+  let contenedorAcento: ViewStyle | undefined;
+  if (variante === 'primario') {
+    contenedorAcento = { backgroundColor: acento.acento, borderColor: acento.acento };
+  } else if (variante === 'secundario') {
+    contenedorAcento = { borderColor: acento.acento };
+  }
   const { escala, presionar, soltar } = useEscalaPresion();
   return (
     <Animated.View style={[flex && { flex: 1 }, { transform: [{ scale: escala }] }]}>

@@ -53,9 +53,10 @@ class GestorConexiones:
         """La conexión activa de ese personaje en la sala, si sigue
         conectado — usada para expulsarlo en el momento (cerrar su socket)
         en vez de esperar a que se desconecte por su cuenta."""
-        return next(
-            (c for c in self._sala(sala_id).conexiones if c.personaje_id == personaje_id), None
-        )
+        for c in self._sala(sala_id).conexiones:
+            if c.personaje_id == personaje_id:
+                return c
+        return None
 
     async def broadcast(self, sala_id: str, mensaje: dict) -> None:
         for conexion in list(self._sala(sala_id).conexiones):

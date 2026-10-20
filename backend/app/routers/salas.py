@@ -106,11 +106,14 @@ def obtener_estado_sala(
 
     nodo_actual = sala.historia.contenido["nodos"][sala.estado_sala.nodo_actual_id]
     personajes = db.query(Personaje).filter(Personaje.sala_id == sala.id).all()
+    personajes_salida = []
+    for p in personajes:
+        personajes_salida.append(PersonajeOut.model_validate(p))
     return SalaCompletaOut(
         sala=sala,
         estado=sala.estado_sala,
         nodo_actual=nodo_actual,
-        personajes=[PersonajeOut.model_validate(p) for p in personajes],
+        personajes=personajes_salida,
     )
 
 
@@ -118,12 +121,18 @@ def obtener_estado_sala(
 def listar_pregenerados_disponibles(codigo: str, db: Session = Depends(get_db)):
     sala = _obtener_sala_por_codigo(codigo, db)
     todos = sala.historia.contenido.get("personajes_pregenerados", [])
-    tomados = {
-        p.personaje_pregenerado_id
-        for p in db.query(Personaje).filter(Personaje.sala_id == sala.id).all()
-        if p.personaje_pregenerado_id
-    }
-    return [p for p in todos if p["id"] not in tomados]
+
+    tomados = set()
+    personajes_de_la_sala = db.query(Personaje).filter(Personaje.sala_id == sala.id).all()
+    for p in personajes_de_la_sala:
+        if p.personaje_pregenerado_id:
+            tomados.add(p.personaje_pregenerado_id)
+
+    disponibles = []
+    for p in todos:
+        if p["id"] not in tomados:
+            disponibles.append(p)
+    return disponibles
 
 
 @router.get("/{codigo}/habilidades-personalizado")
@@ -149,16 +158,18 @@ def listar_nodos_historia(
     sala = _obtener_sala_por_codigo(codigo, db)
     _requerir_master_de_sala(sala, payload)
 
-    return [
-        {
-            "id": nodo_id,
-            "tipo": nodo.get("tipo"),
-            "texto": nodo.get("texto", ""),
-            "es_final": nodo.get("es_final", False),
-            "tipo_final": nodo.get("tipo_final"),
-        }
-        for nodo_id, nodo in sala.historia.contenido.get("nodos", {}).items()
-    ]
+    nodos_resumidos = []
+    for nodo_id, nodo in sala.historia.contenido.get("nodos", {}).items():
+        nodos_resumidos.append(
+            {
+                "id": nodo_id,
+                "tipo": nodo.get("tipo"),
+                "texto": nodo.get("texto", ""),
+                "es_final": nodo.get("es_final", False),
+                "tipo_final": nodo.get("tipo_final"),
+            }
+        )
+    return nodos_resumidos
 
 
 @router.delete("/{codigo}", status_code=status.HTTP_204_NO_CONTENT)

@@ -28,7 +28,12 @@ export default function CrearSalaScreen({ navigation }: Props) {
     api
       .listarHistorias()
       .then((lista) => {
-        const validas = lista.filter((h) => h.validada);
+        const validas = [];
+        for (const h of lista) {
+          if (h.validada) {
+            validas.push(h);
+          }
+        }
         setHistorias(validas);
         if (validas.length > 0) setHistoriaId(validas[0].historia_id);
       })

@@ -171,9 +171,15 @@ function actualizarInventario(
   personajeId: string,
   actualizar: (inventario: Personaje['inventario']) => Personaje['inventario']
 ): Personaje[] {
-  return personajes.map((p) =>
-    p.id === personajeId ? { ...p, inventario: actualizar(p.inventario) } : p
-  );
+  const resultado: Personaje[] = [];
+  for (const p of personajes) {
+    if (p.id === personajeId) {
+      resultado.push({ ...p, inventario: actualizar(p.inventario) });
+    } else {
+      resultado.push(p);
+    }
+  }
+  return resultado;
 }
 
 function procesarMensaje(
@@ -209,7 +215,12 @@ function procesarMensaje(
       const { personajes, sala: _s, ...estado } = datos as any;
       const listaPersonajes: Personaje[] = personajes ?? [];
       set((s) => {
-        const propio = listaPersonajes.find((p) => p.id === s.personaje?.id);
+        let propio: Personaje | undefined;
+        for (const p of listaPersonajes) {
+          if (p.id === s.personaje?.id) {
+            propio = p;
+          }
+        }
         // Si ya había registro de actividad (restaurado del dispositivo tras
         // recargar, o de antes de que la conexión se cayera y reintentara
         // sola) marcamos dónde retoma la sesión, para no confundir "lo que
@@ -227,9 +238,21 @@ function procesarMensaje(
     case 'nodo_actualizado': {
       const nuevoEstado = datos as unknown as EstadoPublico;
       set((s) => {
-        const flagsAnteriores = new Set((s.estado?.diario ?? []).map((e) => e.flag));
-        const pistasNuevas = (nuevoEstado.diario ?? []).filter((e) => !flagsAnteriores.has(e.flag));
-        const eventosPistas = pistasNuevas.map((p) => nuevoEvento(`Nueva pista: ${p.texto}`, 'pista')).reverse();
+        const flagsAnteriores = new Set<string>();
+        for (const e of s.estado?.diario ?? []) {
+          flagsAnteriores.add(e.flag);
+        }
+        const pistasNuevas = [];
+        for (const e of nuevoEstado.diario ?? []) {
+          if (!flagsAnteriores.has(e.flag)) {
+            pistasNuevas.push(e);
+          }
+        }
+        const eventosPistas = [];
+        for (const p of pistasNuevas) {
+          eventosPistas.push(nuevoEvento(`Nueva pista: ${p.texto}`, 'pista'));
+        }
+        eventosPistas.reverse();
         return {
           estado: nuevoEstado,
           confirmacionesGrupales: {},
@@ -267,11 +290,14 @@ function procesarMensaje(
       const quien = d.personaje_nombre ?? 'El grupo';
       const resultado = d.exito ? 'ÉXITO' : 'FALLO';
       const dano = d.cambios?.dano_aplicado ? ` (-${d.cambios.dano_aplicado} PV)` : '';
-      const objeto = d.cambios?.objeto_otorgado
-        ? d.cambios.objeto_otorgado.categoria === 'hechizo'
-          ? ` — el grupo aprende el hechizo "${d.cambios.objeto_otorgado.nombre}"`
-          : ` — obtenéis "${d.cambios.objeto_otorgado.nombre}"`
-        : '';
+      let objeto = '';
+      if (d.cambios?.objeto_otorgado) {
+        if (d.cambios.objeto_otorgado.categoria === 'hechizo') {
+          objeto = ` — el grupo aprende el hechizo "${d.cambios.objeto_otorgado.nombre}"`;
+        } else {
+          objeto = ` — obtenéis "${d.cambios.objeto_otorgado.nombre}"`;
+        }
+      }
       set((s) => ({
         log: [nuevoEvento(`${quien} intenta "${d.palabra_clave}" → ${resultado}${dano}${objeto}`), ...s.log],
         ultimaTirada: {
@@ -302,8 +328,13 @@ function procesarMensaje(
         // a todo el mundo por igual, así que el nombre viene siempre del
         // propio mensaje (con el personaje local como respaldo si el
         // mensaje no lo trae), nunca de "mi" personaje.
-        const quien =
-          d.personaje_nombre ?? s.personajes.find((p) => p.id === d.personaje_id)?.nombre ?? 'Un jugador';
+        let personajeEmisor: Personaje | undefined;
+        for (const p of s.personajes) {
+          if (p.id === d.personaje_id) {
+            personajeEmisor = p;
+          }
+        }
+        const quien = d.personaje_nombre ?? personajeEmisor?.nombre ?? 'Un jugador';
         let texto: string;
         let tipoAnim: AccionCombateTipo;
         let exitoAnim: boolean | undefined;
@@ -319,9 +350,21 @@ function procesarMensaje(
           tipoAnim = 'objeto';
         } else if (d.accion === 'hechizo') {
           const exito = d.tirada?.exito;
-          texto = exito
-            ? `${quien} lanza ${d.hechizo}: ${d.efecto?.tipo === 'dano' ? `${d.efecto.dano} de daño` : d.efecto?.tipo === 'aturdido' ? 'enemigo aturdido' : d.efecto?.tipo === 'curacion' ? `${d.efecto.cantidad} de curación` : 'efecto aplicado'}`
-            : `${quien} falla al lanzar ${d.hechizo}`;
+          if (exito) {
+            let descripcionEfecto: string;
+            if (d.efecto?.tipo === 'dano') {
+              descripcionEfecto = `${d.efecto.dano} de daño`;
+            } else if (d.efecto?.tipo === 'aturdido') {
+              descripcionEfecto = 'enemigo aturdido';
+            } else if (d.efecto?.tipo === 'curacion') {
+              descripcionEfecto = `${d.efecto.cantidad} de curación`;
+            } else {
+              descripcionEfecto = 'efecto aplicado';
+            }
+            texto = `${quien} lanza ${d.hechizo}: ${descripcionEfecto}`;
+          } else {
+            texto = `${quien} falla al lanzar ${d.hechizo}`;
+          }
           tipoAnim = 'hechizo';
           exitoAnim = exito;
         } else if (d.accion === 'huir') {
@@ -353,10 +396,15 @@ function procesarMensaje(
     }
     case 'personaje_ajustado': {
       const d = datos as { personaje_id: string; nombre: string; delta_vida: number; delta_mana: number };
-      const partes = [
-        d.delta_vida ? `${d.delta_vida > 0 ? '+' : ''}${d.delta_vida} PV` : null,
-        d.delta_mana ? `${d.delta_mana > 0 ? '+' : ''}${d.delta_mana} maná` : null,
-      ].filter(Boolean);
+      const partes: string[] = [];
+      if (d.delta_vida) {
+        const signo = d.delta_vida > 0 ? '+' : '';
+        partes.push(`${signo}${d.delta_vida} PV`);
+      }
+      if (d.delta_mana) {
+        const signo = d.delta_mana > 0 ? '+' : '';
+        partes.push(`${signo}${d.delta_mana} maná`);
+      }
       if (partes.length) {
         set((s) => ({
           log: [nuevoEvento(`El máster ajusta a ${d.nombre}: ${partes.join(', ')}`), ...s.log],
@@ -388,23 +436,52 @@ function procesarMensaje(
         // maná, estado…), no solo por pasar a ausente/activo — así que el
         // texto de "ha cambiado de estado" solo se añade al log si el
         // estado es justo lo que cambió, comparando con lo que ya sabíamos.
-        const anterior = s.personajes.find((p) => p.id === d.id) ?? s.personaje ?? undefined;
+        let anterior: Personaje | undefined;
+        for (const p of s.personajes) {
+          if (p.id === d.id) {
+            anterior = p;
+          }
+        }
+        if (!anterior) {
+          anterior = s.personaje ?? undefined;
+        }
         const estadoCambio = anterior ? anterior.estado !== d.estado : false;
-        const textoEstado = !estadoCambio
-          ? null
-          : d.estado === 'ausente'
-            ? `${d.nombre} ha sido marcado ausente`
-            : d.estado === 'muerto'
-              ? null // el evento 'personaje_muerto' ya deja constancia en el log
-              : d.estado === 'inconsciente'
-                ? `${d.nombre} ha quedado inconsciente`
-                : d.estado === 'activo'
-                  ? `${d.nombre} vuelve a estar activo`
-                  : null;
+
+        let textoEstado: string | null = null;
+        if (estadoCambio) {
+          if (d.estado === 'ausente') {
+            textoEstado = `${d.nombre} ha sido marcado ausente`;
+          } else if (d.estado === 'muerto') {
+            textoEstado = null; // el evento 'personaje_muerto' ya deja constancia en el log
+          } else if (d.estado === 'inconsciente') {
+            textoEstado = `${d.nombre} ha quedado inconsciente`;
+          } else if (d.estado === 'activo') {
+            textoEstado = `${d.nombre} vuelve a estar activo`;
+          }
+        }
+
+        let yaExisteEnLaLista = false;
+        for (const p of s.personajes) {
+          if (p.id === d.id) {
+            yaExisteEnLaLista = true;
+          }
+        }
+        let personajesActualizados: Personaje[];
+        if (yaExisteEnLaLista) {
+          personajesActualizados = [];
+          for (const p of s.personajes) {
+            if (p.id === d.id) {
+              personajesActualizados.push({ ...p, ...d });
+            } else {
+              personajesActualizados.push(p);
+            }
+          }
+        } else {
+          personajesActualizados = [...s.personajes, d];
+        }
+
         return {
-          personajes: s.personajes.some((p) => p.id === d.id)
-            ? s.personajes.map((p) => (p.id === d.id ? { ...p, ...d } : p))
-            : [...s.personajes, d],
+          personajes: personajesActualizados,
           personaje: s.personaje?.id === d.id ? { ...s.personaje, ...d } : s.personaje,
           log: textoEstado ? [nuevoEvento(textoEstado), ...s.log] : s.log,
         };
@@ -424,10 +501,18 @@ function procesarMensaje(
     }
     case 'jugador_expulsado': {
       const d = datos as { personaje_id: string; nombre: string; jugador_nombre: string };
-      set((s) => ({
-        personajes: s.personajes.filter((p) => p.id !== d.personaje_id),
-        log: [nuevoEvento(`${d.nombre} (${d.jugador_nombre}) ha sido expulsado de la sala`), ...s.log],
-      }));
+      set((s) => {
+        const personajesRestantes: Personaje[] = [];
+        for (const p of s.personajes) {
+          if (p.id !== d.personaje_id) {
+            personajesRestantes.push(p);
+          }
+        }
+        return {
+          personajes: personajesRestantes,
+          log: [nuevoEvento(`${d.nombre} (${d.jugador_nombre}) ha sido expulsado de la sala`), ...s.log],
+        };
+      });
       break;
     }
     case 'jugador_conectado': {
@@ -435,10 +520,25 @@ function procesarMensaje(
       set((s) => {
         let personajes = s.personajes;
         if (d.personaje) {
-          const yaExiste = personajes.some((p) => p.id === d.personaje!.id);
-          personajes = yaExiste
-            ? personajes.map((p) => (p.id === d.personaje!.id ? d.personaje! : p))
-            : [...personajes, d.personaje];
+          let yaExiste = false;
+          for (const p of personajes) {
+            if (p.id === d.personaje!.id) {
+              yaExiste = true;
+            }
+          }
+          if (yaExiste) {
+            const personajesActualizados: Personaje[] = [];
+            for (const p of personajes) {
+              if (p.id === d.personaje!.id) {
+                personajesActualizados.push(d.personaje!);
+              } else {
+                personajesActualizados.push(p);
+              }
+            }
+            personajes = personajesActualizados;
+          } else {
+            personajes = [...personajes, d.personaje];
+          }
         }
         return { log: [nuevoEvento(`${d.nombre} se ha conectado`), ...s.log], personajes };
       });
@@ -465,14 +565,28 @@ function procesarMensaje(
         objetos: { objeto_id: string; nombre: string; categoria?: string }[];
         destino: string;
       };
-      const hechizos = d.objetos.filter((o) => o.categoria === 'hechizo').map((o) => o.nombre);
-      const objetos = d.objetos.filter((o) => o.categoria !== 'hechizo').map((o) => o.nombre);
-      const partes = [
-        objetos.length ? `El grupo encuentra: ${objetos.join(', ')}` : null,
-        hechizos.length ? `El grupo aprende: ${hechizos.join(', ')}` : null,
-      ].filter(Boolean) as string[];
+      const hechizos: string[] = [];
+      const objetos: string[] = [];
+      for (const o of d.objetos) {
+        if (o.categoria === 'hechizo') {
+          hechizos.push(o.nombre);
+        } else {
+          objetos.push(o.nombre);
+        }
+      }
+      const partes: string[] = [];
+      if (objetos.length) {
+        partes.push(`El grupo encuentra: ${objetos.join(', ')}`);
+      }
+      if (hechizos.length) {
+        partes.push(`El grupo aprende: ${hechizos.join(', ')}`);
+      }
+      const eventosNuevos: EventoLog[] = [];
+      for (const texto of partes) {
+        eventosNuevos.push(nuevoEvento(texto));
+      }
       set((s) => ({
-        log: [...partes.map((texto) => nuevoEvento(texto)), ...s.log],
+        log: [...eventosNuevos, ...s.log],
       }));
       break;
     }
@@ -515,16 +629,21 @@ function procesarMensaje(
         destino_personaje_id: string;
       };
       const clave = `${d.origen_personaje_id}:${d.objeto_id}:${d.destino_personaje_id}`;
-      set((s) => ({
-        propuestasIntercambio: [
-          ...s.propuestasIntercambio.filter((p) => p.clave !== clave),
-          { clave, ...d },
-        ],
-        log: [
-          nuevoEvento(`${d.origen_personaje_nombre} ofrece "${d.objeto_nombre}"`),
-          ...s.log,
-        ],
-      }));
+      set((s) => {
+        const propuestasSinEstaClave: PropuestaIntercambio[] = [];
+        for (const p of s.propuestasIntercambio) {
+          if (p.clave !== clave) {
+            propuestasSinEstaClave.push(p);
+          }
+        }
+        return {
+          propuestasIntercambio: [...propuestasSinEstaClave, { clave, ...d }],
+          log: [
+            nuevoEvento(`${d.origen_personaje_nombre} ofrece "${d.objeto_nombre}"`),
+            ...s.log,
+          ],
+        };
+      });
       break;
     }
     case 'intercambio_completado': {
@@ -534,9 +653,15 @@ function procesarMensaje(
         objeto: { objeto_id: string; nombre: string };
       };
       set((s) => {
-        let personajes = actualizarInventario(s.personajes, d.origen_personaje_id, (inv) =>
-          inv.filter((o) => o.objeto_id !== d.objeto.objeto_id)
-        );
+        let personajes = actualizarInventario(s.personajes, d.origen_personaje_id, (inv) => {
+          const inventarioSinElObjeto = [];
+          for (const o of inv) {
+            if (o.objeto_id !== d.objeto.objeto_id) {
+              inventarioSinElObjeto.push(o);
+            }
+          }
+          return inventarioSinElObjeto;
+        });
         personajes = actualizarInventario(personajes, d.destino_personaje_id, (inv) => [
           ...inv,
           d.objeto,
@@ -544,17 +669,30 @@ function procesarMensaje(
 
         let personaje = s.personaje;
         if (personaje?.id === d.origen_personaje_id) {
-          personaje = { ...personaje, inventario: personaje.inventario.filter((o) => o.objeto_id !== d.objeto.objeto_id) };
+          const inventarioSinElObjeto = [];
+          for (const o of personaje.inventario) {
+            if (o.objeto_id !== d.objeto.objeto_id) {
+              inventarioSinElObjeto.push(o);
+            }
+          }
+          personaje = { ...personaje, inventario: inventarioSinElObjeto };
         } else if (personaje?.id === d.destino_personaje_id) {
           personaje = { ...personaje, inventario: [...personaje.inventario, d.objeto] };
+        }
+
+        const propuestasRestantes: PropuestaIntercambio[] = [];
+        for (const p of s.propuestasIntercambio) {
+          const esLaQueSeCompleto =
+            p.origen_personaje_id === d.origen_personaje_id && p.objeto_id === d.objeto.objeto_id;
+          if (!esLaQueSeCompleto) {
+            propuestasRestantes.push(p);
+          }
         }
 
         return {
           personajes,
           personaje,
-          propuestasIntercambio: s.propuestasIntercambio.filter(
-            (p) => !(p.origen_personaje_id === d.origen_personaje_id && p.objeto_id === d.objeto.objeto_id)
-          ),
+          propuestasIntercambio: propuestasRestantes,
           log: [nuevoEvento(`Intercambio completado: "${d.objeto.nombre}"`), ...s.log],
         };
       });
@@ -562,20 +700,29 @@ function procesarMensaje(
     }
     case 'error': {
       const d = datos as { mensaje: string; origen_personaje_id?: string; objeto_id?: string };
-      set((s) => ({
-        log: [nuevoEvento(d.mensaje, 'aviso'), ...s.log],
+      set((s) => {
+        let propuestasIntercambio = s.propuestasIntercambio;
         // Un intercambio_confirmar fallido (el objeto ya no está, o el
         // personaje de origen no es válido) trae de vuelta qué propuesta
         // concreta ha quedado obsoleta — si no la quitáramos aquí, la
         // tarjeta de "te ofrece X" seguiría mostrándose como si todavía se
         // pudiera aceptar.
-        propuestasIntercambio:
-          d.origen_personaje_id && d.objeto_id
-            ? s.propuestasIntercambio.filter(
-                (p) => !(p.origen_personaje_id === d.origen_personaje_id && p.objeto_id === d.objeto_id)
-              )
-            : s.propuestasIntercambio,
-      }));
+        if (d.origen_personaje_id && d.objeto_id) {
+          const propuestasRestantes: PropuestaIntercambio[] = [];
+          for (const p of s.propuestasIntercambio) {
+            const esLaQueFallo =
+              p.origen_personaje_id === d.origen_personaje_id && p.objeto_id === d.objeto_id;
+            if (!esLaQueFallo) {
+              propuestasRestantes.push(p);
+            }
+          }
+          propuestasIntercambio = propuestasRestantes;
+        }
+        return {
+          log: [nuevoEvento(d.mensaje, 'aviso'), ...s.log],
+          propuestasIntercambio,
+        };
+      });
       break;
     }
     default:

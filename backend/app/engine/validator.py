@@ -75,7 +75,14 @@ def validar_historia(contenido: dict) -> ResultadoValidacion:
 
     # Solo seguimos con el análisis de grafo si todas las referencias son válidas,
     # para no arrastrar errores en cascada sobre ids inventados.
-    edges = {nid: {r for r in refs if r in nodos} for nid, refs in edges.items()}
+    edges_validas: dict[str, set[str]] = {}
+    for nid, refs in edges.items():
+        refs_validas: set[str] = set()
+        for r in refs:
+            if r in nodos:
+                refs_validas.add(r)
+        edges_validas[nid] = refs_validas
+    edges = edges_validas
 
     # 2. Nodos huérfanos (inalcanzables desde nodo_inicial)
     # 'nodo_muerte_total', si existe, es una raíz aparte: no se llega a él
@@ -96,34 +103,52 @@ def validar_historia(contenido: dict) -> ResultadoValidacion:
         if actual in alcanzables:
             continue
         alcanzables.add(actual)
-        pendientes.extend(edges.get(actual, set()) - alcanzables)
+        for destino in edges.get(actual, set()):
+            if destino not in alcanzables:
+                pendientes.append(destino)
 
-    huerfanos = set(nodos.keys()) - alcanzables
+    huerfanos: set[str] = set()
+    for nid in nodos.keys():
+        if nid not in alcanzables:
+            huerfanos.add(nid)
     for h in sorted(huerfanos):
         errores.append(f"Nodo '{h}' es inalcanzable desde el nodo inicial.")
 
     # 3. Todo camino alcanzable debe poder llegar a un nodo final
-    finales = {nid for nid, n in nodos.items() if n.get("es_final")}
+    finales: set[str] = set()
+    for nid, n in nodos.items():
+        if n.get("es_final"):
+            finales.add(nid)
     if not finales:
         errores.append("La historia no tiene ningún nodo final (es_final: true).")
 
     # Grafo inverso restringido a nodos alcanzables
-    inversos: dict[str, set[str]] = {nid: set() for nid in alcanzables}
+    inversos: dict[str, set[str]] = {}
+    for nid in alcanzables:
+        inversos[nid] = set()
     for nid in alcanzables:
         for dest in edges.get(nid, set()):
             if dest in alcanzables:
                 inversos.setdefault(dest, set()).add(nid)
 
     puede_llegar_a_final: set[str] = set()
-    pendientes = [f for f in finales if f in alcanzables]
+    pendientes = []
+    for f in finales:
+        if f in alcanzables:
+            pendientes.append(f)
     while pendientes:
         actual = pendientes.pop()
         if actual in puede_llegar_a_final:
             continue
         puede_llegar_a_final.add(actual)
-        pendientes.extend(inversos.get(actual, set()) - puede_llegar_a_final)
+        for origen in inversos.get(actual, set()):
+            if origen not in puede_llegar_a_final:
+                pendientes.append(origen)
 
-    sin_salida = alcanzables - puede_llegar_a_final
+    sin_salida: set[str] = set()
+    for nid in alcanzables:
+        if nid not in puede_llegar_a_final:
+            sin_salida.add(nid)
     for nid in sorted(sin_salida):
         errores.append(f"Nodo '{nid}' no tiene ningún camino hacia un nodo final.")
 

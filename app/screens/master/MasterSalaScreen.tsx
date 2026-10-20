@@ -93,7 +93,13 @@ export default function MasterSalaScreen({ navigation }: Props) {
   const nodosFiltrados = useMemo(() => {
     const q = filtro.trim().toLowerCase();
     if (!q) return nodos;
-    return nodos.filter((n) => n.id.toLowerCase().includes(q) || n.texto.toLowerCase().includes(q));
+    const coincidentes = [];
+    for (const n of nodos) {
+      if (n.id.toLowerCase().includes(q) || n.texto.toLowerCase().includes(q)) {
+        coincidentes.push(n);
+      }
+    }
+    return coincidentes;
   }, [nodos, filtro]);
 
   if (!sala) return null;
@@ -231,12 +237,18 @@ export default function MasterSalaScreen({ navigation }: Props) {
         {estado?.fase === 'combate' && estado.combate && (
           <Tarjeta acento={color.combate}>
             <Text style={styles.seccionTitulo}>COMBATE — RONDA {estado.combate.ronda}</Text>
-            <Text style={styles.turnoTexto}>
-              Turno de:{' '}
-              {personajes.find(
-                (p) => p.id === estado.combate!.orden_iniciativa[estado.combate!.turno_index]?.split(':')[1]
-              )?.nombre ?? '—'}
-            </Text>
+            {(() => {
+              const idEnTurno = estado.combate!.orden_iniciativa[estado.combate!.turno_index]?.split(':')[1];
+              let jugadorEnTurno;
+              for (const p of personajes) {
+                if (p.id === idEnTurno) {
+                  jugadorEnTurno = p;
+                }
+              }
+              return (
+                <Text style={styles.turnoTexto}>Turno de: {jugadorEnTurno?.nombre ?? '—'}</Text>
+              );
+            })()}
             {estado.combate.enemigos.map((en) => (
               <View key={en.enemigo_id} style={styles.filaEnemigo}>
                 <Text style={styles.enemigoNombre} numberOfLines={1}>

@@ -125,7 +125,11 @@ def override_inventario_personaje(
 
     inventario = list(personaje.inventario or [])
     if quitar:
-        inventario = [o for o in inventario if o.get("objeto_id") != objeto.get("objeto_id")]
+        inventario_sin_el_objeto = []
+        for o in inventario:
+            if o.get("objeto_id") != objeto.get("objeto_id"):
+                inventario_sin_el_objeto.append(o)
+        inventario = inventario_sin_el_objeto
     else:
         inventario.append(objeto)
     personaje.inventario = inventario

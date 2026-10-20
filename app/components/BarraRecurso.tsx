@@ -19,13 +19,14 @@ type Props = {
 export default function BarraRecurso({ etiqueta, actual, maximo, sinAlerta }: Props) {
   const acento = useAcento();
   const proporcion = maximo > 0 ? Math.max(0, Math.min(1, actual / maximo)) : 0;
-  const colorBarra = sinAlerta
-    ? acento.acento
-    : proporcion <= 0.25
-      ? color.peligro
-      : proporcion <= 0.5
-        ? color.aviso
-        : color.exito;
+  let colorBarra: string = color.exito;
+  if (sinAlerta) {
+    colorBarra = acento.acento;
+  } else if (proporcion <= 0.25) {
+    colorBarra = color.peligro;
+  } else if (proporcion <= 0.5) {
+    colorBarra = color.aviso;
+  }
 
   // El valor ya llega cambiado desde el servidor (sube o baja de golpe),
   // así que sin esto la barra saltaba en seco de un ancho a otro; animar

@@ -42,10 +42,13 @@ export default function SeleccionPersonajeScreen({ route, navigation }: Props) {
   });
   const [habilidadElegida, setHabilidadElegida] = useState<string | null>(null);
 
-  const puntosUsados = useMemo(
-    () => ATRIBUTOS.reduce((acc, a) => acc + puntos[a], 0),
-    [puntos]
-  );
+  const puntosUsados = useMemo(() => {
+    let total = 0;
+    for (const a of ATRIBUTOS) {
+      total += puntos[a];
+    }
+    return total;
+  }, [puntos]);
   const puntosListos = puntosUsados === PUNTOS_TOTALES;
 
   useEffect(() => {

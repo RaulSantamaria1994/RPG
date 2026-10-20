@@ -56,9 +56,14 @@ def verificar_requisitos(
 
     objeto_requerido = palabra_clave.get("requiere_objeto")
     if objeto_requerido:
-        ids_inventario = {obj.get("objeto_id") for obj in (personaje.inventario or [])}
-        ids_grupo = {obj.get("objeto_id") for obj in (estado.inventario_grupo or [])}
-        if objeto_requerido not in ids_inventario | ids_grupo:
+        tiene_el_objeto = False
+        for obj in personaje.inventario or []:
+            if obj.get("objeto_id") == objeto_requerido:
+                tiene_el_objeto = True
+        for obj in estado.inventario_grupo or []:
+            if obj.get("objeto_id") == objeto_requerido:
+                tiene_el_objeto = True
+        if not tiene_el_objeto:
             raise ErrorInteraccion(f"Falta el objeto requerido '{objeto_requerido}'.")
 
 
@@ -68,9 +73,13 @@ def _tiene_ventaja(palabra_clave: dict, personaje: Personaje, estado: EstadoSala
         return False
     # Igual que verificar_requisitos con requiere_objeto: un objeto de grupo
     # (destino "grupo") también debe contar, no solo el inventario personal.
-    ids_inventario = {obj.get("objeto_id") for obj in (personaje.inventario or [])}
-    ids_grupo = {obj.get("objeto_id") for obj in (estado.inventario_grupo or [])}
-    return objeto_ventaja in ids_inventario | ids_grupo
+    for obj in personaje.inventario or []:
+        if obj.get("objeto_id") == objeto_ventaja:
+            return True
+    for obj in estado.inventario_grupo or []:
+        if obj.get("objeto_id") == objeto_ventaja:
+            return True
+    return False
 
 
 def resolver_via_atributo(
@@ -167,7 +176,12 @@ def otorgar_objeto(
             "nombre": objeto.get("nombre", objeto["objeto_id"]),
             "categoria": "hechizo",
         }
-        aprendices = personajes_sala if personajes_sala is not None else ([personaje] if personaje else [])
+        if personajes_sala is not None:
+            aprendices = personajes_sala
+        elif personaje:
+            aprendices = [personaje]
+        else:
+            aprendices = []
         _aprender_hechizo(objeto["objeto_id"], aprendices)
         return item
 

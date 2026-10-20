@@ -114,7 +114,12 @@ export default function EfectoCombate({ tipo, exito }: Props) {
   // 'objeto' es el único tipo cuyo color base es el acento elegible en
   // Opciones (ver CONFIG más arriba); el resto son colores semánticos fijos.
   const colorBase = tipo === 'objeto' ? acento.acento : cfg.colorBase;
-  const colorBorde = exito === true ? color.exito : exito === false ? color.peligro : colorBase;
+  let colorBorde = colorBase;
+  if (exito === true) {
+    colorBorde = color.exito;
+  } else if (exito === false) {
+    colorBorde = color.peligro;
+  }
 
   const escala = progreso.interpolate({ inputRange: [0, 1], outputRange: [0.4, 1] });
   const rotar =

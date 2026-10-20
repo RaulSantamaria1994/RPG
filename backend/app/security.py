@@ -43,7 +43,12 @@ def decodificar_token(token: str) -> TokenPayload:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED, detail="Token inválido o caducado."
         ) from exc
-    return TokenPayload(**datos)
+    return TokenPayload(
+        sala_id=datos["sala_id"],
+        rol=datos["rol"],
+        personaje_id=datos.get("personaje_id"),
+        nombre=datos["nombre"],
+    )
 
 
 def requerir_token(authorization: str | None = Header(default=None)) -> TokenPayload:
