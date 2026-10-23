@@ -4,7 +4,7 @@ import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../../navigation/types';
-import { Boton, BarraRecurso, EfectoCombate, IconoEvento, IndicadorConexion, Insignia, Tarjeta, TexturaGrano } from '../../components';
+import { Boton, BarraRecurso, EfectoCombate, GlifoNodo, IconoEvento, IndicadorConexion, Insignia, Tarjeta, TexturaGrano } from '../../components';
 import { api } from '../../services/api';
 import { useSalaStore } from '../../store/salaStore';
 import { useAcento } from '../../store/configStore';
@@ -493,7 +493,10 @@ export default function MasterSalaScreen({ navigation }: Props) {
                     style={{ marginBottom: espacio.sm }}
                   >
                     <View style={styles.nodoItemCabecera}>
-                      <Text style={styles.nodoItemId}>{item.id}</Text>
+                      <View style={styles.nodoItemIdFila}>
+                        <GlifoNodo tipo={item.tipo} color={COLOR_TIPO[item.tipo]} tamano={12} />
+                        <Text style={styles.nodoItemId}>{item.id}</Text>
+                      </View>
                       <Text style={styles.nodoItemTipo}>
                         {item.es_final ? `Final: ${item.tipo_final}` : ETIQUETA_TIPO[item.tipo]}
                       </Text>
@@ -663,7 +666,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: espacio.sm,
   },
-  nodoItemCabecera: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 4 },
+  nodoItemCabecera: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 },
+  nodoItemIdFila: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   nodoItemId: { color: color.texto, fontWeight: '700' },
   nodoItemTipo: { color: color.textoTenue, fontSize: 11 },
   nodoItemTexto: { color: color.textoSecundario, fontSize: 12 },

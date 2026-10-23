@@ -1,8 +1,8 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { StatusBar } from 'expo-status-bar';
-import { ActivityIndicator, StyleSheet, View } from 'react-native';
+import { Animated, StyleSheet, View } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { useFonts } from 'expo-font';
 import {
@@ -18,6 +18,7 @@ import {
 } from '@expo-google-fonts/public-sans';
 import { SpecialElite_400Regular } from '@expo-google-fonts/special-elite';
 
+import { Sello } from './components';
 import HomeScreen from './screens/HomeScreen';
 import AyudaScreen from './screens/AyudaScreen';
 import DiarioScreen from './screens/DiarioScreen';
@@ -55,6 +56,30 @@ function rutaInicialDesdeSesion(): keyof RootStackParamList {
   return 'Home';
 }
 
+/** Sello que respira despacio, usado como indicador de carga en vez del
+ * spinner por defecto de la librería — el mismo símbolo de toda la
+ * identidad, no un componente sin vestir. */
+function SelloDeCarga() {
+  const pulso = useRef(new Animated.Value(0.96)).current;
+
+  useEffect(() => {
+    const animacion = Animated.loop(
+      Animated.sequence([
+        Animated.timing(pulso, { toValue: 1.04, duration: 900, useNativeDriver: true }),
+        Animated.timing(pulso, { toValue: 0.96, duration: 900, useNativeDriver: true }),
+      ])
+    );
+    animacion.start();
+    return () => animacion.stop();
+  }, [pulso]);
+
+  return (
+    <Animated.View style={{ transform: [{ scale: pulso }] }}>
+      <Sello tamano={64} />
+    </Animated.View>
+  );
+}
+
 export default function App() {
   const persistenciaLista = usePersistenciaLista();
   const [fuentesListas] = useFonts({
@@ -71,7 +96,7 @@ export default function App() {
   if (!persistenciaLista || !fuentesListas) {
     return (
       <View style={styles.cargando}>
-        <ActivityIndicator color="#fff" size="large" />
+        <SelloDeCarga />
       </View>
     );
   }
