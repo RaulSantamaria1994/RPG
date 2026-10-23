@@ -1,5 +1,6 @@
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../navigation/types';
 import { useSalaStore } from '../store/salaStore';
@@ -9,14 +10,15 @@ import { color, espacio, radio, tipo } from '../theme';
 type Props = NativeStackScreenProps<RootStackParamList, 'Home'>;
 
 export default function HomeScreen({ navigation }: Props) {
+  const insets = useSafeAreaInsets();
   const mensajeSesion = useSalaStore((s) => s.mensajeSesion);
   const limpiarMensajeSesion = useSalaStore((s) => s.limpiarMensajeSesion);
   const acento = useAcento();
 
   return (
-    <View style={styles.contenedor}>
+    <View style={[styles.contenedor, { paddingTop: espacio.xl + insets.top }]}>
       <TouchableOpacity
-        style={styles.botonOpciones}
+        style={[styles.botonOpciones, { top: espacio.xl + insets.top }]}
         onPress={() => navigation.navigate('Opciones')}
         hitSlop={8}
         testID="boton-opciones"

@@ -29,7 +29,7 @@ interface SalaState {
   log: EventoLog[];
   palabrasBloqueadas: Record<string, string>;
   confirmacionesGrupales: Record<string, { confirmados: number; total: number }>;
-  votosGrupales: { votados: number; total: number } | null;
+  votosGrupales: { votados: number; total: number; recuento: Record<string, number> } | null;
   propuestasIntercambio: PropuestaIntercambio[];
   conectado: boolean;
   /** Solo tiene sentido cuando `conectado` es false: distingue "todavía no
@@ -75,7 +75,7 @@ const ESTADO_INICIAL_TRANSITORIO = {
   log: [] as EventoLog[],
   palabrasBloqueadas: {} as Record<string, string>,
   confirmacionesGrupales: {} as Record<string, { confirmados: number; total: number }>,
-  votosGrupales: null as { votados: number; total: number } | null,
+  votosGrupales: null as { votados: number; total: number; recuento: Record<string, number> } | null,
   propuestasIntercambio: [] as PropuestaIntercambio[],
   conectado: false,
   reintentandoConexion: false,
@@ -599,10 +599,18 @@ function procesarMensaje(
     }
     case 'voto_registrado': {
       const d = datos as { personaje_nombre: string; opcion: string; votados: number; total: number };
-      set((s) => ({
-        votosGrupales: { votados: d.votados, total: d.total },
-        log: [nuevoEvento(`${d.personaje_nombre} vota: "${d.opcion}" (${d.votados}/${d.total})`), ...s.log],
-      }));
+      set((s) => {
+        const recuentoAnterior = s.votosGrupales?.recuento ?? {};
+        const votosDeEstaOpcion = (recuentoAnterior[d.opcion] ?? 0) + 1;
+        return {
+          votosGrupales: {
+            votados: d.votados,
+            total: d.total,
+            recuento: { ...recuentoAnterior, [d.opcion]: votosDeEstaOpcion },
+          },
+          log: [nuevoEvento(`${d.personaje_nombre} vota: "${d.opcion}" (${d.votados}/${d.total})`), ...s.log],
+        };
+      });
       break;
     }
     case 'votacion_resuelta': {

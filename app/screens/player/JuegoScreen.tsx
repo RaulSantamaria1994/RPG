@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Animated, FlatList, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../../navigation/types';
 import { Boton, BarraRecurso, EfectoCombate, IconoEvento, IndicadorConexion, Insignia, Tarjeta } from '../../components';
@@ -84,6 +85,7 @@ function BotonAtacar({ onPress }: { onPress: () => void }) {
 }
 
 export default function JuegoScreen({ navigation }: Props) {
+  const insets = useSafeAreaInsets();
   const sala = useSalaStore((s) => s.sala);
   const personaje = useSalaStore((s) => s.personaje);
   const personajes = useSalaStore((s) => s.personajes);
@@ -232,7 +234,7 @@ export default function JuegoScreen({ navigation }: Props) {
   }
 
   return (
-    <View style={styles.contenedor}>
+    <View style={[styles.contenedor, { paddingTop: insets.top }]}>
       <IndicadorConexion conectado={conectado} reintentando={reintentandoConexion} />
       <View style={styles.cabecera}>
         <View style={{ flex: 1, gap: 6 }}>
@@ -465,7 +467,13 @@ export default function JuegoScreen({ navigation }: Props) {
                       </View>
 
                       {esVotacion && votosGrupales && !usada && (
-                        <Insignia texto={`Votos: ${votosGrupales.votados}/${votosGrupales.total}`} tono="aviso" />
+                        <View style={styles.filaVotosOpcion}>
+                          <Insignia
+                            texto={`${votosGrupales.recuento[p.texto] ?? 0} voto(s) a esta opción`}
+                            tono="acento"
+                          />
+                          <Insignia texto={`${votosGrupales.votados}/${votosGrupales.total} han votado`} tono="aviso" />
+                        </View>
                       )}
                       {!esVotacion && p.modo_interaccion === 'grupal' && confirmacion && !usada && (
                         <Insignia
@@ -989,6 +997,7 @@ const styles = StyleSheet.create({
   filaTituloCombate: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   tarjetaPalabra: { gap: espacio.xs },
   filaPalabraCabecera: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', gap: espacio.sm },
+  filaVotosOpcion: { flexDirection: 'row', flexWrap: 'wrap', gap: espacio.xs, marginTop: 4 },
   textoPalabra: { color: color.texto, fontSize: 15, fontWeight: '600' },
   subtextoPalabra: { color: color.textoSecundario, fontSize: 12, marginTop: 3 },
   panelExpandido: {

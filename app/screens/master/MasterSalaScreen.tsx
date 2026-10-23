@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { FlatList, Modal, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../../navigation/types';
 import { Boton, BarraRecurso, EfectoCombate, IconoEvento, IndicadorConexion, Insignia, Tarjeta } from '../../components';
@@ -27,6 +28,7 @@ const COLOR_TIPO: Record<NodoResumen['tipo'], string> = {
 const PASOS_AJUSTE = [-5, -1, 1, 5];
 
 export default function MasterSalaScreen({ navigation }: Props) {
+  const insets = useSafeAreaInsets();
   const sala = useSalaStore((s) => s.sala);
   const token = useSalaStore((s) => s.token);
   const estado = useSalaStore((s) => s.estado);
@@ -157,7 +159,7 @@ export default function MasterSalaScreen({ navigation }: Props) {
   }
 
   return (
-    <View style={styles.contenedor}>
+    <View style={[styles.contenedor, { paddingTop: insets.top }]}>
       <IndicadorConexion conectado={conectado} reintentando={reintentandoConexion} />
       {ultimaAccionCombate && (
         <EfectoCombate key={ultimaAccionCombate.en} tipo={ultimaAccionCombate.tipo} exito={ultimaAccionCombate.exito} />
