@@ -17,8 +17,8 @@
         "buildType": "apk"
       },
       "env": {
-        "EXPO_PUBLIC_API_URL": "https://solid-turns-todd-salmon.trycloudflare.com",
-        "EXPO_PUBLIC_API_WS_URL": "wss://solid-turns-todd-salmon.trycloudflare.com"
+        "EXPO_PUBLIC_API_URL": "https://rpg-production-728d.up.railway.app",
+        "EXPO_PUBLIC_API_WS_URL": "wss://rpg-production-728d.up.railway.app"
       }
     },
     "production": {
