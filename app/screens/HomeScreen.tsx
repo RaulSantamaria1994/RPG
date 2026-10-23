@@ -4,7 +4,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../navigation/types';
-import { Sello } from '../components';
+import { Sello, TexturaGrano } from '../components';
 import { useSalaStore } from '../store/salaStore';
 import { useAcento } from '../store/configStore';
 import { color, espacio, fuente, radio, tipo } from '../theme';
@@ -97,6 +97,7 @@ export default function HomeScreen({ navigation }: Props) {
       </View>
 
       <Text style={styles.pie}>ARCHIVO DE EXPEDIENTES IMPOSIBLES</Text>
+      <TexturaGrano />
     </View>
   );
 }

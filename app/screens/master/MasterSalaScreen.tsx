@@ -4,7 +4,7 @@ import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../../navigation/types';
-import { Boton, BarraRecurso, EfectoCombate, IconoEvento, IndicadorConexion, Insignia, Tarjeta } from '../../components';
+import { Boton, BarraRecurso, EfectoCombate, IconoEvento, IndicadorConexion, Insignia, Tarjeta, TexturaGrano } from '../../components';
 import { api } from '../../services/api';
 import { useSalaStore } from '../../store/salaStore';
 import { useAcento } from '../../store/configStore';
@@ -508,6 +508,7 @@ export default function MasterSalaScreen({ navigation }: Props) {
           </View>
         </View>
       </Modal>
+      <TexturaGrano />
     </View>
   );
 }
