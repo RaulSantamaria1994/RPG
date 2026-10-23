@@ -4,6 +4,19 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { StatusBar } from 'expo-status-bar';
 import { ActivityIndicator, StyleSheet, View } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { useFonts } from 'expo-font';
+import {
+  Spectral_500Medium,
+  Spectral_500Medium_Italic,
+  Spectral_600SemiBold,
+} from '@expo-google-fonts/spectral';
+import {
+  PublicSans_400Regular,
+  PublicSans_500Medium,
+  PublicSans_600SemiBold,
+  PublicSans_700Bold,
+} from '@expo-google-fonts/public-sans';
+import { SpecialElite_400Regular } from '@expo-google-fonts/special-elite';
 
 import HomeScreen from './screens/HomeScreen';
 import AyudaScreen from './screens/AyudaScreen';
@@ -44,8 +57,18 @@ function rutaInicialDesdeSesion(): keyof RootStackParamList {
 
 export default function App() {
   const persistenciaLista = usePersistenciaLista();
+  const [fuentesListas] = useFonts({
+    'Spectral-Medium': Spectral_500Medium,
+    'Spectral-MediumItalic': Spectral_500Medium_Italic,
+    'Spectral-SemiBold': Spectral_600SemiBold,
+    'PublicSans-Regular': PublicSans_400Regular,
+    'PublicSans-Medium': PublicSans_500Medium,
+    'PublicSans-SemiBold': PublicSans_600SemiBold,
+    'PublicSans-Bold': PublicSans_700Bold,
+    'SpecialElite-Regular': SpecialElite_400Regular,
+  });
 
-  if (!persistenciaLista) {
+  if (!persistenciaLista || !fuentesListas) {
     return (
       <View style={styles.cargando}>
         <ActivityIndicator color="#fff" size="large" />

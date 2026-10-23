@@ -5,3 +5,4 @@ export { default as BarraRecurso } from './BarraRecurso';
 export { default as EfectoCombate } from './EfectoCombate';
 export { default as IconoEvento } from './IconoEvento';
 export { default as IndicadorConexion } from './IndicadorConexion';
+export { default as Sello } from './Sello';

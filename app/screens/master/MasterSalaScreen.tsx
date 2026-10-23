@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { FlatList, Modal, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { FlatList, Image, Modal, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
@@ -9,7 +9,7 @@ import { api } from '../../services/api';
 import { useSalaStore } from '../../store/salaStore';
 import { useAcento } from '../../store/configStore';
 import type { NodoResumen } from '../../types';
-import { color, espacio, radio, tipo } from '../../theme';
+import { color, espacio, fuente, radio, tipo } from '../../theme';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'MasterSala'>;
 
@@ -160,6 +160,8 @@ export default function MasterSalaScreen({ navigation }: Props) {
 
   return (
     <View style={[styles.contenedor, { paddingTop: insets.top }]}>
+      <Image source={require('../../assets/fondo-archivo.jpg')} style={styles.fondoImagen} resizeMode="cover" />
+      <View style={styles.fondoVelo} />
       <IndicadorConexion conectado={conectado} reintentando={reintentandoConexion} />
       {ultimaAccionCombate && (
         <EfectoCombate key={ultimaAccionCombate.en} tipo={ultimaAccionCombate.tipo} exito={ultimaAccionCombate.exito} />
@@ -512,6 +514,8 @@ export default function MasterSalaScreen({ navigation }: Props) {
 
 const styles = StyleSheet.create({
   contenedor: { flex: 1, backgroundColor: color.fondo },
+  fondoImagen: { ...StyleSheet.absoluteFillObject },
+  fondoVelo: { ...StyleSheet.absoluteFillObject, backgroundColor: color.fondo, opacity: 0.86 },
   cabecera: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -521,7 +525,7 @@ const styles = StyleSheet.create({
     borderBottomColor: color.borde,
   },
   codigoEtiqueta: { color: color.textoSecundario, fontSize: 11 },
-  codigo: { ...tipo.titulo, fontSize: 24, letterSpacing: 4 },
+  codigo: { fontFamily: fuente.sello, color: color.texto, fontSize: 20, letterSpacing: 4 },
   accionesCabecera: { flexDirection: 'row', alignItems: 'center', gap: espacio.md },
   salir: { color: color.peligro, fontWeight: '600' },
   insigniaContador: {

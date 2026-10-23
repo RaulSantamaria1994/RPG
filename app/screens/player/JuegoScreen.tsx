@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Animated, FlatList, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Animated, FlatList, Image, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
@@ -235,6 +235,8 @@ export default function JuegoScreen({ navigation }: Props) {
 
   return (
     <View style={[styles.contenedor, { paddingTop: insets.top }]}>
+      <Image source={require('../../assets/fondo-archivo.jpg')} style={styles.fondoImagen} resizeMode="cover" />
+      <View style={styles.fondoVelo} />
       <IndicadorConexion conectado={conectado} reintentando={reintentandoConexion} />
       <View style={styles.cabecera}>
         <View style={{ flex: 1, gap: 6 }}>
@@ -906,6 +908,8 @@ export default function JuegoScreen({ navigation }: Props) {
 
 const styles = StyleSheet.create({
   contenedor: { flex: 1, backgroundColor: color.fondo },
+  fondoImagen: { ...StyleSheet.absoluteFillObject },
+  fondoVelo: { ...StyleSheet.absoluteFillObject, backgroundColor: color.fondo, opacity: 0.86 },
   cabecera: {
     flexDirection: 'row',
     justifyContent: 'space-between',
