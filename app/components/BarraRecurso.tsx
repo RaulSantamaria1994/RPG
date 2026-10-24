@@ -1,15 +1,14 @@
 import { useEffect, useRef } from 'react';
 import { Animated, StyleSheet, Text, View } from 'react-native';
-import { useAcento } from '../store/configStore';
 import { color, radio } from '../theme';
 
 type Props = {
   etiqueta: string;
   actual: number;
   maximo: number;
-  /** Color de la barra cuando va bien; por debajo de ciertos umbrales se
-   * tiñe de aviso/peligro automáticamente (pensado para vida). Pon
-   * `sinAlerta` para una barra que no deba asustar a nadie (p. ej. maná). */
+  /** La barra de vida va de verde a rojo según el nivel; pon `sinAlerta`
+   * para una barra que no deba asustar a nadie — siempre azul, pensada
+   * para maná — en vez de los colores de aviso/peligro. */
   sinAlerta?: boolean;
 };
 
@@ -17,11 +16,10 @@ type Props = {
  * el texto plano "PV 10/16" que había antes, y cambia de color si el
  * personaje está en apuros. */
 export default function BarraRecurso({ etiqueta, actual, maximo, sinAlerta }: Props) {
-  const acento = useAcento();
   const proporcion = maximo > 0 ? Math.max(0, Math.min(1, actual / maximo)) : 0;
   let colorBarra: string = color.exito;
   if (sinAlerta) {
-    colorBarra = acento.acento;
+    colorBarra = color.mana;
   } else if (proporcion <= 0.25) {
     colorBarra = color.peligro;
   } else if (proporcion <= 0.5) {

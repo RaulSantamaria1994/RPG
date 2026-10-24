@@ -61,6 +61,10 @@ export const color = {
   aviso: '#d1a868',
   avisoSuave: '#3a2f1a',
 
+  // El maná siempre es azul, nunca el acento elegible en Opciones — si
+  // alguien elige un acento rojo, el maná no debe teñirse de rojo.
+  mana: '#4f7fc2',
+
   // Un color por tipo de nodo, para que el jugador reconozca de un
   // vistazo si está ante narrativa, una decisión o un combate.
   narrativo: '#5c8a74',
