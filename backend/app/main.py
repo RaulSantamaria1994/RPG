@@ -47,7 +47,13 @@ app = FastAPI(title="RPG narrativo cooperativo", version="0.1.0", lifespan=lifes
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
-    allow_credentials=True,
+    # "*" junto con allow_credentials=True es una combinación inválida según
+    # el spec de CORS: el navegador se niega a adjuntar la cabecera
+    # Access-Control-Allow-Origin y las peticiones fallan con un error de
+    # CORS que no tiene nada que ver con el problema real. La app no usa
+    # cookies (la autenticación va siempre por cabecera Authorization), así
+    # que no hace falta allow_credentials.
+    allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
 )

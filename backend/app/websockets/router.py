@@ -4,6 +4,7 @@ cargar sala, recibir mensajes, cerrar) y la tabla de despacho hacia los
 manejadores de cada tipo de mensaje, repartidos por dominio en `handlers/`.
 """
 
+import logging
 import uuid
 from datetime import datetime, timezone
 
@@ -33,6 +34,7 @@ from app.websockets.handlers.moderacion import (
 from app.websockets.manager import ConexionJugador, gestor
 
 router = APIRouter()
+logger = logging.getLogger(__name__)
 
 MANEJADORES = {
     "interactuar": _manejar_interactuar,
@@ -145,9 +147,15 @@ async def sala_websocket(websocket: WebSocket, codigo: str, token: str = Query(.
                 await manejador(db, sala, conexion, datos)
             except KeyError as exc:
                 await _enviar_error(conexion, f"Falta el campo {exc}.")
-            except Exception as exc:  # noqa: BLE001 - no debe tumbar el socket de toda la sala
+            except Exception:  # noqa: BLE001 - no debe tumbar el socket de toda la sala
                 db.rollback()
-                await _enviar_error(conexion, f"No se pudo procesar la acción: {exc}")
+                # El detalle de la excepción queda en el log del servidor, no
+                # en lo que ve el jugador — mandarle el texto crudo de una
+                # excepción de Python expondría detalles internos (nombres de
+                # columnas, rutas, etc.) sin que le sirva de nada para saber
+                # qué pasó.
+                logger.exception("Fallo al procesar el mensaje '%s' en la sala %s.", tipo, sala.id)
+                await _enviar_error(conexion, "No se pudo procesar la acción. Intentá de nuevo.")
 
     except WebSocketDisconnect:
         pass
