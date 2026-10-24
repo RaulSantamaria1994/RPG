@@ -5,84 +5,23 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../../navigation/types';
 import { Boton, BarraRecurso, EfectoCombate, IconoEvento, IndicadorConexion, Insignia, Tarjeta, TexturaGrano } from '../../components';
-import { useEscalaPresion } from '../../hooks/useEscalaPresion';
 import { api } from '../../services/api';
 import { useSalaStore } from '../../store/salaStore';
 import { useAcento } from '../../store/configStore';
 import type { Atributo, Hechizo } from '../../types';
 import { color, espacio, radio, tipo } from '../../theme';
+import { ETIQUETA_ATRIBUTO } from './juego/comun';
+import PanelInteraccion from './juego/PanelInteraccion';
+import PanelCombate from './juego/PanelCombate';
+import PanelIntercambio from './juego/PanelIntercambio';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'JugadorJuego'>;
-
-function formatearId(id: string): string {
-  return id.replace(/_/g, ' ').replace(/^\w/, (c) => c.toUpperCase());
-}
-
-/** Texto de resumen de la tirada que pide una palabra clave, según cómo esté
- * configurada (tirada enfrentada, con dificultad normal, votación sin tirada,
- * o decisión directa sin tirada). */
-function resumenDeLaTirada(
-  p: { modo_interaccion?: string; atributo?: Atributo; dificultad?: number },
-  esVotacion: boolean
-): string {
-  const nombreAtributo = p.atributo ? ETIQUETA_ATRIBUTO[p.atributo] : '?';
-  if (p.modo_interaccion === 'opuesta') {
-    return `${nombreAtributo} contra un rival`;
-  }
-  if (p.dificultad) {
-    return `${nombreAtributo} · dificultad ${p.dificultad}`;
-  }
-  if (esVotacion) {
-    return 'Sin tirada — gana la opción más votada por el grupo';
-  }
-  return 'Sin tirada — se resuelve al confirmar';
-}
-
-/** Texto que acompaña al enunciado de una palabra clave cuando se vota en
- * grupo, o cuando el grupo entero tiene que confirmarla para resolverse. */
-function sufijoModoGrupal(esVotacion: boolean, modoInteraccion?: string): string {
-  if (esVotacion) return ' (vota el grupo)';
-  if (modoInteraccion === 'grupal') return ' (confirma todo el grupo)';
-  return '';
-}
-
-/** Cuánto cura, o cuánto daña, un objeto usable en combate, en un texto
- * listo para mostrar junto a su nombre. */
-function textoEfectoObjeto(tipo: string | undefined, cantidad: number): string {
-  if (tipo === 'curar_vida') return `+${cantidad} PV`;
-  if (tipo === 'curar_mana') return `+${cantidad} maná`;
-  return `${cantidad} de daño`;
-}
-
-const ETIQUETA_ATRIBUTO: Record<Atributo, string> = {
-  fuerza: 'Fuerza',
-  astucia: 'Astucia',
-  voluntad: 'Voluntad',
-  agilidad: 'Agilidad',
-};
 
 const COLOR_TIPO_NODO: Record<string, string> = {
   narrativo: color.narrativo,
   interactivo: color.interactivo,
   combate: color.combate,
 };
-
-const EFECTOS_HECHIZO_COMBATE = new Set(['dano_directo', 'restaura_vida_o_mana', 'aturdir_enemigo']);
-const EFECTOS_OBJETO_COMBATE = new Set(['curar_vida', 'curar_mana', 'dano']);
-
-/** El botón "Atacar" vive dentro de un `.map` por enemigo, y un hook no se
- * puede llamar directamente ahí dentro — de ahí este pequeño componente
- * aparte, solo para darle el mismo tacto de pulsación que `Boton`. */
-function BotonAtacar({ onPress }: { onPress: () => void }) {
-  const { escala, presionar, soltar } = useEscalaPresion();
-  return (
-    <Animated.View style={{ transform: [{ scale: escala }] }}>
-      <TouchableOpacity style={styles.botonAtacar} onPress={onPress} onPressIn={presionar} onPressOut={soltar}>
-        <Text style={styles.botonAtacarTexto}>Atacar</Text>
-      </TouchableOpacity>
-    </Animated.View>
-  );
-}
 
 export default function JuegoScreen({ navigation }: Props) {
   const insets = useSafeAreaInsets();
@@ -113,17 +52,9 @@ export default function JuegoScreen({ navigation }: Props) {
     insigniaContador: { backgroundColor: acento.acentoFuerte },
     dadoFlotante: { borderColor: acento.acento },
     finalBanner: { backgroundColor: acento.acentoSuave, borderColor: acento.acento },
-    botonHechizo: { borderColor: acento.acento },
-    turnoBannerActivo: { backgroundColor: acento.acentoSuave, borderColor: acento.acentoFuerte },
-    botonDestinatario: { borderColor: acento.acento },
   };
 
-  const [objetoParaDar, setObjetoParaDar] = useState<string | null>(null);
-  const [palabraExpandida, setPalabraExpandida] = useState<string | null>(null);
   const [hechizos, setHechizos] = useState<Hechizo[]>([]);
-  const [seccionCombate, setSeccionCombate] = useState<'objeto' | 'hechizo' | null>(null);
-  const [hechizoElegido, setHechizoElegido] = useState<string | null>(null);
-  const [objetoAtaqueElegido, setObjetoAtaqueElegido] = useState<string | null>(null);
   const [lanzando, setLanzando] = useState(false);
   const [caraDado, setCaraDado] = useState(20);
 
@@ -359,187 +290,18 @@ export default function JuegoScreen({ navigation }: Props) {
         )}
 
         {nodo?.tipo === 'interactivo' && !enCombate && !soyAusente && !soyMuerto && faltanJugadores === 0 && (
-          <View style={{ gap: espacio.sm }}>
-            {nodo.palabras_clave?.map((p) => {
-              const clave = `${estado?.nodo_actual_id}:${p.texto}`;
-              const usada = estado?.palabras_clave_usadas.includes(clave);
-              const bloqueada = !!palabrasBloqueadas[clave];
-              const deshabilitada = usada || bloqueada;
-              const expandida = palabraExpandida === clave;
-
-              const hechizosDisponibles: string[] = [];
-              for (const h of personaje.hechizos_conocidos) {
-                let disponible = false;
-                if (h === p.hechizo_id_alternativo) {
-                  disponible = true;
-                } else if (p.categoria_hechizo_alternativa) {
-                  let categoriaDelHechizo: string | undefined;
-                  for (const x of hechizos) {
-                    if (x.hechizo_id === h) {
-                      categoriaDelHechizo = x.categoria;
-                    }
-                  }
-                  disponible = categoriaDelHechizo === p.categoria_hechizo_alternativa;
-                }
-                if (disponible) {
-                  hechizosDisponibles.push(h);
-                }
-              }
-
-              const esVotacion = p.modo_interaccion === 'grupal' && !p.dificultad;
-              const confirmacion = confirmacionesGrupales[clave];
-
-              const requiereTirada = p.modo_interaccion === 'opuesta' || !!p.dificultad;
-              const resumenTirada = resumenDeLaTirada(p, esVotacion);
-
-              let contenidoRequisito;
-              if (p.modo_interaccion === 'opuesta') {
-                contenidoRequisito = (
-                  <Text style={styles.requisitoTexto}>
-                    Tirada enfrentada: tu {p.atributo ? ETIQUETA_ATRIBUTO[p.atributo] : '?'} (
-                    {p.atributo ? personaje[p.atributo] : '?'}) contra un rival con modificador{' '}
-                    {p.npc_modificador ?? 0}.
-                  </Text>
-                );
-              } else if (p.dificultad) {
-                let coletilla = '.';
-                if (p.modo_interaccion === 'grupal') {
-                  coletilla = ' — cuenta la mejor tirada del grupo, según la regla.';
-                }
-                contenidoRequisito = (
-                  <Text style={styles.requisitoTexto}>
-                    Necesitas sacar {p.dificultad} o más tirando 1d20 +{' '}
-                    {p.atributo ? ETIQUETA_ATRIBUTO[p.atributo] : '?'} (tu{' '}
-                    {p.atributo ? ETIQUETA_ATRIBUTO[p.atributo] : '?'}:{' '}
-                    {p.atributo ? personaje[p.atributo] : '?'})
-                    {coletilla}
-                    {p.dano_fallo ? ` Si falla, ${p.dano_fallo.cantidad} de daño.` : ''}
-                  </Text>
-                );
-              } else {
-                contenidoRequisito = (
-                  <Text style={styles.requisitoTexto}>
-                    Esta acción no requiere tirada: se resuelve al confirmar.
-                  </Text>
-                );
-              }
-
-              function tirar(datosExtra: Record<string, unknown> = {}) {
-                const conDado =
-                  requiereTirada || datosExtra.via === 'hechizo' || datosExtra.rol_apoyo === 'apoyo';
-                if (conDado) {
-                  lanzarDado('interactuar', { palabra_clave: p.texto, ...datosExtra });
-                } else {
-                  enviar('interactuar', { palabra_clave: p.texto, ...datosExtra });
-                }
-                setPalabraExpandida(null);
-              }
-
-              return (
-                <View key={p.texto}>
-                  <TouchableOpacity
-                    disabled={deshabilitada}
-                    onPress={() => setPalabraExpandida(expandida ? null : clave)}
-                    activeOpacity={0.85}
-                  >
-                    <Tarjeta
-                      acento={color.interactivo}
-                      seleccionada={expandida}
-                      atenuada={deshabilitada}
-                      style={styles.tarjetaPalabra}
-                    >
-                      <View style={styles.filaPalabraCabecera}>
-                        <View style={{ flex: 1 }}>
-                          <Text style={styles.textoPalabra}>
-                            {p.texto}
-                            {sufijoModoGrupal(esVotacion, p.modo_interaccion)}
-                          </Text>
-                          {!deshabilitada && (
-                            <Text style={styles.subtextoPalabra}>
-                              {requiereTirada && (
-                                <MaterialCommunityIcons name="dice-d20-outline" size={12} color={color.textoSecundario} />
-                              )}
-                              {requiereTirada ? ' ' : ''}
-                              {resumenTirada}
-                            </Text>
-                          )}
-                        </View>
-                        {usada && <Insignia texto="agotada" />}
-                        {bloqueada && !usada && <Insignia texto="en curso…" tono="aviso" />}
-                      </View>
-
-                      {esVotacion && votosGrupales && !usada && (
-                        <View style={styles.filaVotosOpcion}>
-                          <Insignia
-                            texto={`${votosGrupales.recuento[p.texto] ?? 0} voto(s) a esta opción`}
-                            tono="acento"
-                          />
-                          <Insignia texto={`${votosGrupales.votados}/${votosGrupales.total} han votado`} tono="aviso" />
-                        </View>
-                      )}
-                      {!esVotacion && p.modo_interaccion === 'grupal' && confirmacion && !usada && (
-                        <Insignia
-                          texto={`Confirmados: ${confirmacion.confirmados}/${confirmacion.total}`}
-                          tono="aviso"
-                        />
-                      )}
-
-                      {expandida && !deshabilitada && (
-                        <View style={styles.panelExpandido}>
-                          {contenidoRequisito}
-
-                          <Boton
-                            texto={requiereTirada ? 'Tirar dado' : 'Confirmar'}
-                            icono={
-                              requiereTirada ? (
-                                <MaterialCommunityIcons name="dice-d20-outline" size={17} color={color.textoSobreAcento} />
-                              ) : undefined
-                            }
-                            onPress={() => tirar()}
-                          />
-
-                          {p.modo_interaccion === 'apoyo' && (
-                            <TouchableOpacity
-                              style={styles.botonApoyo}
-                              onPress={() => tirar({ rol_apoyo: 'apoyo' })}
-                            >
-                              <Text style={styles.botonApoyoTexto}>
-                                Ayudar con{' '}
-                                {p.atributo_apoyo ? ETIQUETA_ATRIBUTO[p.atributo_apoyo] : 'otro atributo'} —
-                                dificultad {p.dificultad_apoyo ?? p.dificultad ?? 10} (da ventaja a quien actúe)
-                              </Text>
-                            </TouchableOpacity>
-                          )}
-
-                          {hechizosDisponibles.map((h) => {
-                            let info;
-                            for (const x of hechizos) {
-                              if (x.hechizo_id === h) {
-                                info = x;
-                              }
-                            }
-                            return (
-                              <TouchableOpacity
-                                key={h}
-                                style={[styles.botonHechizo, estilosAcento.botonHechizo]}
-                                onPress={() => tirar({ via: 'hechizo', hechizo_id: h })}
-                              >
-                                <Text style={styles.botonHechizoTexto}>
-                                  <MaterialCommunityIcons name="dice-d20-outline" size={13} color={color.textoSecundario} />{' '}
-                                  Lanzar {info?.nombre ?? formatearId(h)} (vía mágica) — dificultad{' '}
-                                  {info?.dificultad ?? '?'}, coste {info?.coste_mana ?? '?'} maná
-                                </Text>
-                              </TouchableOpacity>
-                            );
-                          })}
-                        </View>
-                      )}
-                    </Tarjeta>
-                  </TouchableOpacity>
-                </View>
-              );
-            })}
-          </View>
+          <PanelInteraccion
+            nodo={nodo}
+            nodoActualId={estado?.nodo_actual_id ?? ''}
+            palabrasClaveUsadas={estado?.palabras_clave_usadas ?? []}
+            palabrasBloqueadas={palabrasBloqueadas}
+            confirmacionesGrupales={confirmacionesGrupales}
+            votosGrupales={votosGrupales}
+            personaje={personaje}
+            hechizos={hechizos}
+            lanzarDado={lanzarDado}
+            enviar={enviar}
+          />
         )}
 
         {estado?.finalizada ? (
@@ -551,339 +313,26 @@ export default function JuegoScreen({ navigation }: Props) {
         )}
 
         {enCombate && (
-          <View style={{ gap: espacio.sm }}>
-            <View style={styles.filaTituloCombate}>
-              <MaterialCommunityIcons name="sword-cross" size={14} color={color.textoSecundario} />
-              <Text style={styles.tituloSeccion}>COMBATE — RONDA {estado!.combate!.ronda}</Text>
-            </View>
-            <View style={[styles.turnoBanner, esMiTurno && [styles.turnoBannerActivo, estilosAcento.turnoBannerActivo]]}>
-              <Text style={styles.turnoBannerTexto}>
-                {esMiTurno && <Ionicons name="play" size={13} color={color.texto} />}
-                {esMiTurno ? ' Es tu turno' : `Esperando a ${personajeEnTurno?.nombre ?? 'otro jugador'}…`}
-              </Text>
-            </View>
-            {estado!.combate!.enemigos.map((en) => (
-              <Tarjeta key={en.enemigo_id} acento={color.combate} atenuada={en.derrotado} style={styles.tarjetaEnemigo}>
-                <View style={styles.filaEnemigoCabecera}>
-                  <Text style={styles.enemigoNombre}>
-                    {en.nombre}{' '}
-                    {en.derrotado && <Ionicons name="skull-outline" size={13} color={color.textoTenue} />}
-                    {en.aturdido && (
-                      <>
-                        <Ionicons name="sparkles-outline" size={13} color={color.aviso} /> aturdido
-                      </>
-                    )}
-                  </Text>
-                  {esMiTurno && !en.derrotado && (
-                    <BotonAtacar
-                      onPress={() => lanzarDado('combate_accion', { accion: 'atacar', enemigo_id: en.enemigo_id })}
-                    />
-                  )}
-                </View>
-                <BarraRecurso etiqueta="PV" actual={en.vida} maximo={en.vida_max} />
-                {esMiTurno && !en.derrotado && (
-                  <Text style={styles.enemigoSubtexto}>
-                    <MaterialCommunityIcons name="dice-d20-outline" size={11} color={color.textoTenue} /> Fuerza vs
-                    defensa ({en.atributos?.defensa ?? 10})
-                    {!!personaje.arma_equipada?.bono_dano &&
-                      ` · ${personaje.arma_equipada.nombre} (+${personaje.arma_equipada.bono_dano} daño)`}
-                  </Text>
-                )}
-              </Tarjeta>
-            ))}
-            {esMiTurno && (
-              <>
-                <View style={{ flexDirection: 'row', gap: espacio.sm }}>
-                  <View style={{ flex: 1, gap: 4 }}>
-                    <Boton
-                      texto="Huir"
-                      variante="secundario"
-                      onPress={() => lanzarDado('combate_accion', { accion: 'huir' })}
-                    />
-                    <Text style={styles.accionSubtexto}>
-                      <MaterialCommunityIcons name="dice-d20-outline" size={11} color={color.textoTenue} /> Agilidad ·
-                      dificultad {estado!.combate!.dificultad_huida ?? 12}
-                    </Text>
-                  </View>
-                  <View style={{ flex: 1, gap: 4 }}>
-                    <Boton
-                      texto="Negociar"
-                      variante="secundario"
-                      onPress={() => lanzarDado('combate_accion', { accion: 'negociar' })}
-                    />
-                    <Text style={styles.accionSubtexto}>
-                      <MaterialCommunityIcons name="dice-d20-outline" size={11} color={color.textoTenue} /> Astucia ·
-                      dificultad {estado!.combate!.dificultad_negociacion ?? 13}
-                    </Text>
-                  </View>
-                </View>
-
-                {(() => {
-                  const objetosUsables = [];
-                  for (const o of personaje.inventario) {
-                    if (o.efecto?.tipo && EFECTOS_OBJETO_COMBATE.has(o.efecto.tipo)) {
-                      objetosUsables.push({ ...o, deGrupo: false });
-                    }
-                  }
-                  for (const o of estado?.inventario_grupo ?? []) {
-                    if (o.efecto?.tipo && EFECTOS_OBJETO_COMBATE.has(o.efecto.tipo)) {
-                      objetosUsables.push({ ...o, deGrupo: true });
-                    }
-                  }
-
-                  const hechizosCombate = [];
-                  for (const h of hechizos) {
-                    const loConoce =
-                      personaje.hechizos_conocidos.includes(h.hechizo_id) ||
-                      personaje.hechizo_equipado?.hechizo_id === h.hechizo_id;
-                    if (loConoce && h.efecto && EFECTOS_HECHIZO_COMBATE.has(h.efecto)) {
-                      hechizosCombate.push(h);
-                    }
-                  }
-
-                  let hechizo;
-                  for (const h of hechizosCombate) {
-                    if (h.hechizo_id === hechizoElegido) {
-                      hechizo = h;
-                    }
-                  }
-
-                  const enemigosVivos = [];
-                  for (const en of estado!.combate!.enemigos) {
-                    if (!en.derrotado) {
-                      enemigosVivos.push(en);
-                    }
-                  }
-
-                  // Un personaje muerto de forma permanente no se puede
-                  // revivir con esto — ver el gasto de maná y el turno en nada.
-                  const destinatariosElegibles = [];
-                  for (const p of personajes) {
-                    if (p.estado !== 'ausente' && p.estado !== 'muerto') {
-                      destinatariosElegibles.push(p);
-                    }
-                  }
-
-                  return (
-                    <View style={{ gap: espacio.sm }}>
-                      <View style={{ flexDirection: 'row', gap: espacio.sm }}>
-                        <Boton
-                          texto={`Usar objeto (${objetosUsables.length})`}
-                          variante="secundario"
-                          flex
-                          onPress={() => {
-                            setSeccionCombate(seccionCombate === 'objeto' ? null : 'objeto');
-                            setHechizoElegido(null);
-                            setObjetoAtaqueElegido(null);
-                          }}
-                        />
-                        <Boton
-                          texto={`Lanzar hechizo (${hechizosCombate.length})`}
-                          variante="secundario"
-                          flex
-                          onPress={() => {
-                            setSeccionCombate(seccionCombate === 'hechizo' ? null : 'hechizo');
-                            setHechizoElegido(null);
-                            setObjetoAtaqueElegido(null);
-                          }}
-                        />
-                      </View>
-
-                      {seccionCombate === 'objeto' && !objetoAtaqueElegido && (
-                        <View style={styles.panelExpandido}>
-                          {objetosUsables.length === 0 && (
-                            <Text style={styles.requisitoTexto}>No tienes objetos usables en combate.</Text>
-                          )}
-                          {objetosUsables.map((o, idx) => (
-                            <TouchableOpacity
-                              key={`${idx}-${o.objeto_id}`}
-                              style={[styles.botonHechizo, estilosAcento.botonHechizo]}
-                              onPress={() => {
-                                if (o.efecto?.tipo === 'dano') {
-                                  setObjetoAtaqueElegido(o.objeto_id);
-                                  return;
-                                }
-                                enviar('combate_accion', { accion: 'objeto', objeto_id: o.objeto_id });
-                                setSeccionCombate(null);
-                              }}
-                            >
-                              <Text style={styles.botonHechizoTexto}>
-                                {o.nombre} — {textoEfectoObjeto(o.efecto?.tipo, o.efecto?.cantidad ?? 0)}
-                                {o.deGrupo ? ' (del grupo)' : ''}
-                              </Text>
-                            </TouchableOpacity>
-                          ))}
-                        </View>
-                      )}
-
-                      {seccionCombate === 'objeto' && objetoAtaqueElegido && (
-                        <View style={styles.panelExpandido}>
-                          <Text style={styles.requisitoTexto}>Elige a qué enemigo usarlo:</Text>
-                          {enemigosVivos.map((en) => (
-                            <TouchableOpacity
-                              key={en.enemigo_id}
-                              style={[styles.botonHechizo, estilosAcento.botonHechizo]}
-                              onPress={() => {
-                                enviar('combate_accion', {
-                                  accion: 'objeto',
-                                  objeto_id: objetoAtaqueElegido,
-                                  enemigo_id: en.enemigo_id,
-                                });
-                                setObjetoAtaqueElegido(null);
-                                setSeccionCombate(null);
-                              }}
-                            >
-                              <Text style={styles.botonHechizoTexto}>{en.nombre}</Text>
-                            </TouchableOpacity>
-                          ))}
-                          <TouchableOpacity onPress={() => setObjetoAtaqueElegido(null)}>
-                            <Text style={styles.botonApoyoTexto}>‹ Elegir otro objeto</Text>
-                          </TouchableOpacity>
-                        </View>
-                      )}
-
-                      {seccionCombate === 'hechizo' && !hechizo && (
-                        <View style={styles.panelExpandido}>
-                          {hechizosCombate.length === 0 && (
-                            <Text style={styles.requisitoTexto}>No conoces hechizos usables en combate.</Text>
-                          )}
-                          {hechizosCombate.map((h) => (
-                            <TouchableOpacity
-                              key={h.hechizo_id}
-                              style={[styles.botonHechizo, estilosAcento.botonHechizo]}
-                              onPress={() => setHechizoElegido(h.hechizo_id)}
-                            >
-                              <Text style={styles.botonHechizoTexto}>
-                                <MaterialCommunityIcons name="dice-d20-outline" size={13} color={color.textoSecundario} />{' '}
-                                {h.nombre} — dificultad {h.dificultad}, coste {h.coste_mana} maná (tienes{' '}
-                                {personaje.mana_actual})
-                              </Text>
-                            </TouchableOpacity>
-                          ))}
-                        </View>
-                      )}
-
-                      {seccionCombate === 'hechizo' && hechizo && (
-                        <View style={styles.panelExpandido}>
-                          <Text style={styles.requisitoTexto}>Elige el objetivo de {hechizo.nombre}:</Text>
-                          {hechizo.efecto === 'restaura_vida_o_mana'
-                            ? destinatariosElegibles.map((destino) => (
-                                <TouchableOpacity
-                                  key={destino.id}
-                                  style={[styles.botonHechizo, estilosAcento.botonHechizo]}
-                                  onPress={() => {
-                                    lanzarDado('combate_accion', {
-                                      accion: 'hechizo',
-                                      hechizo_id: hechizo.hechizo_id,
-                                      objetivo_personaje_id: destino.id,
-                                    });
-                                    setHechizoElegido(null);
-                                    setSeccionCombate(null);
-                                  }}
-                                >
-                                  <Text style={styles.botonHechizoTexto}>{destino.nombre}</Text>
-                                </TouchableOpacity>
-                              ))
-                            : enemigosVivos.map((en) => (
-                                <TouchableOpacity
-                                  key={en.enemigo_id}
-                                  style={[styles.botonHechizo, estilosAcento.botonHechizo]}
-                                  onPress={() => {
-                                    lanzarDado('combate_accion', {
-                                      accion: 'hechizo',
-                                      hechizo_id: hechizo.hechizo_id,
-                                      objetivo_enemigo_id: en.enemigo_id,
-                                    });
-                                    setHechizoElegido(null);
-                                    setSeccionCombate(null);
-                                  }}
-                                >
-                                  <Text style={styles.botonHechizoTexto}>{en.nombre}</Text>
-                                </TouchableOpacity>
-                              ))}
-                          <TouchableOpacity onPress={() => setHechizoElegido(null)}>
-                            <Text style={styles.botonApoyoTexto}>‹ Elegir otro hechizo</Text>
-                          </TouchableOpacity>
-                        </View>
-                      )}
-                    </View>
-                  );
-                })()}
-              </>
-            )}
-          </View>
+          <PanelCombate
+            combate={estado!.combate!}
+            esMiTurno={!!esMiTurno}
+            personajeEnTurnoNombre={personajeEnTurno?.nombre}
+            personaje={personaje}
+            personajes={personajes}
+            hechizos={hechizos}
+            inventarioGrupo={estado?.inventario_grupo ?? []}
+            lanzarDado={lanzarDado}
+            enviar={enviar}
+          />
         )}
 
-        {propuestasParaMi.map((p) => (
-          <Tarjeta key={p.clave} acento={color.aviso} style={styles.tarjetaPropuesta}>
-            <Text style={styles.propuestaTexto}>
-              {p.origen_personaje_nombre} te ofrece "{p.objeto_nombre}"
-            </Text>
-            <TouchableOpacity
-              style={styles.botonAceptar}
-              onPress={() =>
-                enviar('intercambio_confirmar', {
-                  origen_personaje_id: p.origen_personaje_id,
-                  objeto_id: p.objeto_id,
-                })
-              }
-            >
-              <Text style={styles.botonAceptarTexto}>Aceptar</Text>
-            </TouchableOpacity>
-          </Tarjeta>
-        ))}
-
-        {(estado?.inventario_grupo.length ?? 0) > 0 && (
-          <View style={{ gap: espacio.sm }}>
-            <Text style={styles.tituloSeccion}>INVENTARIO DEL GRUPO</Text>
-            <Text style={styles.notaInventario}>
-              Común para todos: cualquiera puede usar estos objetos, sin pedirlos.
-            </Text>
-            {estado!.inventario_grupo.map((o, idx) => (
-              <Tarjeta key={`${idx}-${o.objeto_id}`} acento={acento.acento} style={{ paddingVertical: espacio.sm }}>
-                <Text style={styles.objetoNombre}>{o.nombre}</Text>
-              </Tarjeta>
-            ))}
-          </View>
-        )}
-
-        {personaje.inventario.length > 0 && (
-          <View style={{ gap: espacio.sm }}>
-            <Text style={styles.tituloSeccion}>INVENTARIO PERSONAL</Text>
-            {personaje.inventario.map((o) => (
-              <Tarjeta key={o.objeto_id} style={{ paddingVertical: espacio.sm }}>
-                <TouchableOpacity onPress={() => setObjetoParaDar(objetoParaDar === o.objeto_id ? null : o.objeto_id)}>
-                  <Text style={styles.objetoNombre}>
-                    {o.nombre} {objetoParaDar === o.objeto_id ? '▲' : '▼ dar…'}
-                  </Text>
-                </TouchableOpacity>
-                {objetoParaDar === o.objeto_id && (
-                  <View style={styles.filaDestinatarios}>
-                    {companeros
-                      .map((otro) => (
-                        <TouchableOpacity
-                          key={otro.id}
-                          style={[styles.botonDestinatario, estilosAcento.botonDestinatario]}
-                          onPress={() => {
-                            enviar('intercambio_proponer', {
-                              objeto_id: o.objeto_id,
-                              destino_personaje_id: otro.id,
-                            });
-                            setObjetoParaDar(null);
-                          }}
-                        >
-                          <Text style={styles.botonDestinatarioTexto}>{otro.nombre}</Text>
-                        </TouchableOpacity>
-                      ))}
-                    {personajes.length <= 1 && (
-                      <Text style={styles.notaInventario}>No hay a quién dárselo todavía.</Text>
-                    )}
-                  </View>
-                )}
-              </Tarjeta>
-            ))}
-          </View>
-        )}
+        <PanelIntercambio
+          propuestas={propuestasParaMi}
+          inventarioGrupo={estado?.inventario_grupo ?? []}
+          inventarioPersonal={personaje.inventario}
+          companeros={companeros}
+          enviar={enviar}
+        />
       </ScrollView>
 
       <View style={styles.panelLog}>
@@ -999,70 +448,6 @@ const styles = StyleSheet.create({
   companeroBloque: { gap: 6, paddingVertical: espacio.xs, borderTopWidth: 1, borderTopColor: color.bordeSutil },
   companeroCabecera: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: espacio.sm },
   companeroNombre: { color: color.texto, fontWeight: '700', fontSize: 13, flex: 1 },
-  filaTituloCombate: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  tarjetaPalabra: { gap: espacio.xs },
-  filaPalabraCabecera: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', gap: espacio.sm },
-  filaVotosOpcion: { flexDirection: 'row', flexWrap: 'wrap', gap: espacio.xs, marginTop: 4 },
-  textoPalabra: { color: color.texto, fontSize: 15, fontWeight: '600' },
-  subtextoPalabra: { color: color.textoSecundario, fontSize: 12, marginTop: 3 },
-  panelExpandido: {
-    backgroundColor: color.fondoElevado,
-    borderRadius: radio.md,
-    padding: espacio.sm,
-    marginTop: 4,
-    gap: espacio.sm,
-  },
-  requisitoTexto: { color: color.textoSecundario, fontSize: 13, lineHeight: 18 },
-  botonHechizo: {
-    backgroundColor: color.superficie,
-    borderRadius: radio.md,
-    padding: 10,
-    borderWidth: 1,
-    borderColor: color.acento,
-  },
-  botonHechizoTexto: { color: color.textoSecundario, fontSize: 13 },
-  turnoBanner: {
-    backgroundColor: color.superficie,
-    borderRadius: radio.md,
-    paddingVertical: 10,
-    paddingHorizontal: espacio.md,
-    borderWidth: 1,
-    borderColor: color.bordeSutil,
-    alignItems: 'center',
-  },
-  turnoBannerActivo: { backgroundColor: color.acentoSuave, borderColor: color.acentoFuerte },
-  turnoBannerTexto: { color: color.texto, fontWeight: '700', fontSize: 14 },
-  tarjetaEnemigo: { gap: espacio.xs },
-  filaEnemigoCabecera: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  enemigoNombre: { color: color.texto, fontWeight: '600', flex: 1 },
-  enemigoSubtexto: { color: color.textoTenue, fontSize: 11 },
-  accionSubtexto: { color: color.textoTenue, fontSize: 11, textAlign: 'center' },
-  botonAtacar: { backgroundColor: color.peligroFuerte, borderRadius: radio.sm, paddingHorizontal: 12, paddingVertical: 6 },
-  botonAtacarTexto: { color: '#fff', fontWeight: '600' },
-  notaInventario: { color: color.textoSecundario, fontSize: 12 },
-  botonApoyo: {
-    backgroundColor: color.superficie,
-    borderRadius: radio.md,
-    padding: 10,
-    borderWidth: 1,
-    borderColor: '#6f9fd0',
-  },
-  botonApoyoTexto: { color: '#b8d8ff', fontSize: 13 },
-  tarjetaPropuesta: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  propuestaTexto: { color: color.texto, flex: 1, marginRight: espacio.sm, fontSize: 13 },
-  botonAceptar: { backgroundColor: color.exito, borderRadius: radio.sm, paddingHorizontal: 12, paddingVertical: 8 },
-  botonAceptarTexto: { color: '#17301f', fontWeight: '700' },
-  objetoNombre: { color: color.texto },
-  filaDestinatarios: { flexDirection: 'row', flexWrap: 'wrap', gap: espacio.sm, marginTop: espacio.sm },
-  botonDestinatario: {
-    backgroundColor: color.superficieAlt,
-    borderWidth: 1,
-    borderColor: color.acento,
-    borderRadius: radio.sm,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-  },
-  botonDestinatarioTexto: { color: color.texto, fontSize: 12 },
   panelLog: {
     height: 100,
     borderTopWidth: 1,

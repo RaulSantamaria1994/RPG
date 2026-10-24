@@ -3,7 +3,7 @@
 Una partida puede quedar abierta días sin que nadie vuelva: el máster no
 cierra la sala explícitamente, simplemente nadie reconecta. `Sala.
 ultima_actividad_en` ya se actualiza con cada mensaje WS (ver
-`app.websockets.sala_ws.sala_websocket`); aquí solo se usa ese dato para
+`app.websockets.router.sala_websocket`); aquí solo se usa ese dato para
 decidir qué salas llevan demasiado tiempo quietas y borrarlas, junto con
 todo lo que cuelga de ellas por cascada (estado, personajes, inventario).
 """

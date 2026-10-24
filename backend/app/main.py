@@ -9,7 +9,7 @@ from app.config import get_settings
 from app.database import SessionLocal
 from app.mantenimiento import limpiar_salas_expiradas
 from app.routers import historias, personajes, salas
-from app.websockets.sala_ws import router as ws_router
+from app.websockets.router import router as ws_router
 
 settings = get_settings()
 logger = logging.getLogger("app.mantenimiento")
