@@ -50,15 +50,22 @@ jobs:
       - name: Generar proyecto nativo Android
         run: npx expo prebuild --platform android --non-interactive
 
-      - name: Compilar APK de depuración
+      # Se compila "release" y no "debug": un APK debug no lleva el JS
+      # empaquetado dentro, espera un Metro corriendo en el ordenador que
+      # lo generó ("Unable to load script... Make sure you're running
+      # Metro"), así que no sirve como APK instalable suelto. El release
+      # sí empaqueta el JS en los propios assets del APK, y Expo lo firma
+      # por defecto con la misma clave de depuración (no hace falta
+      # keystore propio para esto, solo para publicarlo en Play Store).
+      - name: Compilar APK
         working-directory: app/android
-        run: ./gradlew assembleDebug --no-daemon
+        run: ./gradlew assembleRelease --no-daemon
 
       - name: Subir APK como artefacto
         uses: actions/upload-artifact@v4
         with:
-          name: rpg-narrativo-debug-apk
-          path: app/android/app/build/outputs/apk/debug/app-debug.apk
+          name: rpg-narrativo-apk
+          path: app/android/app/build/outputs/apk/release/app-release.apk
           retention-days: 14
 
       - name: Publicar el APK como release descargable
@@ -67,6 +74,6 @@ jobs:
           tag_name: apk-${{ github.run_id }}
           name: "RPG Narrativo APK (build ${{ github.run_number }})"
           prerelease: true
-          files: app/android/app/build/outputs/apk/debug/app-debug.apk
+          files: app/android/app/build/outputs/apk/release/app-release.apk
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
