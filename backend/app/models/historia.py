@@ -26,6 +26,12 @@ class Historia(Base):
     validada: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     errores_validacion: Mapped[list | None] = mapped_column(JSONVariant, nullable=True)
 
+    # Distinto de `validada` (correcta estructuralmente): esta controla si
+    # aparece en el selector del máster. Una historia puede estar validada
+    # pero no publicada todavía, mientras se prueba antes de que la vea
+    # cualquiera.
+    publicada: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+
     creada_en: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=lambda: datetime.now(timezone.utc)
     )

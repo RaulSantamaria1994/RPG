@@ -10,6 +10,7 @@ from pathlib import Path
 os.environ.setdefault(
     "DATABASE_URL", "postgresql+psycopg://rpg:rpg@localhost:5432/rpg_test"
 )
+os.environ.setdefault("ADMIN_TOKEN", "token-admin-de-pruebas")
 
 import pytest  # noqa: E402
 import uvicorn  # noqa: E402
@@ -55,6 +56,11 @@ def client():
 
 
 @pytest.fixture()
+def admin_headers() -> dict:
+    return {"X-Admin-Token": os.environ["ADMIN_TOKEN"]}
+
+
+@pytest.fixture()
 def contenido_cuervo_negro() -> dict:
     return json.loads(SEED_PATH.read_text(encoding="utf-8"))
 
@@ -70,6 +76,7 @@ def historia_cuervo_negro(db, contenido_cuervo_negro):
         version=1,
         contenido=contenido_cuervo_negro,
         validada=True,
+        publicada=True,
     )
     db.add(historia)
     db.commit()
@@ -93,6 +100,7 @@ def historia_ala_norte(db, contenido_ala_norte):
         version=1,
         contenido=contenido_ala_norte,
         validada=True,
+        publicada=True,
     )
     db.add(historia)
     db.commit()

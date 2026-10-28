@@ -44,6 +44,7 @@ def cargar_historia(db, nombre_archivo: str) -> Historia:
         contenido=contenido,
         validada=True,
         errores_validacion=None,
+        publicada=True,
     )
     db.add(historia)
     db.flush()

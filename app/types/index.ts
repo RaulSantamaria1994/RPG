@@ -18,6 +18,7 @@ export interface HistoriaResumen {
   titulo: string;
   version: number;
   validada: boolean;
+  publicada: boolean;
 }
 
 export interface PersonajePregenerado {

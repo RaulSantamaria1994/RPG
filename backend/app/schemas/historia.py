@@ -11,6 +11,7 @@ class HistoriaResumen(BaseModel):
     titulo: str
     version: int
     validada: bool
+    publicada: bool
 
 
 class HistoriaDetalle(HistoriaResumen):

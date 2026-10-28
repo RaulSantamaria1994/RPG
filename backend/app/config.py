@@ -14,6 +14,12 @@ class Settings(BaseSettings):
     jwt_algorithm: str = "HS256"
     jwt_expire_minutes: int = 60 * 24 * 7
 
+    # Token fijo (no JWT) para los endpoints de administración de contenido
+    # (subir/publicar historias). Vacío por defecto: con él vacío, esos
+    # endpoints rechazan cualquier petición — hay que fijarlo explícitamente
+    # por variable de entorno antes de poder usarlos en ningún entorno.
+    admin_token: str = ""
+
     codigo_sala_longitud: int = 6
     sala_max_jugadores_duro: int = 6
 

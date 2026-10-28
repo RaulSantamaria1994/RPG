@@ -4,6 +4,7 @@ contraseñas: la posesión del código de sala (y del token una vez unido) es
 la barrera de acceso, como describe el spec de seguridad de sala.
 """
 
+import hmac
 import uuid
 from datetime import datetime, timedelta, timezone
 from typing import Literal
@@ -57,3 +58,16 @@ def requerir_token(authorization: str | None = Header(default=None)) -> TokenPay
             status_code=status.HTTP_401_UNAUTHORIZED, detail="Falta el token de sesión."
         )
     return decodificar_token(authorization.split(" ", 1)[1])
+
+
+def requerir_admin(x_admin_token: str | None = Header(default=None)) -> None:
+    """Guarda los endpoints de administración de contenido (subir/publicar
+    historias). No es un JWT de sala: es un token fijo de administrador,
+    configurado por variable de entorno (`admin_token`). Si no está
+    configurado, estos endpoints quedan cerrados en cualquier entorno."""
+    if not settings.admin_token or not x_admin_token or not hmac.compare_digest(
+        x_admin_token, settings.admin_token
+    ):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED, detail="Token de administrador inválido."
+        )

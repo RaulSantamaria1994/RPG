@@ -11,15 +11,19 @@ from app.schemas.historia import (
     HistoriaResumen,
     HistoriaValidarOut,
 )
+from app.security import requerir_admin
 
 router = APIRouter(prefix="/historias", tags=["historias"])
 
 
 @router.get("", response_model=list[HistoriaResumen])
 def listar_historias(db: Session = Depends(get_db)):
-    """Última versión de cada historia disponible (para el selector del máster)."""
+    """Última versión PUBLICADA de cada historia (para el selector del
+    máster). Una historia puede estar validada y aun así no aparecer aquí
+    si todavía no se ha publicado."""
     subq = (
         db.query(Historia.historia_id, func.max(Historia.version).label("max_version"))
+        .filter(Historia.publicada.is_(True))
         .group_by(Historia.historia_id)
         .subquery()
     )
@@ -56,12 +60,21 @@ def validar_contenido_historia(payload: HistoriaCrear):
     return HistoriaValidarOut(valida=resultado.valida, errores=resultado.errores)
 
 
-@router.post("", response_model=HistoriaDetalle, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "",
+    response_model=HistoriaDetalle,
+    status_code=status.HTTP_201_CREATED,
+    dependencies=[Depends(requerir_admin)],
+)
 def crear_historia(payload: HistoriaCrear, db: Session = Depends(get_db)):
     """Sube una nueva historia o una nueva versión de una existente.
 
     Si `historia_id` ya existe, se crea automáticamente la siguiente versión
     para no romper las salas en curso ancladas a la versión anterior.
+    Entra sin publicar (`publicada=False`): no aparece en el selector del
+    máster hasta llamar a `POST /historias/{historia_id}/publicar`, pero ya
+    se puede probar creando una sala directamente contra su `historia_id`
+    si quedó validada.
     """
     contenido = payload.contenido
     historia_id = contenido.get("historia_id")
@@ -85,8 +98,37 @@ def crear_historia(payload: HistoriaCrear, db: Session = Depends(get_db)):
         contenido=contenido,
         validada=resultado.valida,
         errores_validacion=resultado.errores or None,
+        publicada=False,
     )
     db.add(historia)
+    db.commit()
+    db.refresh(historia)
+    return historia
+
+
+@router.post(
+    "/{historia_id}/publicar",
+    response_model=HistoriaDetalle,
+    dependencies=[Depends(requerir_admin)],
+)
+def publicar_historia(historia_id: str, db: Session = Depends(get_db)):
+    """Publica la última versión validada de `historia_id`: a partir de
+    ahora aparece en el selector del máster. Las versiones anteriores de la
+    misma historia quedan despublicadas (solo la más reciente es visible),
+    sin que eso afecte a las salas ya creadas con ellas."""
+    historia = (
+        db.query(Historia)
+        .filter(Historia.historia_id == historia_id, Historia.validada.is_(True))
+        .order_by(Historia.version.desc())
+        .first()
+    )
+    if not historia:
+        raise HTTPException(
+            status.HTTP_404_NOT_FOUND, "No hay ninguna versión validada de esa historia."
+        )
+
+    db.query(Historia).filter(Historia.historia_id == historia_id).update({"publicada": False})
+    historia.publicada = True
     db.commit()
     db.refresh(historia)
     return historia
