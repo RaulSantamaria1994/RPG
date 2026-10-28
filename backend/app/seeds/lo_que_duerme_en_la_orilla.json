@@ -1,0 +1,1071 @@
+{
+  "historia_id": "lo_que_duerme_en_la_orilla",
+  "titulo": "Lo que duerme en la orilla",
+  "version": 1,
+  "muerte_permanente": true,
+  "nodo_inicial": "i001",
+  "nodo_muerte_total": "n_muerte_total",
+  "pistas": {
+    "vio_simbolo_cabana": "Visteis un símbolo pintado en la puerta de la cabaña del encargado, gastado por los años, repetido una y otra vez siempre igual.",
+    "marcos_abandonado_solo": "Dejasteis a Marcos escondido entre los juncos, solo, para poder seguir el rastro hacia la piedra.",
+    "sabe_ubicacion_altar": "Urbano os dijo dónde está la piedra del pacto, más allá de la orilla, en un claro del bosque.",
+    "urbano_colaboro": "Urbano confesó la verdad sobre el pacto de su familia con el lago, y os dejó ir antes de perder el control de sí mismo.",
+    "confirmado_leyenda_caseta": "Encontrasteis fotografías viejas en la caseta: generaciones de la misma familia, siempre junto al lago, cargando con lo mismo.",
+    "tiempo_perdido": "Rodeasteis por el camino largo en vez de cruzar el puente roto. Llegasteis al pueblo mucho más tarde de lo que hacía falta."
+  },
+  "desenlace_tetrico_generico": "No hay un instante exacto en que puedas señalar que algo salió mal, solo la certeza, demasiado tarde, de que ya no va a arreglarse. El grupo sigue adelante sin ti, con un hueco que nadie sabrá explicar del todo. Tu historia termina aquí, en la orilla de un lago que ya ha cobrado lo que venía a cobrar.",
+  "desenlaces_tetricos": {
+    "dario_ferraz": "Lo último que piensas es que deberías haber tenido un plan mejor. No lo tenías. Nadie lo tenía. Pero eras tú quien se había pasado la semana organizando esta noche para que saliera bien, y en algún lugar, mientras todo se apaga, sigues sintiendo que era responsabilidad tuya que saliera bien.",
+    "sara_montiel": "No llegas a saber qué fue de Marcos. Esa es, al final, la peor parte: no el dolor, no el miedo, sino quedarte sin saberlo, con la última pregunta de la noche sin respuesta y sin nadie que pueda dártela ya.",
+    "ivan_casals": "Lo último que dijiste fue una broma. No te acuerdas de cuál. Nadie se va a acordar tampoco, y de todas las cosas de esta noche, es la que más te habría gustado poder cambiar.",
+    "claudia_reyero": "Tenías razón. Las fechas cuadraban, el patrón era real, y entenderlo no sirvió de nada cuando hizo falta. Hay un tipo de certeza que no ayuda a nadie a sobrevivir, y la tuya era de esas.",
+    "alba_cerezo": "En algún punto de esta noche dejaste de ser quien escuchaba la historia de tu abuela y empezaste a ser parte de ella. No llegaste a decidir el momento exacto. Nadie lo decide nunca.",
+    "nadia_puig": "Le prometiste que no la iba a dejar sola. Lo decías en serio, y durante un rato fue verdad. Esa es la parte que te queda, al final: que fue verdad durante un rato."
+  },
+  "hechizos": [],
+  "habilidades_pasivas_personalizado": [
+    {
+      "id": "palabra_firme",
+      "nombre": "Palabra firme",
+      "descripcion": "Ventaja en la primera tirada de convencer de cada nodo: sabe mantener la calma cuando el grupo está en desacuerdo."
+    },
+    {
+      "id": "no_doy_un_paso_atras",
+      "nombre": "No doy un paso atrás",
+      "descripcion": "Ventaja en el primer ataque de cada combate."
+    },
+    {
+      "id": "nunca_se_lo_cree_del_todo",
+      "nombre": "Nunca se lo cree del todo",
+      "descripcion": "Ventaja en la primera tirada de examinar de cada nodo: siempre busca una explicación racional, incluso cuando no la hay."
+    },
+    {
+      "id": "ha_leido_sobre_esto",
+      "nombre": "Ha leído sobre esto",
+      "descripcion": "Ventaja en tiradas relacionadas directamente con la leyenda, el pacto o el altar."
+    },
+    {
+      "id": "lo_que_le_contaba_su_abuela",
+      "nombre": "Lo que le contaba su abuela",
+      "descripcion": "Ventaja en tiradas de escuchar o sigilo para notar al guardián antes de que ataque."
+    },
+    {
+      "id": "no_la_voy_a_dejar_sola",
+      "nombre": "No la voy a dejar sola",
+      "descripcion": "Ventaja en tiradas para sacar de peligro a un aliado caído."
+    }
+  ],
+  "personajes_pregenerados": [
+    {
+      "id": "dario_ferraz",
+      "nombre": "Darío Ferraz",
+      "trasfondo": "El organizador del grupo. Lleva semanas preparando este último viaje antes de que cada uno se vaya por su lado, y necesita que salga bien casi como si fuera responsabilidad suya que lo sea.",
+      "atributos": {
+        "fuerza": 2,
+        "astucia": 3,
+        "voluntad": 5,
+        "agilidad": 2
+      },
+      "habilidad_pasiva": "palabra_firme",
+      "vida_max": 18
+    },
+    {
+      "id": "sara_montiel",
+      "nombre": "Sara Montiel",
+      "trasfondo": "Novia de Marcos. Atlética, directa, poco paciente con las tonterías. Esta noche no va a quedarse esperando a que nadie decida nada por ella.",
+      "atributos": {
+        "fuerza": 5,
+        "astucia": 2,
+        "voluntad": 3,
+        "agilidad": 2
+      },
+      "habilidad_pasiva": "no_doy_un_paso_atras",
+      "vida_max": 24
+    },
+    {
+      "id": "ivan_casals",
+      "nombre": "Iván Casals",
+      "trasfondo": "El gracioso y el escéptico del grupo. Se ríe de las leyendas del pueblo hasta que deja de poder.",
+      "atributos": {
+        "fuerza": 2,
+        "astucia": 5,
+        "voluntad": 1,
+        "agilidad": 4
+      },
+      "habilidad_pasiva": "nunca_se_lo_cree_del_todo",
+      "vida_max": 18
+    },
+    {
+      "id": "claudia_reyero",
+      "nombre": "Claudia Reyero",
+      "trasfondo": "Curiosa por lo oculto. Se leyó la historia de la zona antes de venir, y preferiría estar equivocada en lo que encontró.",
+      "atributos": {
+        "fuerza": 1,
+        "astucia": 4,
+        "voluntad": 5,
+        "agilidad": 2
+      },
+      "habilidad_pasiva": "ha_leido_sobre_esto",
+      "vida_max": 16
+    },
+    {
+      "id": "alba_cerezo",
+      "nombre": "Alba Cerezo",
+      "trasfondo": "La más callada del grupo. Su abuela, del pueblo, le contaba historias de la orilla que nunca se tomó en serio del todo, hasta esta noche.",
+      "atributos": {
+        "fuerza": 1,
+        "astucia": 3,
+        "voluntad": 5,
+        "agilidad": 3
+      },
+      "habilidad_pasiva": "lo_que_le_contaba_su_abuela",
+      "vida_max": 16
+    },
+    {
+      "id": "nadia_puig",
+      "nombre": "Nadia Puig",
+      "trasfondo": "Mejor amiga de Sara de toda la vida. Protectora, y no la va a dejar sola esta noche ni ninguna otra.",
+      "atributos": {
+        "fuerza": 4,
+        "astucia": 2,
+        "voluntad": 2,
+        "agilidad": 4
+      },
+      "habilidad_pasiva": "no_la_voy_a_dejar_sola",
+      "vida_max": 22
+    }
+  ],
+  "nodos": {
+    "i001": {
+      "tipo": "narrativo",
+      "es_final": false,
+      "nodo_siguiente": "i002",
+      "texto": "El camino de tierra que lleva al Camping Vallnegra lleva kilómetros sin cruzarse con otro coche, y cuando por fin se abre entre los pinos y aparece el lago, el sol ya está cayendo detrás de la sierra, pintando el agua de un naranja que no tarda en apagarse.\n\nNo sois los únicos que han tenido la idea de la fiesta de fin de curso en un camping de lago, pero sí parecéis los únicos que la han tenido tan tarde en la temporada: la recepción lleva un cartel de \"CERRADO HASTA JUNIO\" medio descolgado, la mitad de las parcelas están vacías y las pocas casetas ocupadas tienen las luces apagadas a estas horas. Alguien, en algún sitio, os dijo que el camping seguía abierto por si alguien lo reservaba directamente — y aquí estáis, con tres tiendas, un maletero lleno de cervezas calientes y la sensación de que esta va a ser la última vez que los siete estéis todos juntos en el mismo sitio sin que nadie tenga que mirar billetes de avión o turnos de trabajo.\n\nDarío ya está repartiendo tareas antes de que nadie haya bajado del coche del todo.\n\n—Las tiendas antes de que oscurezca, el resto da igual —dice, con la lista mental que lleva preparando toda la semana—. Luego ya nos relajamos.\n\n—Tú no sabes relajarte, Darío —se ríe Nadia, cargando ya un petate al hombro—, lo llevas en el ADN.\n\nMarcos saca la última bolsa del maletero de un tirón y se la cuelga a Sara en el hombro sin que ella lo pida, como quien ya tiene asumido ese gesto desde hace tiempo.\n\n—Última noche de instituto-sin-ser-instituto —dice él—. Hay que hacerlo bien.\n\n—Lleva dos años sin ser instituto, Marcos —responde Iván, ya tumbado sobre la hierba en vez de ayudar con nada—. Pero sí, hay que hacerlo bien. Yo me encargo de supervisar que los demás lo hagáis bien.\n\nClaudia es la única que no participa del todo de la broma: está de pie junto al cartel de \"CERRADO\", mirando más allá, hacia donde el agua empieza a oscurecerse del todo.\n\n—¿Alguien más se ha fijado en que no hay nadie más aquí? —pregunta, sin dirigirlo a nadie en particular.\n\n—Mejor —responde Sara, ya desenrollando la primera tienda—. Menos gente, menos ruido, más fiesta.\n\nAlba es la última en bajar del coche. Se queda un momento con la mano en la puerta, mirando el agua con una atención que nadie más parece tener, como si reconociera el sitio de algo que no ha visto nunca. No dice nada. Nadie se da cuenta.\n\nEl sol termina de caer. Empieza la última noche."
+    },
+    "i002": {
+      "tipo": "narrativo",
+      "es_final": false,
+      "nodo_siguiente": "i003",
+      "texto": "La hoguera tarda en prender porque toda la leña que encuentran está húmeda, pero cuando por fin agarra, el camping entero parece reducirse a ese círculo de luz: seis caras, un sitio vacío donde debería estar la séptima porque Marcos ha ido a buscar algo al coche, y el lago detrás, negro y completamente quieto.\n\n—Mi abuela es de aquí —dice Alba, de pronto, en un tono que no es el que ha usado en todo el día—. De este pueblo. No del camping, del pueblo de verdad, el de la carretera.\n\n—¿Y? —pregunta Iván, ya con la nube a medio derretir en un palo.\n\n—Y nunca quiso que viniéramos a este lago. Nunca. Ni de día, ni en verano, ni con el cura delante.\n\nDarío se ríe, pero es una risa que busca que alguien más se ría con él, no una risa de verdad.\n\n—Toda abuela de pueblo tiene una historia del lago maldito, Alba. Es un género.\n\n—Puede ser —dice Alba, sin apartar los ojos del fuego—. Pero esta la contaba siempre igual, palabra por palabra, como si la hubiera aprendido de memoria para no equivocarse en nada. Decía que hace mucho, cuando el pueblo se estaba muriendo de sed, alguien bajó aquí y pactó con lo que vive en el fondo del agua. Que el lago no se secaría nunca, a cambio de algo. Y que lo que vive ahí abajo no olvida una deuda, ni paga de más, ni cobra antes de tiempo — pero cuando le toca cobrar, cobra. Siempre de fuera. Siempre joven. Siempre de noche.\n\nNadie dice nada durante un segundo demasiado largo.\n\n—Eso es casi exactamente lo que yo encontré —dice Claudia, y por primera vez esa noche no suena a quien quiere asustar a los demás, sino a quien preferiría estar equivocada. Saca el móvil, lo gira hacia el grupo sin mucha ceremonia: una foto de un recorte de periódico, amarillento, mal escaneado—. Lo busqué cuando vi dónde íbamos a venir. 1987. Un chico de fuera, veintiún años, de acampada con unos amigos. Desaparecido. Nunca encontrado. Antes, 1961. Antes, 1944. Siempre el mismo patrón: alguien de fuera, en el camping, una noche de verano seco. Pensé que era casualidad hasta que até las fechas. Van exactamente cada veintitrés años.\n\n—¿Y en qué año estamos? —pregunta Sara, aunque por su cara ya sabe la respuesta antes de que Claudia conteste.\n\nClaudia no contesta. No hace falta.\n\n—Esto es buenísimo —dice Iván, pero su voz ha perdido el filo de broma que tenía hace un minuto—. En serio, esto es justo lo que hace falta para una última noche todos juntos. Historias de desaparecidos. Genial.\n\n—Yo no he dicho que sea verdad —responde Claudia—. He dicho que las fechas cuadran.\n\nAlba sigue mirando el fuego. Cuando por fin habla otra vez, lo hace más bajo, casi para sí misma, repitiendo algo que suena aprendido de memoria hace mucho tiempo:\n\n—Decía mi abuela que no hay que mirarlo a los ojos cuando sube a cobrar. Que si lo miras a los ojos, ya sabe que lo has visto.\n\nEl fuego chisporrotea. En algún lugar, más allá del círculo de luz, algo se mueve en el agua — o eso parece, durante un segundo, antes de que vuelva el silencio.\n\nMarcos sigue sin volver del coche."
+    },
+    "i003": {
+      "tipo": "interactivo",
+      "es_final": false,
+      "texto": "El ruido que todos han fingido no haber oído vuelve, esta vez más claro: no es un pez, no es una rama cayendo, es algo que entra en el agua y no vuelve a salir donde debería. Nadie dice nada, pero varios giran la cabeza hacia el lago al mismo tiempo.\n\nY entonces, antes de que a alguien le dé tiempo a decir en voz alta lo que está pensando, una linterna se enciende a unos metros del círculo de luz, apuntando al suelo y no a vuestras caras — un gesto de alguien que no quiere deslumbrar a nadie, o que no quiere que le vean bien la cara a él.\n\nEs el encargado del camping. Nadie lo ha visto llegar ni lo ha oído acercarse por la grava.\n\n—Deberíais recoger esto —dice, sin saludo, sin disculpa por la hora—. Antes de que se haga de noche del todo.\n\n—Ya es de noche —dice Iván, con media sonrisa que se le borra enseguida, porque el hombre no la devuelve.\n\n—Antes de que se haga de noche del todo —repite él, exactamente igual, como si la frase ya estuviera dicha de antemano y no pudiera cambiarla aunque quisiera. No da más explicación. Se gira y empieza a alejarse hacia la zona de casetas, al otro lado del camping, con la linterna todavía apuntando al suelo.\n\nSara mira hacia donde está el coche, donde Marcos lleva ya un buen rato sin volver, y por primera vez en la noche la pregunta no suena a broma:\n\n—¿Cuánto hace que se fue a por las cosas?\n\n¿Qué hacéis?",
+      "palabras_clave": [
+        {
+          "texto": "Ir tras el encargado y preguntarle qué pasa",
+          "tipo_interaccion": "hablar",
+          "modo_interaccion": "grupal",
+          "atributo": "voluntad",
+          "dificultad": 13,
+          "nodo_exito": "i003a",
+          "nodo_fallo": "i003b"
+        },
+        {
+          "texto": "Dejarlo estar y seguir con la noche",
+          "tipo_interaccion": "decidir",
+          "modo_interaccion": "grupal",
+          "nodo_exito": "i003c"
+        },
+        {
+          "texto": "Seguir al encargado sin que se dé cuenta",
+          "tipo_interaccion": "sigilo",
+          "modo_interaccion": "grupal",
+          "atributo": "agilidad",
+          "dificultad": 14,
+          "nodo_exito": "i003d",
+          "nodo_fallo": "i003e",
+          "flags_set_exito": {
+            "vio_simbolo_cabana": true
+          }
+        }
+      ]
+    },
+    "i003a": {
+      "tipo": "narrativo",
+      "es_final": false,
+      "nodo_siguiente": "i004",
+      "texto": "A regañadientes, suelta algo más de lo que quería:\n\n—No sois los primeros que me lo preguntáis esta noche.\n\nNo da tiempo a preguntar nada más. Se mete en su caseta y cierra sin decir una palabra más."
+    },
+    "i003b": {
+      "tipo": "narrativo",
+      "es_final": false,
+      "nodo_siguiente": "i004",
+      "texto": "No dice nada más. Cierra la puerta de su cabaña en vuestra cara. Volvéis con las manos vacías."
+    },
+    "i003c": {
+      "tipo": "narrativo",
+      "es_final": false,
+      "nodo_siguiente": "i004",
+      "texto": "Iván suelta un chiste nervioso que no hace gracia ni a él mismo. El grupo vuelve al fuego, pero algo del ambiente ya no se recupera igual."
+    },
+    "i003d": {
+      "tipo": "narrativo",
+      "es_final": false,
+      "nodo_siguiente": "i004",
+      "texto": "Lo seguís hasta su caseta y veis, un segundo antes de que cierre la puerta, un símbolo pintado en ella, gastado por los años, casi borrado del todo."
+    },
+    "i003e": {
+      "tipo": "narrativo",
+      "es_final": false,
+      "nodo_siguiente": "i004",
+      "texto": "Lo perdéis entre las casetas vacías y, cuando os dais cuenta, estáis los que hayáis ido más lejos del fuego de lo que queríais, solos, en la oscuridad."
+    },
+    "i004": {
+      "tipo": "narrativo",
+      "es_final": false,
+      "nodo_siguiente": "i005",
+      "texto": "El grupo vuelve al fuego sin Marcos, y durante un par de minutos nadie dice nada, como si el silencio pudiera ser normal si nadie lo señalaba.\n\nEs Nadia quien finalmente lo dice en voz alta.\n\n—Vale, esto ya es mucho rato.\n\nSara ya se ha puesto de pie antes de que termine la frase. Camina hacia el aparcamiento con un paso que intenta no parecer preocupado y no lo consigue del todo; Nadia la sigue sin que nadie tenga que pedírselo.\n\nEl coche está como lo dejaron, con el maletero todavía abierto. Las bolsas que Marcos fue a buscar están tiradas en el suelo, no dejadas con cuidado sino caídas, como si alguien las hubiera soltado de golpe para tener las manos libres. El móvil de Marcos está unos metros más allá, boca abajo sobre la gravilla, con la pantalla todavía encendida y la linterna puesta — la misma linterna que seguramente llevaba para no tropezar en la oscuridad, y que ahora alumbra solo piedras.\n\nNo hay rastro de él. No hay grito que nadie recuerde haber oído, aunque todos, después, dirán que quizá sí, que quizá hubo algo y lo confundieron con el viento, con un animal, con nada.\n\nSara se arrodilla junto al móvil sin tocarlo todavía, como si tocarlo fuera a hacer que lo que ha pasado sea definitivamente verdad.\n\n—Marcos no deja tirado nada de esto —dice, y la voz le sale más pequeña de lo que a ella misma le gustaría—. Nunca. Ni borracho.\n\nPara cuando el resto llega corriendo desde el fuego, Darío ya está gritando el nombre de Marcos hacia la oscuridad, hacia el lago, hacia donde sea que la voz pueda llegar, sin que nada le responda.\n\nClaudia es la que ve las marcas en la tierra, justo al borde de donde empieza la hierba: dos líneas paralelas, demasiado uniformes para ser pisadas, que se pierden hacia el agua.\n\nAlba no dice nada. No le hace falta. Tiene la misma cara que debió de tener su abuela contando esta historia por primera vez, hace muchos años, antes de que fuera solo una historia.\n\nIván es el único que no se ha movido del sitio. Cuando por fin habla, no queda nada de la broma de antes.\n\n—No puede ser esto. No puede ser literalmente la cosa de la que hablábamos hace diez minutos.\n\nNadie le contesta, porque nadie tiene nada mejor que decir.\n\nMarcos no vuelve. Y vosotros tenéis que decidir, ahora mismo, qué hacer al respecto."
+    },
+    "i005": {
+      "tipo": "interactivo",
+      "es_final": false,
+      "texto": "Nadie se sienta. Nadie vuelve al fuego. Os quedáis de pie en el aparcamiento, alrededor del móvil de Marcos todavía encendido en el suelo, y durante un momento parece que ninguno de los seis va a ser el primero en decir en voz alta lo que hay que hacer.\n\nSara lo dice primero, porque es la que menos puede permitirse no decirlo.\n\n—Vamos al lago. Ahora. Las marcas van hacia el agua, pues vamos hacia el agua.\n\n—Sara. —Nadia ya tiene la mano en su brazo, no para detenerla, sino para ir con ella—. Voy contigo. No vas sola a ningún lado.\n\n—Eso es lo peor que podemos hacer —dice Iván, y ya no está de broma, está casi gritando—. Hace diez minutos estábamos hablando de gente que desaparece en este sitio desde hace setenta años y la respuesta no puede ser \"vamos derechos a donde se la ha llevado\". Hay que salir de aquí. Coger el coche, ir al pueblo, traer a alguien que sepa lo que hace, policía, lo que sea.\n\n—¿Y dejar a Marcos? —responde Sara, sin mirarlo.\n\n—Para cuando volvamos con ayuda real, a lo mejor Marcos sigue vivo. Si vamos nosotros solos a por lo que sea que se lo ha llevado, lo mismo no vuelve ninguno.\n\nClaudia no ha dicho nada todavía, pero cuando habla, lo hace con la calma forzada de quien lleva pensando esto desde antes de que pasara.\n\n—El encargado sabía algo. Si alguien en este sitio sabe de verdad qué es esto y cómo se detiene, es él, no el fondo del lago.\n\n—O podemos no acercarnos a nadie ni a nada —dice Darío, que lleva un rato callado, cosa rara en él—. Quedarnos juntos, hacer una hoguera más grande, no separarnos, y esperar a que amanezca. Sea lo que sea esto, las historias de Alba pasan de noche. Si aguantamos hasta que salga el sol...\n\n—Eso es abandonar a Marcos sin ni siquiera intentarlo —corta Sara.\n\nAlba, que no ha dicho una palabra desde que encontraron las marcas, mira hacia el agua, y luego hacia la caseta del encargado, y luego hacia la carretera, como si estuviera pesando algo que ninguno de los demás puede ver del todo.\n\n—Mi abuela decía que lo peor que se puede hacer es no decidir nada —dice, por fin—. Lo que sea que elijamos, hay que elegirlo ya.\n\nAntes de moveros, alguien coge sin pensarlo demasiado el cuchillo de cocina que quedó junto al hornillo, por si sirve de algo. No queda tiempo para seguir discutiendo.\n\n¿Qué hacéis?",
+      "palabras_clave": [
+        {
+          "texto": "Ir al lago, derechos, a buscar a Marcos",
+          "tipo_interaccion": "decidir",
+          "modo_interaccion": "grupal",
+          "nodo_exito": "h1_01",
+          "objeto_otorga_exito": {
+            "objeto_id": "cuchillo_cocina",
+            "nombre": "Cuchillo de cocina",
+            "destino": "grupo",
+            "categoria": "arma",
+            "bono_dano": 1
+          }
+        },
+        {
+          "texto": "Ir a la caseta del encargado a exigirle respuestas",
+          "tipo_interaccion": "decidir",
+          "modo_interaccion": "grupal",
+          "nodo_exito": "h2_01",
+          "objeto_otorga_exito": {
+            "objeto_id": "cuchillo_cocina",
+            "nombre": "Cuchillo de cocina",
+            "destino": "grupo",
+            "categoria": "arma",
+            "bono_dano": 1
+          }
+        },
+        {
+          "texto": "Coger el coche e ir al pueblo a buscar ayuda real",
+          "tipo_interaccion": "decidir",
+          "modo_interaccion": "grupal",
+          "nodo_exito": "h3_01",
+          "objeto_otorga_exito": {
+            "objeto_id": "cuchillo_cocina",
+            "nombre": "Cuchillo de cocina",
+            "destino": "grupo",
+            "categoria": "arma",
+            "bono_dano": 1
+          }
+        },
+        {
+          "texto": "Quedaros juntos y atrincheraros hasta el amanecer",
+          "tipo_interaccion": "decidir",
+          "modo_interaccion": "grupal",
+          "nodo_exito": "h4_01a",
+          "objeto_otorga_exito": {
+            "objeto_id": "cuchillo_cocina",
+            "nombre": "Cuchillo de cocina",
+            "destino": "grupo",
+            "categoria": "arma",
+            "bono_dano": 1
+          }
+        }
+      ]
+    },
+    "h1_01": {
+      "tipo": "interactivo",
+      "es_final": false,
+      "texto": "El camino hasta la orilla es corto pero se hace larguísimo, los seis en silencio, siguiendo las dos líneas paralelas que la hierba todavía no ha tenido tiempo de borrar. El lago, cuando llegáis, está tan quieto que parece mentira que hace un minuto tuvierais la sensación de que algo se movía ahí dentro.\n\nLas marcas terminan en el borde del agua y no siguen. Simplemente se detienen, como si lo que fuera que las dejó hubiera entrado al lago y no hubiera vuelto a tocar tierra desde entonces.\n\nA un lado, medio hundido entre los juncos, hay un cobertizo de madera para las barcas del camping, con la puerta colgando de una sola bisagra desde hace, a juzgar por el óxido, mucho más tiempo del que lleva cerrado este año.\n\n—Si hay algo aquí que nos sirva, va a estar ahí dentro —dice Nadia, ya moviéndose hacia la puerta sin esperar a que nadie vote—. Vosotros mirad el agua. Yo miro esto.\n\n¿Qué hacéis mientras tanto?",
+      "palabras_clave": [
+        {
+          "texto": "Registrar el cobertizo con Nadia",
+          "tipo_interaccion": "examinar",
+          "modo_interaccion": "grupal",
+          "atributo": "astucia",
+          "dificultad": 12,
+          "nodo_exito": "h1_01a",
+          "nodo_fallo": "h1_01b",
+          "objeto_otorga_exito": {
+            "objeto_id": "remo_clavos",
+            "nombre": "Remo con clavos",
+            "destino": "grupo",
+            "categoria": "arma",
+            "bono_dano": 2
+          }
+        },
+        {
+          "texto": "Quedarse mirando el agua, atentos",
+          "tipo_interaccion": "escuchar",
+          "modo_interaccion": "grupal",
+          "atributo": "voluntad",
+          "dificultad": 12,
+          "nodo_exito": "h1_01c",
+          "nodo_fallo": "h1_01d"
+        }
+      ]
+    },
+    "h1_01a": {
+      "tipo": "narrativo",
+      "es_final": false,
+      "nodo_siguiente": "h1_02",
+      "texto": "Entre los remos viejos y las redes podridas hay uno con la punta forrada de clavos oxidados — alguien lo convirtió en otra cosa hace tiempo — y, enganchado en uno de los clavos, un trozo de tela que Sara reconoce enseguida: es de la camisa de Marcos."
+    },
+    "h1_01b": {
+      "tipo": "narrativo",
+      "es_final": false,
+      "nodo_siguiente": "h1_02",
+      "texto": "Entre los remos viejos y las redes podridas no hay nada que sirva de mucho, salvo la certeza, cada vez más fría, de que estáis perdiendo el tiempo."
+    },
+    "h1_01c": {
+      "tipo": "narrativo",
+      "es_final": false,
+      "nodo_siguiente": "h1_02",
+      "texto": "Algo cambia en el silencio — un chapoteo demasiado grande para ser un pez, demasiado cerca — y esta vez lo oís venir antes de que llegue."
+    },
+    "h1_01d": {
+      "tipo": "narrativo",
+      "es_final": false,
+      "nodo_siguiente": "h1_02",
+      "texto": "No se nota nada raro. Hasta que, de golpe, sí."
+    },
+    "h1_02": {
+      "tipo": "combate",
+      "es_final": false,
+      "texto": "El chapoteo se corta de golpe, como si algo hubiera decidido que ya no necesita fingir que es un pez ni una rama ni nada que no sea exactamente lo que es.\n\nSale del agua caminando, no corriendo, con esa calma espantosa de quien no tiene ninguna prisa porque sabe que no la necesita. La ropa que lleva puesta es la del encargado del camping — la misma chaqueta, las mismas botas — pero lo que la lleva puesta ya no se mueve como él se movía hace una hora, cuando os dijo que recogierais antes de que se hiciera de noche del todo.\n\nAlguien, en algún momento del día de hoy, lo llamó Urbano. Ya no tiene mucho sentido seguir llamándolo así.\n\nNo dice nada. No hay negociación posible con algo que ha dejado de necesitar palabras.\n\nDefendeos.",
+      "enemigos": [
+        {
+          "enemigo_id": "urbano",
+          "nombre": "Lo que queda de Urbano",
+          "vida": 16,
+          "atributos": {
+            "fuerza": 5,
+            "agilidad": 3,
+            "defensa": 13
+          },
+          "ataques": [
+            {
+              "nombre": "Golpe sin dudar",
+              "dano": 6,
+              "modificador": 6
+            }
+          ]
+        }
+      ],
+      "dificultad_huida": 14,
+      "nodo_victoria": "h1_03",
+      "nodo_huida": "h4_01b",
+      "nodo_derrota": "n_muerte_total"
+    },
+    "h1_03": {
+      "tipo": "interactivo",
+      "es_final": false,
+      "texto": "Lo encontráis más allá del cobertizo, donde la orilla se curva y los juncos son más altos que una persona. Está vivo. Eso es lo primero que registra alguien, antes de nada más: el pecho le sube y le baja, torpe pero real.\n\nEstá consciente, a medias, con los ojos abiertos pero fijos en algo que no es ninguno de vosotros.\n\n—No lo miréis a los ojos —murmura, una y otra vez, con la misma cadencia exacta con la que Alba repitió antes las palabras de su abuela—. No lo miréis a los ojos. No lo miréis...\n\nSara se arrodilla a su lado, le sujeta la cara entre las manos para que la mire a ella y a nadie más.\n\n—Marcos. Marcos, soy yo. Mírame a mí.\n\nTarda demasiado en reaccionar, pero al final lo hace, y durante un segundo vuelve a ser él.\n\n—Hay un sitio —dice, con la voz rota—. Más allá, entre los árboles. Una piedra. Lo vi antes de que... antes de que dejara de poder ver nada con sentido. Hay que ir a esa piedra. O hay que no ir nunca. No me acuerdo de cuál de las dos.\n\nEn el antebrazo, justo donde la manga se le ha subido en el forcejeo, tiene un corte — poco profundo, casi quirúrgico — con la misma forma que el símbolo gastado de la puerta de la cabaña.\n\nJunto a él, tirada entre los juncos, está su mochila del día, con un pequeño botiquín todavía dentro.\n\nHay que decidir qué hacer con él, y rápido.\n\n¿Qué hacéis?",
+      "palabras_clave": [
+        {
+          "texto": "Llevarlo de vuelta al campamento y fortificaros ahí",
+          "tipo_interaccion": "decidir",
+          "modo_interaccion": "grupal",
+          "nodo_exito": "h4_01b",
+          "objeto_otorga_exito": {
+            "objeto_id": "botiquin",
+            "nombre": "Botiquín de primeros auxilios",
+            "destino": "personaje",
+            "efecto": {
+              "tipo": "curar_vida",
+              "cantidad": 8
+            },
+            "consumible": true
+          }
+        },
+        {
+          "texto": "Dejarlo escondido y seguir todos hacia la piedra de la que habla",
+          "tipo_interaccion": "decidir",
+          "modo_interaccion": "grupal",
+          "nodo_exito": "h5_01",
+          "flags_set_exito": {
+            "marcos_abandonado_solo": true
+          }
+        },
+        {
+          "texto": "Cargar con él e intentar llegar a la carretera, hacia el pueblo",
+          "tipo_interaccion": "decidir",
+          "modo_interaccion": "grupal",
+          "nodo_exito": "h3_01_marcos"
+        }
+      ]
+    },
+    "h5_01": {
+      "tipo": "interactivo",
+      "es_final": false,
+      "texto": "Más allá de los juncos, el bosque se cierra rápido. No hay sendero marcado, pero hay algo parecido: ramas rotas a la altura justa para que alguien que corriera en la oscuridad no las viera venir, y de cuando en cuando, clavada en un tronco, una piedra pequeña y gastada con el mismo símbolo que lleva Marcos cortado en el brazo.\n\nNadie dice en voz alta que esas piedras parecen puestas ahí a propósito, hace mucho, para quien tuviera que encontrar el camino. Pero todos lo piensan.\n\nCaminar así, en fila, sin linternas porque nadie se atreve a encenderlas del todo, hace que el tiempo deje de medirse en minutos y empiece a medirse en cuánto tarda el corazón en dejar de notarse en los oídos.\n\nA mitad de camino, Alba se detiene en seco y levanta una mano.\n\n¿Qué hacéis?",
+      "palabras_clave": [
+        {
+          "texto": "Pararos a escuchar lo que ha notado Alba",
+          "tipo_interaccion": "escuchar",
+          "modo_interaccion": "grupal",
+          "atributo": "voluntad",
+          "dificultad": 13,
+          "nodo_exito": "h5_01a",
+          "nodo_fallo": "h5_01b"
+        },
+        {
+          "texto": "No pararos, seguir hacia delante cuanto antes",
+          "tipo_interaccion": "decidir",
+          "modo_interaccion": "grupal",
+          "nodo_exito": "h5_01c"
+        }
+      ]
+    },
+    "h5_01a": {
+      "tipo": "narrativo",
+      "es_final": false,
+      "nodo_siguiente": "h6_01",
+      "texto": "No es nada que esté cerca todavía, pero sí es algo que se mueve, lento, detrás de vosotros, siguiendo el mismo camino de piedras que vosotros. Lo sabéis ahora, con tiempo de sobra para llegar antes de que os alcance."
+    },
+    "h5_01b": {
+      "tipo": "narrativo",
+      "es_final": false,
+      "nodo_siguiente": "h6_01",
+      "texto": "Alba baja la mano después de un momento, insegura de lo que ha creído notar. Seguís, pero ella no deja de mirar atrás cada pocos pasos."
+    },
+    "h5_01c": {
+      "tipo": "narrativo",
+      "es_final": false,
+      "nodo_siguiente": "h6_01",
+      "texto": "No perdéis tiempo parando. Llegáis antes, pero sin saber qué queda detrás de vosotros."
+    },
+    "h6_01": {
+      "tipo": "interactivo",
+      "es_final": false,
+      "texto": "El bosque se abre de golpe en un claro, y en el centro, medio hundida en la tierra, hay una piedra tan vieja que ha dejado de parecer una piedra y ha empezado a parecer un hueso. Sobre su superficie, un cuchillo está clavado hasta la empuñadura — no oxidado, no gastado por los años como todo lo demás en este sitio, como si algo se encargara de que siguiera afilado sin que nadie lo tocara nunca.\n\nNo hay tiempo para preguntarse por qué. Detrás de vosotros, entre los árboles, algo se acerca sin ya ni intentar no hacer ruido.\n\n¿Qué hacéis?",
+      "palabras_clave": [
+        {
+          "texto": "Ir a por el cuchillo antes de que llegue",
+          "tipo_interaccion": "decidir",
+          "modo_interaccion": "grupal",
+          "atributo": "agilidad",
+          "dificultad": 14,
+          "nodo_exito": "h6_01a",
+          "nodo_fallo": "h6_01b",
+          "objeto_otorga_exito": {
+            "objeto_id": "cuchillo_pacto",
+            "nombre": "El cuchillo del pacto",
+            "destino": "grupo",
+            "categoria": "arma",
+            "bono_dano": 4
+          },
+          "flags_set_exito": {
+            "tiene_cuchillo_pacto": true
+          }
+        },
+        {
+          "texto": "No perder tiempo, prepararos para defenderos",
+          "tipo_interaccion": "decidir",
+          "modo_interaccion": "grupal",
+          "nodo_exito": "h6_01b"
+        }
+      ]
+    },
+    "h6_01a": {
+      "tipo": "narrativo",
+      "es_final": false,
+      "nodo_siguiente": "h6_02_herido",
+      "texto": "Alguien lo arranca de la piedra justo a tiempo. El peso es más ligero de lo que parecía, como si estuviera hecho para una mano concreta y ahora aceptara cualquiera."
+    },
+    "h6_01b": {
+      "tipo": "narrativo",
+      "es_final": false,
+      "nodo_siguiente": "h6_02_herido",
+      "texto": "No hay tiempo para el cuchillo. Lo que venga, lo enfrentáis con lo que ya lleváis encima."
+    },
+    "h6_02_herido": {
+      "tipo": "combate",
+      "es_final": false,
+      "texto": "Sale de entre los árboles con el mismo paso sin prisa de antes, pero esta vez cojea, y el costado por donde lo golpeasteis en la orilla sigue abierto, oscuro, sin sangrar como debería sangrar algo que todavía fuera solo un hombre.\n\nNo parece importarle. El dolor, si es que todavía siente algo parecido al dolor, no es motivo suficiente para detenerse a estas alturas.\n\n—No se termina aquí —dice, o dice algo que ya no suena del todo a él—. Nunca se termina aquí.\n\nEs la última vez que dice nada.",
+      "enemigos": [
+        {
+          "enemigo_id": "urbano",
+          "nombre": "Lo que queda de Urbano",
+          "vida": 11,
+          "atributos": {
+            "fuerza": 5,
+            "agilidad": 2,
+            "defensa": 12
+          },
+          "ataques": [
+            {
+              "nombre": "Golpe sin dudar",
+              "dano": 6,
+              "modificador": 6
+            }
+          ]
+        }
+      ],
+      "dificultad_huida": 18,
+      "nodo_victoria": "h6_03",
+      "nodo_huida": "h4_01b",
+      "nodo_derrota": "n_muerte_total"
+    },
+    "h6_03": {
+      "tipo": "interactivo",
+      "es_final": false,
+      "texto": "Cae, por fin, junto a la piedra, y por primera vez desde que salió del agua, no vuelve a moverse.\n\nEl silencio que queda no es alivio. Es solo silencio.\n\nLa piedra sigue ahí, vieja y hundida y cubierta de musgo, exactamente igual que antes de que nada de esto empezara — como si lo que acaba de pasar no fuera a dejarle ninguna marca, ni buena ni mala.\n\n¿Qué hacéis?",
+      "palabras_clave": [
+        {
+          "texto": "Usar el cuchillo para sellar el pacto en la piedra, de la misma forma en que una vez se abrió",
+          "tipo_interaccion": "decidir",
+          "modo_interaccion": "grupal",
+          "requiere_objeto": "cuchillo_pacto",
+          "nodo_exito": "final_verdadero"
+        },
+        {
+          "texto": "Marcharos de aquí. Ya está. Se ha acabado por esta noche.",
+          "tipo_interaccion": "decidir",
+          "modo_interaccion": "grupal",
+          "nodo_exito": "final_precio"
+        }
+      ]
+    },
+    "final_verdadero": {
+      "tipo": "narrativo",
+      "es_final": true,
+      "tipo_final": "verdadero",
+      "texto": "Nadie sabe exactamente qué palabras hay que decir, pero alguien las dice de todos modos, en la misma cadencia con la que Alba repitió antes lo que le enseñó su abuela — como si esa cadencia fuera, en realidad, la parte importante, y las palabras lo de menos.\n\nEl corte es pequeño. Unas gotas, nada más, sobre la piedra, dadas sin que nadie lo exija esta vez.\n\nEl aire cambia. No hay luz, no hay sonido, no hay nada que se pueda señalar y decir \"esto ha sido la señal\" — solo la certeza, lenta y después total, de que la piedra ha dejado de estar esperando algo.\n\nNo sabéis si esto dura para siempre. No sabéis si en veintitrés años alguien más tendrá que volver a este mismo sitio. Pero esta noche, al menos, el lago ya no le debe nada a nadie.\n\nDe los que no están aquí para verlo, nadie dice nada en voz alta. Hay cosas que la piedra no arregla, por mucho que se le devuelva."
+    },
+    "final_precio": {
+      "tipo": "narrativo",
+      "es_final": true,
+      "tipo_final": "agridulce",
+      "texto": "Dejáis el cuerpo de Urbano junto a la piedra, y el cuchillo donde ha caído, y os vais sin mirar atrás más de la cuenta.\n\nSobrevivís. Eso es real y es mucho. Pero la piedra sigue ahí, sin que nadie le haya devuelto nada, y lo que sea que empezó este pacto hace generaciones no entiende de intentos ni de valentía, solo de cuentas.\n\nEsa noche, al menos uno de vosotros sueña con la piedra, con una claridad que no tiene nada de normal en un sueño. No es un mal sueño, exactamente. Es más bien como una cita que todavía no se ha fijado del todo."
+    },
+    "h2_01": {
+      "tipo": "interactivo",
+      "es_final": false,
+      "texto": "La caseta está más lejos de lo que parecía desde el fuego, al otro lado del camping, pasadas las últimas parcelas vacías. Tiene las luces apagadas y la puerta sin cerrar del todo — no abierta, pero sin el pestillo echado, como si quien vive aquí no esperara que nadie se atreviera a entrar sin permiso, o como si ya no le importara.\n\nEn la puerta, el símbolo que antes solo se veía a medias en la oscuridad resulta estar pintado con mucho más cuidado del que parecía: no es un garabato, es algo repetido una y otra vez, siempre exactamente igual, como quien traza una letra que ha escrito diez mil veces.\n\n—Él no está —dice Claudia, ya con medio cuerpo dentro—. Es ahora o nunca.\n\n¿Qué hacéis?",
+      "palabras_clave": [
+        {
+          "texto": "Registrar sus cosas a fondo, rápido",
+          "tipo_interaccion": "examinar",
+          "modo_interaccion": "grupal",
+          "atributo": "astucia",
+          "dificultad": 12,
+          "nodo_exito": "h2_01a",
+          "nodo_fallo": "h2_01b",
+          "objeto_otorga_exito": {
+            "objeto_id": "machete_encargado",
+            "nombre": "Machete del encargado",
+            "destino": "grupo",
+            "categoria": "arma",
+            "bono_dano": 3
+          },
+          "flags_set_exito": {
+            "confirmado_leyenda_caseta": true
+          }
+        },
+        {
+          "texto": "No tocar nada, esperar aquí a que vuelva y hablar con él directamente",
+          "tipo_interaccion": "decidir",
+          "modo_interaccion": "grupal",
+          "nodo_exito": "h2_01c"
+        }
+      ]
+    },
+    "h2_01a": {
+      "tipo": "narrativo",
+      "es_final": false,
+      "nodo_siguiente": "h2_02",
+      "texto": "Debajo de las tablas sueltas del suelo hay una caja de latón con fotografías viejas — generaciones de un mismo apellido, siempre junto al lago, siempre con la misma cara de quien carga algo que no eligió — y, envuelto en un trapo de aceite, un machete bien cuidado que no pega nada con el resto del sitio."
+    },
+    "h2_01b": {
+      "tipo": "narrativo",
+      "es_final": false,
+      "nodo_siguiente": "h2_02",
+      "texto": "Hay fotos viejas, cartas sin abrir, nada que termine de decir nada con claridad. Perdéis un tiempo que no teníais de sobra."
+    },
+    "h2_01c": {
+      "tipo": "narrativo",
+      "es_final": false,
+      "nodo_siguiente": "h2_02",
+      "texto": "Os quedáis quietos, sin registrar nada, decididos a jugárselo todo a la conversación."
+    },
+    "h2_02": {
+      "tipo": "narrativo",
+      "es_final": false,
+      "nodo_siguiente": "h2_03",
+      "texto": "No lo oís llegar hasta que ya está en la puerta, bloqueándola, con la misma linterna de antes apuntando al suelo y la misma calma forzada de alguien que lleva toda la vida conteniendo algo.\n\n—Esto no es vuestro —dice, pero no suena a amenaza. Suena a alguien agotado que ya no tiene fuerzas para fingir que esto es una conversación normal—. Deberíais haberos ido cuando os lo dije.\n\nClaudia da un paso adelante, no hacia atrás.\n\n—¿Qué le pasó a Marcos? —repite Claudia, sin moverse.\n\nÉl aprieta la mandíbula, como alguien que lleva toda la vida practicando no decir ciertas cosas y no está seguro de poder seguir conteniéndolas esta noche en particular.\n\n—Yo no decido esto —dice, al final—. No lo he decidido nunca. Mi padre tampoco lo decidió, ni el suyo. Solo... pasa, cuando llega el momento. Como esta noche.\n\n—Pues ayúdenos a que no pase —dice Darío, con una calma que no siente—. Dígame cómo se para esto.\n\nÉl los mira, uno por uno, durante demasiado tiempo.\n\n¿Qué hacéis?"
+    },
+    "h2_03": {
+      "tipo": "interactivo",
+      "es_final": false,
+      "texto": "No hay más que decir hasta que él decida qué hacer con lo que le estáis pidiendo.\n\n¿Qué hacéis?",
+      "palabras_clave": [
+        {
+          "texto": "Seguir intentando que colabore",
+          "tipo_interaccion": "convencer",
+          "modo_interaccion": "grupal",
+          "atributo": "voluntad",
+          "dificultad": 14,
+          "nodo_exito": "h2_03a",
+          "nodo_fallo": "h2_03b",
+          "objeto_otorga_exito": {
+            "objeto_id": "botiquin",
+            "nombre": "Botiquín de primeros auxilios",
+            "destino": "personaje",
+            "efecto": {
+              "tipo": "curar_vida",
+              "cantidad": 8
+            },
+            "consumible": true
+          },
+          "flags_set_exito": {
+            "sabe_ubicacion_altar": true,
+            "urbano_colaboro": true
+          }
+        },
+        {
+          "texto": "No hay tiempo para hablar, intentar reducirlo ahora que aún se puede razonar con él",
+          "tipo_interaccion": "decidir",
+          "modo_interaccion": "grupal",
+          "nodo_exito": "h2_03b"
+        }
+      ]
+    },
+    "h2_03a": {
+      "tipo": "narrativo",
+      "es_final": false,
+      "nodo_siguiente": "h2_04",
+      "texto": "Algo en él se rompe, por fin. Habla rápido, atropellado, como quien suelta algo que lleva generaciones sin poder soltar: la piedra en el bosque, más allá de la orilla; el cuchillo clavado en ella; que solo sirve si se devuelve algo por voluntad propia, no arrancado a la fuerza.\n\n—No puedo prometeros que vaya a seguir siendo yo mucho más tiempo —añade—. Cuanto antes vayáis, antes se acaba esto, de una forma o de otra.\n\nAntes de que os vayáis, os pone en las manos un pequeño botiquín de su propia cabaña, sin decir nada más al respecto."
+    },
+    "h2_03b": {
+      "tipo": "combate",
+      "es_final": false,
+      "texto": "No queda nadie con quien razonar. Algo le cambia en la cara, algo que ya no es cansancio ni preocupación sino otra cosa completamente distinta.\n\n—Os dije que os fuerais —dice, o dice algo con su voz que ya no termina de sonar a disculpa ni a amenaza, solo a lo que es.\n\nDefendeos.",
+      "enemigos": [
+        {
+          "enemigo_id": "urbano",
+          "nombre": "Lo que queda de Urbano",
+          "vida": 16,
+          "atributos": {
+            "fuerza": 5,
+            "agilidad": 3,
+            "defensa": 13
+          },
+          "ataques": [
+            {
+              "nombre": "Golpe sin dudar",
+              "dano": 6,
+              "modificador": 6
+            }
+          ]
+        }
+      ],
+      "dificultad_huida": 14,
+      "nodo_victoria": "h4_01b",
+      "nodo_huida": "h4_01b",
+      "nodo_derrota": "n_muerte_total"
+    },
+    "h2_04": {
+      "tipo": "interactivo",
+      "es_final": false,
+      "texto": "Salís de la caseta con la dirección exacta que os ha dado: seguir la linde del bosque más allá de la orilla, hasta un claro que él mismo visitó de niño, antes de entender del todo lo que significaba.\n\nAl salir, os detenéis un segundo a mirarlo. Sigue de pie en la puerta, con la linterna todavía en la mano, y por un instante parece que va a decir algo más. No lo dice. Solo asiente, una vez, como quien se despide de algo que sabe que no va a poder seguir controlando.\n\nNo corréis, pero camináis rápido, con la ventaja de saber exactamente adónde vais — algo que nadie más esta noche puede decir que tiene.\n\nEl claro aparece antes de lo que esperabais. En el centro, medio hundida en la tierra, hay una piedra tan vieja que ha dejado de parecer una piedra, con un cuchillo clavado en ella exactamente donde él dijo que estaría.\n\n¿Qué hacéis?",
+      "palabras_clave": [
+        {
+          "texto": "Coger el cuchillo mientras aún hay tiempo",
+          "tipo_interaccion": "decidir",
+          "modo_interaccion": "grupal",
+          "nodo_exito": "h2_04a",
+          "objeto_otorga_exito": {
+            "objeto_id": "cuchillo_pacto",
+            "nombre": "El cuchillo del pacto",
+            "destino": "grupo",
+            "categoria": "arma",
+            "bono_dano": 4
+          },
+          "flags_set_exito": {
+            "tiene_cuchillo_pacto": true
+          }
+        },
+        {
+          "texto": "No perder tiempo con el cuchillo, estar atentos",
+          "tipo_interaccion": "decidir",
+          "modo_interaccion": "grupal",
+          "nodo_exito": "h2_04b"
+        }
+      ]
+    },
+    "h2_04a": {
+      "tipo": "narrativo",
+      "es_final": false,
+      "nodo_siguiente": "h2_05",
+      "texto": "Alguien lo arranca de la piedra sin prisa, sin que nadie os esté encima todavía. No ha pasado tanto tiempo. Pero cuando os giráis, ya no estáis solos."
+    },
+    "h2_04b": {
+      "tipo": "narrativo",
+      "es_final": false,
+      "nodo_siguiente": "h2_05",
+      "texto": "Dejáis el cuchillo donde está. No ha pasado tanto tiempo. Pero cuando os giráis, ya no estáis solos."
+    },
+    "h2_05": {
+      "tipo": "combate",
+      "es_final": false,
+      "texto": "Está allí, en el límite del claro, y lo que quedaba de la conversación en la caseta ya no está en su cara.\n\n—Os dije que os fuerais —dice, o dice algo con su voz que ya no termina de sonar a disculpa ni a amenaza, solo a lo que es—. Os dije que no esperarais a que dejara de ser yo.\n\nYa no queda nadie con quien razonar.\n\nDefendeos.",
+      "enemigos": [
+        {
+          "enemigo_id": "urbano",
+          "nombre": "Lo que queda de Urbano",
+          "vida": 16,
+          "atributos": {
+            "fuerza": 5,
+            "agilidad": 3,
+            "defensa": 13
+          },
+          "ataques": [
+            {
+              "nombre": "Golpe sin dudar",
+              "dano": 6,
+              "modificador": 6
+            }
+          ]
+        }
+      ],
+      "dificultad_huida": 14,
+      "nodo_victoria": "h6_03",
+      "nodo_huida": "h4_01b",
+      "nodo_derrota": "n_muerte_total"
+    },
+    "h3_01": {
+      "tipo": "interactivo",
+      "es_final": false,
+      "texto": "Corréis hacia el coche sin pensarlo demasiado, con la misma urgencia con la que hace un momento discutíais si debíais ir o quedaros.\n\nDarío mete la mano en el bolsillo buscando las llaves de repuesto, y entonces alguien dice en voz alta lo que todos deberían haber pensado antes de empezar a correr:\n\n—Las llaves las tenía Marcos.\n\nNadie las lleva. Nadie sabe dónde están, salvo, probablemente, en algún bolsillo que ya no está donde debería estar.\n\nIván se agacha junto a la rueda delantera de todos modos, con la linterna del móvil, y encuentra algo que no necesitaba buscar para saber que estaba ahí: un corte limpio, demasiado preciso para ser una piedra del camino.\n\n—Esto no es casualidad —dice, y por primera vez en toda la noche no suena a que esté intentando hacer gracia con nada.\n\nA pie, entonces. Por la carretera, o por el bosque que la corta en línea recta y ahorra tiempo si nadie se pierde por el camino.\n\n¿Qué hacéis?",
+      "palabras_clave": [
+        {
+          "texto": "Ir por la carretera, más largo pero más seguro",
+          "tipo_interaccion": "decidir",
+          "modo_interaccion": "grupal",
+          "nodo_exito": "h3_01a",
+          "objeto_otorga_exito": {
+            "objeto_id": "bengala",
+            "nombre": "Pistola de bengalas",
+            "destino": "grupo",
+            "efecto": {
+              "tipo": "dano",
+              "cantidad": 8
+            },
+            "consumible": true
+          }
+        },
+        {
+          "texto": "Cortar por el bosque, más rápido pero a ciegas",
+          "tipo_interaccion": "decidir",
+          "modo_interaccion": "grupal",
+          "atributo": "agilidad",
+          "dificultad": 12,
+          "nodo_exito": "h3_01b",
+          "nodo_fallo": "h3_01c",
+          "dano_fallo": {
+            "cantidad": 3
+          }
+        }
+      ]
+    },
+    "h3_01a": {
+      "tipo": "narrativo",
+      "es_final": false,
+      "nodo_siguiente": "h3_02",
+      "texto": "Antes de echar a andar, alguien encuentra entre el material de camping del maletero una vieja pistola de bengalas que nadie recordaba haber traído. La guardáis sin saber todavía si va a serviros de algo."
+    },
+    "h3_01b": {
+      "tipo": "narrativo",
+      "es_final": false,
+      "nodo_siguiente": "h3_02",
+      "texto": "Ganáis tiempo de verdad, el que puede importar antes de que acabe la noche."
+    },
+    "h3_01c": {
+      "tipo": "narrativo",
+      "es_final": false,
+      "nodo_siguiente": "h3_02",
+      "texto": "Alguien se tuerce algo o se golpea contra una rama que no vio venir, pero seguís avanzando, solo un poco más lastimados."
+    },
+    "h3_01_marcos": {
+      "tipo": "narrativo",
+      "es_final": false,
+      "nodo_siguiente": "h3_02",
+      "texto": "Entre todo lo que lleváis encima ahora, alguien encuentra por fin las llaves del coche, en el bolsillo de Marcos. No sirve de mucho: la rueda sigue reventada, con un corte demasiado limpio para ser casualidad.\n\nA pie, entonces, por la carretera, cargando con él entre dos. Es mucho más lento así. Es mucho más peligroso así. Pero nadie plantea otra cosa."
+    },
+    "h3_02": {
+      "tipo": "combate",
+      "es_final": false,
+      "texto": "No lo oís venir hasta que ya está casi encima: no entre los árboles, sino detrás, por el mismo camino que acabáis de recorrer, como si hubiera sabido en qué dirección ibais a huir antes incluso de que lo decidierais.\n\n—Vais en la dirección equivocada —dice, y es lo único que dice, porque no necesita decir nada más para que quede claro lo que viene después.\n\nDefendeos.",
+      "enemigos": [
+        {
+          "enemigo_id": "urbano",
+          "nombre": "Lo que queda de Urbano",
+          "vida": 16,
+          "atributos": {
+            "fuerza": 5,
+            "agilidad": 3,
+            "defensa": 13
+          },
+          "ataques": [
+            {
+              "nombre": "Golpe sin dudar",
+              "dano": 6,
+              "modificador": 6
+            }
+          ]
+        }
+      ],
+      "dificultad_huida": 14,
+      "nodo_victoria": "h3_03",
+      "nodo_huida": "h3_03",
+      "nodo_derrota": "n_muerte_total"
+    },
+    "h3_03": {
+      "tipo": "interactivo",
+      "es_final": false,
+      "texto": "El puente —si se le puede seguir llamando así— cruza un barranco estrecho pero profundo, y lleva más tiempo sin mantenimiento del que nadie en el grupo lleva vivo. Faltan dos tablones justo en el centro, y los que quedan no dan mucha confianza sobre los que faltan.\n\nAbajo, el agua suena más fuerte de lo que se ve.\n\n—Hay un camino más largo, bordeando por donde el barranco se hace más llano —dice Darío, mirando el móvil buscando una cobertura que no hay—. Pero son... no sé, ¿veinte minutos más?\n\n—No tenemos veinte minutos de margen y lo sabes —responde Nadia.\n\n¿Qué hacéis?",
+      "palabras_clave": [
+        {
+          "texto": "Cruzar por los tablones que quedan, rápido",
+          "tipo_interaccion": "decidir",
+          "modo_interaccion": "grupal",
+          "atributo": "agilidad",
+          "dificultad": 13,
+          "nodo_exito": "h3_03a",
+          "nodo_fallo": "h3_03b",
+          "dano_fallo": {
+            "cantidad": 4
+          }
+        },
+        {
+          "texto": "Rodear por el camino largo, sin arriesgarse",
+          "tipo_interaccion": "decidir",
+          "modo_interaccion": "grupal",
+          "nodo_exito": "h3_03c",
+          "flags_set_exito": {
+            "tiempo_perdido": true
+          }
+        }
+      ]
+    },
+    "h3_03a": {
+      "tipo": "narrativo",
+      "es_final": false,
+      "nodo_siguiente": "h3_04a",
+      "texto": "Cruzáis sin más percance que el corazón a cien."
+    },
+    "h3_03b": {
+      "tipo": "narrativo",
+      "es_final": false,
+      "nodo_siguiente": "h3_04a",
+      "texto": "Alguien pierde el equilibrio justo en el hueco y tiene que agarrarse como puede, pero consigue pasar."
+    },
+    "h3_03c": {
+      "tipo": "narrativo",
+      "es_final": false,
+      "nodo_siguiente": "h3_04b",
+      "texto": "Tardáis más. Mucho más."
+    },
+    "h3_04a": {
+      "tipo": "interactivo",
+      "es_final": false,
+      "texto": "Las primeras casas del pueblo aparecen al fin, y hay una, al borde de todas, con la luz del porche encendida y una tele sonando bajito dentro.\n\nUn hombre mayor abre antes de que nadie llame, con la cara de quien ha visto gente correr hacia su puerta de noche más de una vez en su vida y nunca por buenas razones.\n\n—¿Qué pasa? —pregunta, ya con el teléfono en la mano, sin que nadie se lo pida.\n\n¿Qué hacéis?",
+      "palabras_clave": [
+        {
+          "texto": "Contarle lo que ha pasado y pedir ayuda",
+          "tipo_interaccion": "convencer",
+          "modo_interaccion": "grupal",
+          "atributo": "voluntad",
+          "dificultad": 12,
+          "nodo_exito": "final_ayuda_real",
+          "nodo_fallo": "h3_04_fallo"
+        }
+      ]
+    },
+    "h3_04b": {
+      "tipo": "interactivo",
+      "es_final": false,
+      "texto": "Las primeras casas del pueblo aparecen al fin, todas a oscuras, con las contraventanas cerradas de una forma que no parece casual en ninguna.\n\nHay una luz, muy débil, por debajo de una puerta. Cuando llamáis, tarda en abrir, y cuando abre, lo hace solo una rendija, con una cadena todavía puesta.\n\n—Es tarde —dice una voz de hombre mayor, no hostil, pero tampoco dispuesta a nada—. Muy tarde para andar llamando a puertas esta noche en concreto.\n\n¿Qué hacéis?",
+      "palabras_clave": [
+        {
+          "texto": "Convencerlo de que esto es real y necesitáis ayuda ya",
+          "tipo_interaccion": "convencer",
+          "modo_interaccion": "grupal",
+          "atributo": "voluntad",
+          "dificultad": 16,
+          "nodo_exito": "final_ayuda_real",
+          "nodo_fallo": "h3_04_fallo"
+        }
+      ]
+    },
+    "h3_04_fallo": {
+      "tipo": "narrativo",
+      "es_final": false,
+      "nodo_siguiente": "h4_01b",
+      "texto": "No hay ninguna otra puerta a la que llamar esta noche. No queda otra que volver sobre vuestros pasos e intentar aguantar hasta el amanecer."
+    },
+    "final_ayuda_real": {
+      "tipo": "narrativo",
+      "es_final": true,
+      "tipo_final": "agridulce",
+      "texto": "La ayuda llega, antes o después según la casa a la que hayáis llamado. Estáis a salvo. Eso es real, y es mucho.\n\nPero nadie va a bajar al lago a comprobar nada hasta que salga el sol, y para entonces, lo que sea que vive ahí abajo habrá tenido toda la noche para terminar lo que empezó. El pacto sigue intacto. Solo ha cambiado quién ha sobrevivido para contarlo."
+    },
+    "h4_01a": {
+      "tipo": "narrativo",
+      "es_final": false,
+      "nodo_siguiente": "h4_02",
+      "texto": "No vais a ningún lado. Esa es la decisión: quedaros aquí, juntos, y aguantar lo que queda de noche hasta que salga el sol.\n\nMovéis las tiendas hasta pegarlas unas con otras, cerca del fuego, que alimentáis hasta que da más luz de la que necesita para calentar a nadie. Buscáis cualquier cosa que sirva de arma o de barrera: la leña partida, las estacas de las tiendas, una barra de hierro que alguien encuentra junto a la caseta de mantenimiento, cubos de agua por si el fuego se descontrola.\n\n—Si esto de verdad sale de noche y entra en razón con la luz —dice Darío, clavando la última estaca en el suelo con más fuerza de la necesaria—, lo único que tenemos que hacer es que no nos pille antes del amanecer.\n\nNadie dice en voz alta cuánto falta para que salga el sol. Todos lo están pensando."
+    },
+    "h4_01b": {
+      "tipo": "narrativo",
+      "es_final": false,
+      "nodo_siguiente": "h4_02",
+      "texto": "Volvéis al campamento porque ya no queda ningún otro sitio al que ir, maltrechos, con la respiración todavía sin controlar del todo.\n\nNo hay tiempo para una defensa elaborada. Juntáis lo que hay a mano —leña, estacas de las tiendas, una barra de hierro junto a la caseta de mantenimiento— y formáis un círculo alrededor del fuego con lo poco de fuerzas que os queda.\n\n—Si esto de verdad sale de noche y entra en razón con la luz —dice alguien, nadie muy seguro de quién, con la voz más cansada que convencida—, lo único que podemos hacer ya es aguantar hasta que salga el sol."
+    },
+    "h4_02": {
+      "tipo": "interactivo",
+      "es_final": false,
+      "texto": "Hay tiempo, aunque no mucho, para preparar algo más que un círculo de gente asustada alrededor de un fuego.\n\n¿Qué hacéis con ese tiempo?",
+      "palabras_clave": [
+        {
+          "texto": "Montar algo parecido a una trampa en el único camino claro hasta aquí",
+          "tipo_interaccion": "examinar",
+          "modo_interaccion": "grupal",
+          "atributo": "fuerza",
+          "dificultad": 13,
+          "nodo_exito": "h4_02a",
+          "nodo_fallo": "h4_02b",
+          "objeto_otorga_exito": {
+            "objeto_id": "barra_hierro",
+            "nombre": "Barra de hierro",
+            "destino": "grupo",
+            "categoria": "arma",
+            "bono_dano": 2
+          },
+          "flags_set_exito": {
+            "trampa_lista": true
+          }
+        },
+        {
+          "texto": "Turnarse para vigilar, sin dejar de mirar hacia la oscuridad",
+          "tipo_interaccion": "escuchar",
+          "modo_interaccion": "grupal",
+          "atributo": "voluntad",
+          "dificultad": 12,
+          "nodo_exito": "h4_02c",
+          "nodo_fallo": "h4_02d",
+          "objeto_otorga_exito": {
+            "objeto_id": "barra_hierro",
+            "nombre": "Barra de hierro",
+            "destino": "grupo",
+            "categoria": "arma",
+            "bono_dano": 2
+          }
+        }
+      ]
+    },
+    "h4_02a": {
+      "tipo": "narrativo",
+      "es_final": false,
+      "nodo_siguiente": "h4_03",
+      "texto": "Cuando llegue, va a pisar algo que no espera."
+    },
+    "h4_02b": {
+      "tipo": "narrativo",
+      "es_final": false,
+      "nodo_siguiente": "h4_03",
+      "texto": "No da tiempo a terminarla bien. No va a servir de nada cuando llegue el momento."
+    },
+    "h4_02c": {
+      "tipo": "narrativo",
+      "es_final": false,
+      "nodo_siguiente": "h4_03",
+      "texto": "Lo veis venir antes de que llegue, con tiempo de reaccionar primero."
+    },
+    "h4_02d": {
+      "tipo": "narrativo",
+      "es_final": false,
+      "nodo_siguiente": "h4_03",
+      "texto": "El cansancio gana, y alguien casi se queda dormido justo cuando no debía."
+    },
+    "h4_03": {
+      "tipo": "combate",
+      "es_final": false,
+      "texto": "No tarda en llegar. Sale de entre los árboles hacia la luz del fuego con el mismo paso sin prisa que tiene todo lo que ya no necesita tener prisa.\n\n—Apagad eso —dice, como si el fuego fuera una grosería personal—. No va a serviros de nada.\n\nDefendeos.",
+      "enemigos": [
+        {
+          "enemigo_id": "urbano",
+          "nombre": "Lo que queda de Urbano",
+          "vida": 12,
+          "atributos": {
+            "fuerza": 5,
+            "agilidad": 3,
+            "defensa": 13
+          },
+          "ataques": [
+            {
+              "nombre": "Golpe sin dudar",
+              "dano": 5,
+              "modificador": 5
+            }
+          ]
+        }
+      ],
+      "dificultad_huida": 13,
+      "nodo_victoria": "h4_04",
+      "nodo_huida": "h4_04",
+      "nodo_derrota": "n_muerte_total"
+    },
+    "h4_04": {
+      "tipo": "narrativo",
+      "es_final": false,
+      "nodo_siguiente": "h4_05",
+      "texto": "Se retira hacia la oscuridad tan de repente como llegó, sin que nadie sepa si lo habéis vencido de verdad o solo lo habéis convencido de que esperar un rato más le conviene.\n\nEl fuego sigue ardiendo. Vosotros seguís en pie, los que seguís en pie. Falta todavía un buen rato para el amanecer — demasiado rato para que nadie se relaje del todo.\n\n—Esto no se ha acabado —dice Iván, sin que nadie necesitara que lo dijera en voz alta—. ¿Verdad que esto no se ha acabado?\n\nNadie le contesta que no.\n\nNo hace falta esperar mucho para saber que tenía razón."
+    },
+    "h4_05": {
+      "tipo": "combate",
+      "es_final": false,
+      "texto": "Esta vez no se detiene a decir nada. Sale de la oscuridad ya a media carrera, como si la pausa de antes hubiera sido la última cortesía que le quedaba por ofrecer.\n\nDefendeos. De verdad, esta vez.",
+      "enemigos": [
+        {
+          "enemigo_id": "urbano",
+          "nombre": "Lo que queda de Urbano",
+          "vida": 16,
+          "atributos": {
+            "fuerza": 5,
+            "agilidad": 4,
+            "defensa": 13
+          },
+          "ataques": [
+            {
+              "nombre": "Golpe sin dudar",
+              "dano": 7,
+              "modificador": 7
+            }
+          ]
+        }
+      ],
+      "dificultad_huida": 13,
+      "nodo_victoria": "h4_06",
+      "nodo_huida": "h4_06",
+      "nodo_derrota": "n_muerte_total"
+    },
+    "h4_06": {
+      "tipo": "narrativo",
+      "es_final": true,
+      "tipo_final": "ambiguo",
+      "texto": "Para cuando cae, por segunda vez esta noche, el cielo ya ha empezado a cambiar de color por el este — apenas un gris más claro que el negro, pero suficiente.\n\nNo se levanta esta vez. O no todavía. O no mientras siga habiendo luz, que es lo único que, por ahora, parece importarle de verdad.\n\nHabéis aguantado. Eso es lo que sabéis con certeza cuando por fin sale el sol del todo: que habéis aguantado, que algunos de vosotros seguís aquí para verlo salir, y que nadie, ni siquiera Alba, con todo lo que le contaba su abuela, puede deciros con seguridad si esto se ha terminado o si solo se ha ido a dormir otra vez, a esperar a que le vuelva a tocar."
+    },
+    "n_muerte_total": {
+      "tipo": "narrativo",
+      "es_final": true,
+      "tipo_final": "derrota",
+      "texto": "Cuando cae el último de vosotros, no queda nadie para contar lo que de verdad pasó esta noche en el Camping Vallnegra.\n\nAlguien, en algún momento de los próximos días, encontrará el campamento vacío, las tiendas a medio recoger, un coche con una rueda reventada. Lo llamarán un accidente, o una desaparición sin resolver, o simplemente dejarán de buscar una explicación que encaje.\n\nEl lago sigue ahí, quieto, exactamente como estaba antes de que llegarais. Dentro de veintitrés años, le va a volver a tocar a alguien. No va a ser ninguno de vosotros quien lo cuente."
+    }
+  }
+}
