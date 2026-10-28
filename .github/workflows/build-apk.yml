@@ -38,7 +38,11 @@ jobs:
           distribution: temurin
           java-version: "17"
 
-      - uses: android-actions/setup-android@v3
+      # No se usa android-actions/setup-android: el runner ubuntu-latest ya
+      # trae un Android SDK completo (con licencias aceptadas) en
+      # ANDROID_HOME. Ese action intenta instalar el paquete "tools"
+      # (discontinuado por Google hace años y ya no existe en su
+      # repositorio), así que sdkmanager falla siempre con exit code 1.
 
       - name: Instalar dependencias
         run: npm ci
