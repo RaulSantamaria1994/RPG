@@ -31,12 +31,15 @@ class PersonajeOut(BaseModel):
     habilidad_pasiva: str
     vida_max: int
     vida_actual: int
+    puntos_suerte_max: int
+    puntos_suerte_actual: int
     mana_max: int
     mana_actual: int
     inventario: list
     hechizos_conocidos: list
     rasgos: list
     arma_equipada: dict | None
+    armadura_equipada: dict | None
     hechizo_equipado: dict | None
     estado: str
     es_master: bool

@@ -2,7 +2,14 @@
 interactuar con una palabra clave -> tirada -> nodo destino, encadenar
 nodos narrativos, lanzar un hechizo (con coste de maná) y disparar un
 combate por rondas, todo pasando por la API REST + el WebSocket real.
+
+Varias pruebas de este archivo usan palabras clave de cuervo_negro.json
+con el esquema viejo (atributo/dificultad, sin "movida"), que el motor
+PbtA ya no resuelve con tirada — quedan marcadas `skip` hasta la Fase 3
+(esquema nuevo + historia de prueba nueva), ver docs/motor_pbta_plan.md.
 """
+
+import pytest
 
 
 def _crear_sala(client, historia_cuervo_negro):
@@ -50,7 +57,8 @@ def test_crear_personaje_pregenerado_copia_atributos_de_la_historia(client, hist
     p = creado["personaje"]
     assert p["nombre"] == "Kara la Espadachina"
     assert p["fuerza"] == 5 and p["astucia"] == 2 and p["voluntad"] == 2 and p["agilidad"] == 4
-    assert p["vida_max"] == 24
+    assert p["vida_max"] == 7  # fija para todos en el motor PbtA, ya no viene de la historia
+    assert p["puntos_suerte_max"] == 7
     assert creado["token"]
 
 
@@ -65,6 +73,7 @@ def test_no_se_puede_repetir_personaje_pregenerado_en_la_misma_sala(client, hist
     assert resp.status_code == 409
 
 
+@pytest.mark.skip(reason="esquema viejo (atributo/dificultad, sin movida) — rehacer en la Fase 3")
 def test_flujo_nodo_tirada_nodo_via_atributo(client, historia_cuervo_negro, d20_siempre_veinte):
     sala = _crear_sala(client, historia_cuervo_negro)
     codigo = sala["sala"]["codigo"]
@@ -118,6 +127,7 @@ def test_jugador_no_puede_avanzar_un_nodo_narrativo(client, historia_cuervo_negr
         assert "máster" in error["datos"]["mensaje"]
 
 
+@pytest.mark.skip(reason="esquema viejo (sin movida) — rehacer en la Fase 3")
 def test_palabra_clave_individual_sin_dificultad_no_tira_dado(
     client, historia_cuervo_negro
 ):
@@ -148,6 +158,7 @@ def test_palabra_clave_individual_sin_dificultad_no_tira_dado(
         assert actualizado["datos"]["nodo_actual_id"] == "n001_info"
 
 
+@pytest.mark.skip(reason="esquema viejo (atributo/dificultad, sin movida) — rehacer en la Fase 3")
 def test_flujo_fallo_lleva_a_nodo_de_fallo_y_agota_palabra_clave(
     client, historia_cuervo_negro, d20_siempre_uno
 ):

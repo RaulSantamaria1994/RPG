@@ -117,8 +117,17 @@ async def _manejar_intercambio_confirmar(db, sala: Sala, conexion: ConexionJugad
 # un desequipar. "hechizo" como categoría ya significa otra cosa (ver
 # `otorgar_objeto` en el motor): enseña el hechizo a todo el grupo en vez
 # de quedar como objeto físico, así que un grimorio equipable usa "grimorio".
-_CAMPO_POR_CATEGORIA = {"arma": "arma_equipada", "grimorio": "hechizo_equipado"}
-_CAMPO_POR_RANURA = {"arma": "arma_equipada", "hechizo": "hechizo_equipado"}
+_CAMPO_POR_CATEGORIA = {
+    "arma": "arma_equipada",
+    "armadura": "armadura_equipada",
+    "grimorio": "hechizo_equipado",
+}
+_CAMPO_POR_RANURA = {
+    "arma": "arma_equipada",
+    "armadura": "armadura_equipada",
+    "hechizo": "hechizo_equipado",
+}
+_RANURA_POR_CAMPO = {campo: ranura for ranura, campo in _CAMPO_POR_RANURA.items()}
 
 
 async def _manejar_equipar_objeto(db, sala: Sala, conexion: ConexionJugador, datos: dict) -> None:
@@ -165,7 +174,7 @@ async def _manejar_equipar_objeto(db, sala: Sala, conexion: ConexionJugador, dat
             "datos": {
                 "personaje_nombre": personaje.nombre,
                 "objeto_nombre": objeto.get("nombre", objeto_id),
-                "ranura": "arma" if campo == "arma_equipada" else "hechizo",
+                "ranura": _RANURA_POR_CAMPO[campo],
                 "accion": "equipar",
             },
         },

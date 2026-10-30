@@ -8,7 +8,7 @@ import uuid
 from sqlalchemy.orm.attributes import flag_modified
 
 from app.engine import combate as combate_engine
-from app.engine.dice import resolver_tirada
+from app.engine.dice import resolver_tirada_legacy_d20
 from app.engine.hechizos_base import hechizos_disponibles
 from app.models.personaje import Personaje
 from app.models.sala import Sala
@@ -136,7 +136,7 @@ async def _manejar_combate_accion(db, sala: Sala, conexion: ConexionJugador, dat
         if await _reaccion_enemigo(db, sala, combate, estado, personaje, datos["enemigo_id"]):
             return
     elif accion == "huir":
-        resultado = resolver_tirada(personaje.agilidad, dificultad=combate.get("dificultad_huida", 12))
+        resultado = resolver_tirada_legacy_d20(personaje.agilidad, dificultad=combate.get("dificultad_huida", 12))
         await gestor.broadcast(
             str(sala.id),
             {
@@ -160,7 +160,7 @@ async def _manejar_combate_accion(db, sala: Sala, conexion: ConexionJugador, dat
         if await _reaccion_enemigo(db, sala, combate, estado, personaje, None):
             return
     elif accion == "negociar":
-        resultado = resolver_tirada(personaje.astucia, dificultad=combate.get("dificultad_negociacion", 13))
+        resultado = resolver_tirada_legacy_d20(personaje.astucia, dificultad=combate.get("dificultad_negociacion", 13))
         await gestor.broadcast(
             str(sala.id),
             {
@@ -300,7 +300,7 @@ async def _manejar_combate_accion(db, sala: Sala, conexion: ConexionJugador, dat
             return
 
         personaje.mana_actual -= hechizo["coste_mana"]
-        resultado_tirada = resolver_tirada(personaje.voluntad, hechizo["dificultad"])
+        resultado_tirada = resolver_tirada_legacy_d20(personaje.voluntad, hechizo["dificultad"])
         efecto_aplicado = None
         objetivo_enemigo_id = None
 

@@ -8,7 +8,11 @@ PUNTOS_PERSONALIZADO_TOTAL = 12
 PUNTOS_PERSONALIZADO_MIN = 1
 PUNTOS_PERSONALIZADO_MAX = 5
 
-VIDA_BASE = 20
+# Barra de daño y Puntos de Suerte fijos para todos los personajes (ver
+# docs/motor_pbta_plan.md, secciones 3 y 4) — ya no se declaran por
+# historia ni varían de un personaje a otro.
+VIDA_BASE = 7
+PUNTOS_SUERTE_BASE = 7
 MANA_BASE = 10
 
 
@@ -29,8 +33,10 @@ def construir_pregenerado(historia_contenido: dict, personaje_pregenerado_id: st
                 "voluntad": candidato["atributos"]["voluntad"],
                 "agilidad": candidato["atributos"]["agilidad"],
                 "habilidad_pasiva": candidato["habilidad_pasiva"],
-                "vida_max": candidato.get("vida_max", VIDA_BASE),
-                "vida_actual": candidato.get("vida_max", VIDA_BASE),
+                "vida_max": VIDA_BASE,
+                "vida_actual": VIDA_BASE,
+                "puntos_suerte_max": PUNTOS_SUERTE_BASE,
+                "puntos_suerte_actual": PUNTOS_SUERTE_BASE,
                 "mana_max": candidato.get("mana_max", MANA_BASE),
                 "mana_actual": candidato.get("mana_max", MANA_BASE),
                 "hechizos_conocidos": list(candidato.get("hechizos_conocidos", [])),
@@ -79,6 +85,8 @@ def construir_personalizado(
         "habilidad_pasiva": habilidad_pasiva,
         "vida_max": VIDA_BASE,
         "vida_actual": VIDA_BASE,
+        "puntos_suerte_max": PUNTOS_SUERTE_BASE,
+        "puntos_suerte_actual": PUNTOS_SUERTE_BASE,
         "mana_max": MANA_BASE,
         "mana_actual": MANA_BASE,
         "hechizos_conocidos": [],

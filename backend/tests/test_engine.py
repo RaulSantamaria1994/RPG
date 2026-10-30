@@ -1,10 +1,12 @@
-from app.engine.dice import resolver_tirada, resolver_tirada_opuesta
+from app.engine.dice import Banda, ResultadoTirada, banda_de, resolver_tirada
+from app.engine.movidas import modificador_de
 from app.engine.resolver import (
-    _tiene_ventaja,
+    aplicar_dano,
     aplicar_dano_al_llegar,
     aplicar_resultado,
     avanzar_a_nodo,
     otorgar_objeto,
+    resolver_via_movida,
 )
 from app.engine.validator import validar_historia
 from app.models.estado_sala import EstadoSala
@@ -61,32 +63,180 @@ def test_validar_detecta_camino_sin_final():
     assert any("ningún camino hacia un nodo final" in e for e in resultado.errores)
 
 
-def test_resolver_tirada_exito_y_fallo(monkeypatch):
-    monkeypatch.setattr("secrets.randbelow", lambda n: 19)  # d20 = 20
-    r = resolver_tirada(modificador=2, dificultad=15)
-    assert r.dado == 20
-    assert r.total == 22
+# --------------------------------------------------------------- dados (2d6)
+
+def test_banda_de_umbrales():
+    assert banda_de(10) == Banda.EXITO
+    assert banda_de(12) == Banda.EXITO
+    assert banda_de(9) == Banda.EXITO_CON_COSTE
+    assert banda_de(7) == Banda.EXITO_CON_COSTE
+    assert banda_de(6) == Banda.FALLO
+    assert banda_de(2) == Banda.FALLO
+
+
+def test_resolver_tirada_sin_modificador(monkeypatch):
+    valores = iter([5, 4])  # d6=6, d6=5 (randbelow(6) devuelve 0-5)
+    monkeypatch.setattr("secrets.randbelow", lambda n: next(valores))
+    r = resolver_tirada(modificador=0)
+    assert r.dados == (6, 5)
+    assert r.total == 11
+    assert r.banda == Banda.EXITO
     assert r.exito is True
 
-    monkeypatch.setattr("secrets.randbelow", lambda n: 0)  # d20 = 1
-    r = resolver_tirada(modificador=2, dificultad=15)
-    assert r.dado == 1
+
+def test_resolver_tirada_7_9_es_exito_con_coste(monkeypatch):
+    valores = iter([3, 2])  # d6=4, d6=3 -> 7
+    monkeypatch.setattr("secrets.randbelow", lambda n: next(valores))
+    r = resolver_tirada(modificador=0)
+    assert r.total == 7
+    assert r.banda == Banda.EXITO_CON_COSTE
+    assert r.exito is True  # el 7-9 cuenta como éxito: avanza igual que el 10+
+
+
+def test_resolver_tirada_6_menos_es_fallo(monkeypatch):
+    valores = iter([0, 0])  # d6=1, d6=1 -> 2
+    monkeypatch.setattr("secrets.randbelow", lambda n: next(valores))
+    r = resolver_tirada(modificador=0)
+    assert r.total == 2
+    assert r.banda == Banda.FALLO
     assert r.exito is False
 
 
-def test_resolver_tirada_ventaja_toma_el_mejor_dado(monkeypatch):
-    valores = iter([0, 19])  # d20 = 1, luego d20 = 20
-    monkeypatch.setattr("secrets.randbelow", lambda n: next(valores))
-    r = resolver_tirada(modificador=0, dificultad=10, ventaja=True)
-    assert r.dado == 20
-    assert r.dado_descartado == 1
+def test_modificador_de_convierte_valor_1_a_5_en_modificador_menos2_a_mas2():
+    personaje = _personaje_de_prueba(fuerza=1, astucia=3, voluntad=5)
+    assert modificador_de(personaje, "fuerza") == -2
+    assert modificador_de(personaje, "astucia") == 0
+    assert modificador_de(personaje, "voluntad") == 2
 
 
-def test_resolver_tirada_opuesta_gana_mayor_total(monkeypatch):
-    valores = iter([19, 0])  # jugador saca 20, rival saca 1
+def test_resolver_via_movida_usa_la_caracteristica_de_la_movida(monkeypatch):
+    valores = iter([3, 3])  # d6=4, d6=4 -> 8, + modificador
     monkeypatch.setattr("secrets.randbelow", lambda n: next(valores))
-    resultado = resolver_tirada_opuesta(modificador_jugador=0, modificador_rival=0)
-    assert resultado["exito"] is True
+    personaje = _personaje_de_prueba(fuerza=5)  # modificador +2
+    palabra = {"texto": "Golpear al centinela", "movida": "golpear"}
+    r = resolver_via_movida(palabra, personaje)
+    assert r.modificador == 2
+    assert r.total == 10
+    assert r.banda == Banda.EXITO
+
+
+def test_resolver_via_movida_gasta_suerte_para_convertir_un_fallo_en_exito(monkeypatch):
+    valores = iter([0, 0])  # d6=1, d6=1 -> 2, fallo seguro con modificador 0
+    monkeypatch.setattr("secrets.randbelow", lambda n: next(valores))
+    personaje = _personaje_de_prueba(voluntad=3)  # modificador 0
+    palabra = {"texto": "Aguantar", "movida": "actuar_bajo_presion"}
+
+    r = resolver_via_movida(palabra, personaje, usar_suerte=True)
+
+    assert r.banda == Banda.EXITO
+    assert personaje.puntos_suerte_actual == 6  # gastó uno de los 7 iniciales
+
+
+def test_resolver_via_movida_no_gasta_suerte_si_no_hacia_falta(monkeypatch):
+    valores = iter([5, 5])  # d6=6, d6=6 -> 12, éxito seguro
+    monkeypatch.setattr("secrets.randbelow", lambda n: next(valores))
+    personaje = _personaje_de_prueba(voluntad=3)
+    palabra = {"texto": "Aguantar", "movida": "actuar_bajo_presion"}
+
+    resolver_via_movida(palabra, personaje, usar_suerte=True)
+
+    assert personaje.puntos_suerte_actual == 7  # no gastó nada
+
+
+# ------------------------------------------------------------- aplicar_dano
+
+def test_aplicar_dano_resta_de_la_barra_de_7():
+    personaje = _personaje_de_prueba(vida_actual=7)
+    aplicado = aplicar_dano(personaje, 3)
+    assert aplicado == 3
+    assert personaje.vida_actual == 4
+
+
+def test_aplicar_dano_lo_reduce_la_armadura_equipada():
+    personaje = _personaje_de_prueba(vida_actual=7, armadura_equipada={"reduccion_dano": 2})
+    aplicado = aplicar_dano(personaje, 3)
+    assert aplicado == 1
+    assert personaje.vida_actual == 6
+
+
+def test_aplicar_dano_no_baja_de_cero_y_deja_inconsciente():
+    personaje = _personaje_de_prueba(vida_actual=2)
+    aplicar_dano(personaje, 5)
+    assert personaje.vida_actual == 0
+    assert personaje.estado == "inconsciente"
+
+
+def test_aplicar_dano_mata_con_muerte_permanente():
+    personaje = _personaje_de_prueba(vida_actual=2)
+    aplicar_dano(personaje, 5, muerte_permanente=True)
+    assert personaje.estado == "muerto"
+
+
+# ---------------------------------------------------------- aplicar_resultado
+
+def test_aplicar_resultado_10_mas_no_aplica_ningun_coste():
+    personaje = _personaje_de_prueba(vida_actual=7)
+    estado = _estado_de_prueba()
+    palabra = {"texto": "t", "movida": "golpear", "nodo_exito": "a", "nodo_fallo": "b"}
+    resultado = ResultadoTirada(dados=(6, 6), modificador=0, total=12, banda=Banda.EXITO)
+
+    cambios = aplicar_resultado("n1", palabra, resultado, estado, personaje)
+
+    assert cambios["dano_aplicado"] == 0
+    assert cambios["nodo_destino"] == "a"
+    assert personaje.vida_actual == 7
+
+
+def test_aplicar_resultado_7_9_aplica_el_coste_por_defecto_de_la_movida():
+    """'golpear' trae un coste por defecto de 1 de daño en el 7-9 (ver
+    app/engine/movidas.py)."""
+    personaje = _personaje_de_prueba(vida_actual=7)
+    estado = _estado_de_prueba()
+    palabra = {"texto": "t", "movida": "golpear", "nodo_exito": "a", "nodo_fallo": "b"}
+    resultado = ResultadoTirada(dados=(4, 4), modificador=0, total=8, banda=Banda.EXITO_CON_COSTE)
+
+    cambios = aplicar_resultado("n1", palabra, resultado, estado, personaje)
+
+    assert cambios["dano_aplicado"] == 1
+    assert cambios["nodo_destino"] == "a"  # el 7-9 sigue siendo éxito
+    assert personaje.vida_actual == 6
+
+
+def test_aplicar_resultado_7_9_respeta_coste_parcial_de_la_palabra_clave():
+    personaje = _personaje_de_prueba(vida_actual=7)
+    estado = _estado_de_prueba()
+    palabra = {
+        "texto": "t",
+        "movida": "investigar",  # sin coste por defecto
+        "nodo_exito": "a",
+        "nodo_fallo": "b",
+        "coste_parcial": {"tipo": "dano", "cantidad": 2},
+    }
+    resultado = ResultadoTirada(dados=(4, 4), modificador=0, total=8, banda=Banda.EXITO_CON_COSTE)
+
+    cambios = aplicar_resultado("n1", palabra, resultado, estado, personaje)
+
+    assert cambios["dano_aplicado"] == 2
+    assert personaje.vida_actual == 5
+
+
+def test_aplicar_resultado_fallo_lleva_a_nodo_fallo_y_aplica_dano_fallo():
+    personaje = _personaje_de_prueba(vida_actual=7)
+    estado = _estado_de_prueba()
+    palabra = {
+        "texto": "t",
+        "movida": "golpear",
+        "nodo_exito": "a",
+        "nodo_fallo": "b",
+        "dano_fallo": {"cantidad": 3},
+    }
+    resultado = ResultadoTirada(dados=(1, 1), modificador=0, total=2, banda=Banda.FALLO)
+
+    cambios = aplicar_resultado("n1", palabra, resultado, estado, personaje)
+
+    assert cambios["dano_aplicado"] == 3
+    assert cambios["nodo_destino"] == "b"
+    assert personaje.vida_actual == 4
 
 
 def _personaje_de_prueba(**overrides) -> Personaje:
@@ -99,14 +249,18 @@ def _personaje_de_prueba(**overrides) -> Personaje:
         voluntad=1,
         agilidad=1,
         habilidad_pasiva="x",
-        vida_max=10,
-        vida_actual=10,
+        vida_max=7,
+        vida_actual=7,
+        puntos_suerte_max=7,
+        puntos_suerte_actual=7,
         mana_max=5,
         mana_actual=5,
         es_master=False,
         inventario=[],
         hechizos_conocidos=[],
         rasgos=[],
+        arma_equipada=None,
+        armadura_equipada=None,
         estado="activo",
     )
     base.update(overrides)
@@ -115,79 +269,6 @@ def _personaje_de_prueba(**overrides) -> Personaje:
 
 def _estado_de_prueba() -> EstadoSala:
     return EstadoSala(sala_id=None, nodo_actual_id="n1", flags={}, palabras_clave_usadas=[], inventario_grupo=[])
-
-
-def test_aplicar_resultado_dano_fallo_resta_vida():
-    personaje = _personaje_de_prueba()
-    estado = _estado_de_prueba()
-    palabra = {
-        "texto": "t",
-        "dificultad": 12,
-        "atributo": "astucia",
-        "nodo_exito": "a",
-        "nodo_fallo": "b",
-        "dano_fallo": {"cantidad": 3},
-    }
-
-    cambios = aplicar_resultado("n1", palabra, False, estado, personaje)
-
-    assert cambios["dano_aplicado"] == 3
-    assert personaje.vida_actual == 7
-    assert personaje.estado == "activo"
-
-
-def test_aplicar_resultado_dano_fallo_no_baja_de_cero_y_deja_inconsciente():
-    personaje = _personaje_de_prueba(vida_actual=2)
-    estado = _estado_de_prueba()
-    palabra = {
-        "texto": "t",
-        "dificultad": 12,
-        "atributo": "astucia",
-        "nodo_exito": "a",
-        "nodo_fallo": "b",
-        "dano_fallo": {"cantidad": 5},
-    }
-
-    cambios = aplicar_resultado("n1", palabra, False, estado, personaje)
-
-    assert cambios["dano_aplicado"] == 5
-    assert personaje.vida_actual == 0
-    assert personaje.estado == "inconsciente"
-
-
-def test_aplicar_resultado_exito_no_aplica_dano_fallo():
-    personaje = _personaje_de_prueba()
-    estado = _estado_de_prueba()
-    palabra = {
-        "texto": "t",
-        "dificultad": 12,
-        "atributo": "astucia",
-        "nodo_exito": "a",
-        "nodo_fallo": "b",
-        "dano_fallo": {"cantidad": 3},
-    }
-
-    cambios = aplicar_resultado("n1", palabra, True, estado, personaje)
-
-    assert cambios["dano_aplicado"] == 0
-    assert personaje.vida_actual == 10
-
-
-def test_tiene_ventaja_reconoce_objeto_en_inventario_de_grupo():
-    personaje = _personaje_de_prueba()
-    estado = _estado_de_prueba()
-    estado.inventario_grupo = [{"objeto_id": "prueba", "nombre": "Prueba del patrón"}]
-    palabra = {"texto": "t", "ventaja_si_objeto": "prueba"}
-
-    assert _tiene_ventaja(palabra, personaje, estado) is True
-
-
-def test_tiene_ventaja_falso_sin_el_objeto_en_ningun_inventario():
-    personaje = _personaje_de_prueba()
-    estado = _estado_de_prueba()
-    palabra = {"texto": "t", "ventaja_si_objeto": "prueba"}
-
-    assert _tiene_ventaja(palabra, personaje, estado) is False
 
 
 def test_otorgar_objeto_sin_destino_explicito_usa_el_defecto_grupo():
@@ -210,6 +291,28 @@ def test_otorgar_objeto_con_destino_personaje_explicito_va_al_personaje():
 
     assert estado.inventario_grupo == []
     assert personaje.inventario == [{"objeto_id": "diario", "nombre": "Diario"}]
+
+
+def test_otorgar_objeto_arma_copia_bono_dano():
+    estado = _estado_de_prueba()
+    item = otorgar_objeto(
+        {"objeto_id": "machete", "nombre": "Machete", "categoria": "arma", "bono_dano": 3},
+        estado,
+        None,
+        destino_defecto="grupo",
+    )
+    assert item["bono_dano"] == 3
+
+
+def test_otorgar_objeto_armadura_copia_reduccion_dano():
+    estado = _estado_de_prueba()
+    item = otorgar_objeto(
+        {"objeto_id": "chaleco", "nombre": "Chaleco", "categoria": "armadura", "reduccion_dano": 2},
+        estado,
+        None,
+        destino_defecto="grupo",
+    )
+    assert item["reduccion_dano"] == 2
 
 
 def test_avanzar_a_nodo_otorga_objetos_al_grupo_con_solo_llegar():
@@ -328,21 +431,21 @@ def test_avanzar_a_nodo_con_objeto_otorgado_de_categoria_hechizo_lo_ensena_al_ll
 
 
 def test_aplicar_dano_al_llegar_resta_vida_a_todo_el_grupo():
-    kara = _personaje_de_prueba(vida_actual=10)
+    kara = _personaje_de_prueba(vida_actual=7)
     ana = _personaje_de_prueba(vida_actual=4)
 
     resultado = aplicar_dano_al_llegar({"dano_al_llegar": {"cantidad": 3}}, [kara, ana])
 
-    assert kara.vida_actual == 7
+    assert kara.vida_actual == 4
     assert ana.vida_actual == 1
     assert set(resultado["afectados"]) == {str(kara.id), str(ana.id)}
     assert resultado["cantidad"] == 3
 
 
 def test_aplicar_dano_al_llegar_sin_el_campo_no_hace_nada():
-    kara = _personaje_de_prueba(vida_actual=10)
+    kara = _personaje_de_prueba(vida_actual=7)
     assert aplicar_dano_al_llegar({}, [kara]) is None
-    assert kara.vida_actual == 10
+    assert kara.vida_actual == 7
 
 
 def test_aplicar_dano_al_llegar_deja_inconsciente_sin_muerte_permanente():
@@ -372,7 +475,7 @@ def test_aplicar_dano_al_llegar_ignora_a_quien_ya_esta_muerto():
 
 def test_avanzar_a_nodo_con_dano_al_llegar_resta_vida_sin_tirada():
     estado = _estado_de_prueba()
-    kara = _personaje_de_prueba(vida_actual=10)
+    kara = _personaje_de_prueba(vida_actual=7)
     historia = {
         "nodos": {
             "n1": {
@@ -388,4 +491,4 @@ def test_avanzar_a_nodo_con_dano_al_llegar_resta_vida_sin_tirada():
     resumen = avanzar_a_nodo(estado, historia, "n1", personajes_sala=[kara])
 
     assert resumen["dano_al_llegar"] == {"cantidad": 4, "afectados": [str(kara.id)]}
-    assert kara.vida_actual == 6
+    assert kara.vida_actual == 3

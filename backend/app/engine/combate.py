@@ -23,7 +23,7 @@ El estado de combate vive en `EstadoSala.combate` (JSON) con esta forma:
 
 import secrets
 
-from app.engine.dice import resolver_tirada, tirar_d20
+from app.engine.dice import resolver_tirada_legacy_d20, tirar_d20
 from app.models.personaje import Personaje
 
 
@@ -96,7 +96,7 @@ def resolver_ataque_jugador(
     enemigo = _enemigo(combate, enemigo_id)
     defensa = enemigo.get("atributos", {}).get("defensa", 10)
 
-    resultado = resolver_tirada(modificador=modificador_ataque, dificultad=defensa)
+    resultado = resolver_tirada_legacy_d20(modificador=modificador_ataque, dificultad=defensa)
 
     dano_aplicado = 0
     if resultado.exito:
@@ -127,7 +127,7 @@ def resolver_ataque_enemigo(
     ataque = ataques[0]
 
     defensa_jugador = 10 + personaje.agilidad
-    resultado = resolver_tirada(
+    resultado = resolver_tirada_legacy_d20(
         modificador=ataque.get("modificador", 0), dificultad=defensa_jugador
     )
 

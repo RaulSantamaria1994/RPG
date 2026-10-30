@@ -1,22 +1,23 @@
-"""Mensajes `interactuar` y `continuar`: resolución de palabras clave
-(individual, en apoyo, grupal por tirada o por votación) y el avance
-narrativo automático de un nodo sin palabras clave propias.
+"""Mensajes `interactuar` y `continuar`: resolución de una movida (o, si la
+palabra clave no referencia ninguna, una decisión simple sin tirada), de la
+movida "ayudar a otro" por separado, y el avance narrativo automático de un
+nodo sin palabras clave propias.
 """
 
-import secrets
 import uuid
 
 from sqlalchemy.orm.attributes import flag_modified
 
-from app.engine.dice import resolver_tirada, resolver_tirada_opuesta
+from app.engine.dice import Banda, ResultadoTirada
 from app.engine.resolver import (
     ErrorInteraccion,
     ManaInsuficiente,
     aplicar_resultado,
     encontrar_nodo,
     encontrar_palabra_clave,
-    resolver_via_atributo,
+    resolver_ayudar,
     resolver_via_hechizo,
+    resolver_via_movida,
     verificar_requisitos,
 )
 from app.models.personaje import Personaje
@@ -24,7 +25,6 @@ from app.models.sala import Sala
 from app.websockets.comun import (
     _avanzar_y_notificar,
     _enviar_error,
-    _filtrar_confirmables,
     _personajes_no_master,
     _personaje_publico,
     _procesar_posible_muerte,
@@ -45,7 +45,39 @@ def _faltan_jugadores_para_empezar(db, sala: Sala) -> int:
     return sala.min_jugadores - len(_personajes_no_master(db, sala.id))
 
 
-async def _resolver_individual(
+async def _resolver_ayudar(
+    db, sala: Sala, conexion: ConexionJugador, personaje: Personaje, nodo_id: str, palabra: dict
+) -> None:
+    """Movida 'ayudar a otro': una tirada aparte, sin bloquear la palabra
+    clave principal. Si no sale fallo, deja un +1 marcado para quien
+    resuelva esa misma palabra clave a continuación (ver `_resolver_movida`,
+    que lo consume una sola vez)."""
+    clave = _clave_palabra(nodo_id, palabra["texto"])
+    estado = sala.estado_sala
+    resultado = resolver_ayudar(personaje)
+
+    if resultado.exito:
+        flags = dict(estado.flags or {})
+        flags[f"__ayuda__{clave}"] = True
+        estado.flags = flags
+        flag_modified(estado, "flags")
+        db.commit()
+
+    await gestor.broadcast(
+        str(sala.id),
+        {
+            "tipo": "ayuda_resuelta",
+            "datos": {
+                "personaje_id": str(personaje.id),
+                "personaje_nombre": personaje.nombre,
+                "palabra_clave": palabra["texto"],
+                "tirada": resultado.to_dict(),
+            },
+        },
+    )
+
+
+async def _resolver_movida(
     db, sala: Sala, conexion: ConexionJugador, personaje: Personaje, nodo_id: str, palabra: dict, datos: dict
 ) -> None:
     clave = _clave_palabra(nodo_id, palabra["texto"])
@@ -62,39 +94,29 @@ async def _resolver_individual(
         estado = sala.estado_sala
         verificar_requisitos(nodo_id, palabra, estado, personaje)
 
-        desventaja = bool(datos.get("desventaja", False))
-        via = datos.get("via", "atributo")
+        usar_suerte = bool(datos.get("usar_suerte", False))
 
-        flags = dict(estado.flags or {})
-        ventaja_apoyo = flags.pop(f"__apoyo__{clave}", None)
-        if ventaja_apoyo is not None:
-            estado.flags = flags
-            flag_modified(estado, "flags")
-
-        if via == "hechizo":
+        if datos.get("via") == "hechizo":
             resultado, hechizo = resolver_via_hechizo(
-                palabra, personaje, datos["hechizo_id"], sala.historia.contenido, estado, desventaja
+                palabra, personaje, datos["hechizo_id"], sala.historia.contenido
             )
             tirada_payload = resultado.to_dict()
             tirada_payload["hechizo"] = hechizo["nombre"]
-        elif palabra.get("modo_interaccion") == "opuesta":
-            npc_mod = palabra.get("npc_modificador", 0)
-            tirada_payload = resolver_tirada_opuesta(getattr(personaje, palabra["atributo"]), npc_mod)
-        elif not palabra.get("dificultad"):
-            # Decisión de personaje sin tirada: quien confirma, decide. Mismo
-            # atajo que ya existe en _resolver_grupal para "grupal, sin dificultad".
-            tirada_payload = {"exito": True, "sin_tirada": True}
         else:
-            resultado = resolver_via_atributo(palabra, personaje, estado, desventaja)
-            tirada_payload = resultado.to_dict()
+            flags = dict(estado.flags or {})
+            bono_ayuda = 1 if flags.pop(f"__ayuda__{clave}", None) else 0
+            if bono_ayuda:
+                estado.flags = flags
+                flag_modified(estado, "flags")
 
-        exito = tirada_payload["exito"]
+            resultado = resolver_via_movida(palabra, personaje, usar_suerte=usar_suerte, bono=bono_ayuda)
+            tirada_payload = resultado.to_dict()
 
         personajes_sala = _personajes_no_master(db, sala.id)
         cambios = aplicar_resultado(
             nodo_id,
             palabra,
-            exito,
+            resultado,
             estado,
             personaje,
             muerte_permanente=_usa_muerte_permanente(sala),
@@ -116,7 +138,7 @@ async def _resolver_individual(
                     "personaje_nombre": personaje.nombre,
                     "palabra_clave": palabra["texto"],
                     "tirada": tirada_payload,
-                    "exito": exito,
+                    "exito": resultado.exito,
                     "cambios": cambios_para_mostrar,
                 },
             },
@@ -144,209 +166,21 @@ async def _resolver_individual(
         )
 
 
-async def _resolver_apoyo(
-    db, sala: Sala, conexion: ConexionJugador, personaje: Personaje, nodo_id: str, palabra: dict, datos: dict
+async def _resolver_decidir(
+    db, sala: Sala, conexion: ConexionJugador, personaje: Personaje, nodo_id: str, palabra: dict
 ) -> None:
-    clave = _clave_palabra(nodo_id, palabra["texto"])
-    rol_intento = datos.get("rol_apoyo", "principal")
+    """Una palabra clave sin `movida` no se tira: es una decisión narrativa
+    (p. ej. qué camino seguir). Quien la confirma, decide — el motor ya no
+    cuenta votos (ver docs/motor_pbta_plan.md, sección 0): el grupo lo
+    habla fuera del sistema, y uno de ellos pulsa la opción acordada."""
     estado = sala.estado_sala
+    resultado = ResultadoTirada(dados=(0, 0), modificador=0, total=0, banda=Banda.EXITO)
 
-    if rol_intento == "apoyo":
-        atributo_apoyo = palabra.get("atributo_apoyo")
-        dificultad_apoyo = palabra.get("dificultad_apoyo", palabra.get("dificultad", 10))
-        resultado = resolver_tirada(getattr(personaje, atributo_apoyo), dificultad_apoyo)
-
-        flags = dict(estado.flags or {})
-        if resultado.exito:
-            flags[f"__apoyo__{clave}"] = True
-            estado.flags = flags
-            flag_modified(estado, "flags")
-            db.commit()
-
-        await gestor.broadcast(
-            str(sala.id),
-            {
-                "tipo": "apoyo_resuelto",
-                "datos": {
-                    "personaje_id": str(personaje.id),
-                    "personaje_nombre": personaje.nombre,
-                    "palabra_clave": palabra["texto"],
-                    "tirada": resultado.to_dict(),
-                },
-            },
-        )
-        return
-
-    await _resolver_individual(db, sala, conexion, personaje, nodo_id, palabra, datos)
-
-
-async def _resolver_grupal(
-    db, sala: Sala, conexion: ConexionJugador, personaje: Personaje, nodo_id: str, palabra: dict, datos: dict
-) -> None:
-    """Una palabra clave en modo "grupal" se resuelve de dos formas
-    distintas según lleve dificultad o no:
-
-    - Con dificultad: es una prueba conjunta (todos intentan lo mismo a la
-      vez), así que se exige que todos confirmen esa misma acción antes de
-      tirar los dados — ver `_resolver_grupal_tirada`.
-    - Sin dificultad: es una decisión narrativa entre varias opciones
-      (las demás palabras clave en modo "grupal" sin dificultad de este
-      mismo nodo), así que se resuelve por votación — ver
-      `_resolver_grupal_voto`.
-    """
-    if palabra.get("dificultad"):
-        await _resolver_grupal_tirada(db, sala, conexion, personaje, nodo_id, palabra, datos)
-    else:
-        await _resolver_grupal_voto(db, sala, conexion, personaje, nodo_id, palabra, datos)
-
-
-async def _resolver_grupal_tirada(
-    db, sala: Sala, conexion: ConexionJugador, personaje: Personaje, nodo_id: str, palabra: dict, datos: dict
-) -> None:
-    clave = _clave_palabra(nodo_id, palabra["texto"])
-    confirmaciones = gestor.registrar_confirmacion(str(sala.id), clave, str(personaje.id))
     personajes_sala = _personajes_no_master(db, sala.id)
-    participantes = _filtrar_confirmables(personajes_sala)
-    total = len(participantes)
-
-    await gestor.broadcast(
-        str(sala.id),
-        {
-            "tipo": "confirmacion_registrada",
-            "datos": {"clave": clave, "confirmados": len(confirmaciones), "total": total},
-        },
-    )
-
-    if len(confirmaciones) < total:
-        return
-
-    gestor.limpiar_confirmaciones(str(sala.id), clave)
-    estado = sala.estado_sala
-
-    regla = palabra.get("regla_grupal", "mejor_resultado")
-    resultados = []
-    for p in participantes:
-        tirada_de_p = resolver_tirada(getattr(p, palabra["atributo"]), palabra["dificultad"]).to_dict()
-        fila_resultado = {"personaje": p.nombre}
-        for clave, valor in tirada_de_p.items():
-            fila_resultado[clave] = valor
-        resultados.append(fila_resultado)
-
-    if regla == "todos_aciertan":
-        exito = True
-        for r in resultados:
-            if not r["exito"]:
-                exito = False
-    else:
-        exito = False
-        for r in resultados:
-            if r["exito"]:
-                exito = True
-    tirada_payload = {"resultados": resultados, "regla": regla, "exito": exito}
-
     cambios = aplicar_resultado(
         nodo_id,
         palabra,
-        exito,
-        estado,
-        personaje,
-        muerte_permanente=_usa_muerte_permanente(sala),
-        personajes_sala=participantes,
-    )
-    db.commit()
-
-    await gestor.broadcast(
-        str(sala.id),
-        {
-            "tipo": "tirada_resultado",
-            "datos": {
-                "palabra_clave": palabra["texto"],
-                "tirada": tirada_payload,
-                "exito": exito,
-                "modo": "grupal",
-            },
-        },
-    )
-    if cambios.get("dano_aplicado"):
-        await gestor.broadcast(
-            str(sala.id), {"tipo": "personaje_actualizado", "datos": _personaje_publico(personaje)}
-        )
-    if (cambios.get("objeto_otorgado") or {}).get("categoria") == "hechizo":
-        for p in participantes:
-            await gestor.broadcast(
-                str(sala.id), {"tipo": "personaje_actualizado", "datos": _personaje_publico(p)}
-            )
-
-    if await _procesar_posible_muerte(db, sala, personaje, personajes_sala):
-        return
-
-    await _avanzar_y_notificar(db, sala, cambios["nodo_destino"])
-
-
-def _opciones_grupales_sin_dificultad(nodo: dict) -> list[dict]:
-    """Las palabras clave en modo grupal sin dificultad de un mismo nodo
-    forman, juntas, una única decisión por votación."""
-    opciones = []
-    for p in nodo.get("palabras_clave", []) or []:
-        if p.get("modo_interaccion") == "grupal" and not p.get("dificultad"):
-            opciones.append(p)
-    return opciones
-
-
-async def _resolver_grupal_voto(
-    db, sala: Sala, conexion: ConexionJugador, personaje: Personaje, nodo_id: str, palabra: dict, datos: dict
-) -> None:
-    nodo = encontrar_nodo(sala.historia.contenido, nodo_id)
-    opciones = _opciones_grupales_sin_dificultad(nodo)
-
-    votos = gestor.registrar_voto(str(sala.id), nodo_id, str(personaje.id), palabra["texto"])
-    personajes_sala = _personajes_no_master(db, sala.id)
-    total = len(_filtrar_confirmables(personajes_sala))
-
-    await gestor.broadcast(
-        str(sala.id),
-        {
-            "tipo": "voto_registrado",
-            "datos": {
-                "personaje_id": str(personaje.id),
-                "personaje_nombre": personaje.nombre,
-                "opcion": palabra["texto"],
-                "votados": len(votos),
-                "total": total,
-            },
-        },
-    )
-
-    if len(votos) < total:
-        return
-
-    gestor.limpiar_votos(str(sala.id), nodo_id)
-
-    recuento: dict[str, int] = {}
-    for texto_elegido in votos.values():
-        recuento[texto_elegido] = recuento.get(texto_elegido, 0) + 1
-    maximo = max(recuento.values())
-    ganadoras = []
-    for texto, n in recuento.items():
-        if n == maximo:
-            ganadoras.append(texto)
-    ganadoras.sort()
-    empate = len(ganadoras) > 1
-    if empate:
-        texto_ganador = ganadoras[secrets.randbelow(len(ganadoras))]
-    else:
-        texto_ganador = ganadoras[0]
-
-    palabra_ganadora = palabra
-    for p in opciones:
-        if p["texto"] == texto_ganador:
-            palabra_ganadora = p
-
-    estado = sala.estado_sala
-    cambios = aplicar_resultado(
-        nodo_id,
-        palabra_ganadora,
-        True,
+        resultado,
         estado,
         personaje,
         muerte_permanente=_usa_muerte_permanente(sala),
@@ -354,17 +188,6 @@ async def _resolver_grupal_voto(
     )
     db.commit()
 
-    await gestor.broadcast(
-        str(sala.id),
-        {
-            "tipo": "votacion_resuelta",
-            "datos": {"recuento": recuento, "empate": empate, "opcion_ganadora": texto_ganador},
-        },
-    )
-    if cambios.get("dano_aplicado"):
-        await gestor.broadcast(
-            str(sala.id), {"tipo": "personaje_actualizado", "datos": _personaje_publico(personaje)}
-        )
     if (cambios.get("objeto_otorgado") or {}).get("categoria") == "hechizo":
         for p in personajes_sala:
             await gestor.broadcast(
@@ -416,13 +239,16 @@ async def _manejar_interactuar(db, sala: Sala, conexion: ConexionJugador, datos:
         await _enviar_error(conexion, str(exc) if isinstance(exc, ErrorInteraccion) else "Datos incompletos.")
         return
 
-    modo = palabra.get("modo_interaccion", "individual")
-    if modo == "grupal":
-        await _resolver_grupal(db, sala, conexion, personaje, nodo_id, palabra, datos)
-    elif modo == "apoyo":
-        await _resolver_apoyo(db, sala, conexion, personaje, nodo_id, palabra, datos)
+    if datos.get("rol_apoyo") == "apoyo":
+        await _resolver_ayudar(db, sala, conexion, personaje, nodo_id, palabra)
+        return
+
+    # Lanzar un hechizo siempre pasa por la tirada (ver resolver_via_hechizo
+    # en resolver.py), aunque la palabra clave no referencie ninguna movida.
+    if palabra.get("movida") or datos.get("via") == "hechizo":
+        await _resolver_movida(db, sala, conexion, personaje, nodo_id, palabra, datos)
     else:
-        await _resolver_individual(db, sala, conexion, personaje, nodo_id, palabra, datos)
+        await _resolver_decidir(db, sala, conexion, personaje, nodo_id, palabra)
 
 
 async def _manejar_continuar(db, sala: Sala, conexion: ConexionJugador, datos: dict) -> None:

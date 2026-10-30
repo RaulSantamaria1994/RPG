@@ -21,52 +21,6 @@ def _crear_personaje(client, codigo, personaje_id, jugador_nombre):
     return resp.json()
 
 
-def test_marcar_ausente_reduce_el_total_de_una_confirmacion_grupal(
-    client, historia_cuervo_negro, d20_siempre_veinte
-):
-    sala = _crear_sala(client, historia_cuervo_negro)
-    codigo = sala["sala"]["codigo"]
-    kara = _crear_personaje(client, codigo, "kara_la_espadachina", "Ana")
-    ilyana = _crear_personaje(client, codigo, "ilyana_la_hechicera", "Bob")
-
-    with client.websocket_connect(f"/ws/sala/{codigo}?token={sala['master_token']}") as ws_master:
-        ws_master.receive_json()  # estado_inicial
-        ws_master.receive_json()  # jugador_conectado (él mismo)
-
-        ws_master.send_json({"tipo": "override_nodo", "datos": {"nodo_id": "n017"}})
-        assert ws_master.receive_json()["datos"]["nodo_actual_id"] == "n017"
-
-        ws_master.send_json(
-            {"tipo": "marcar_ausente", "datos": {"personaje_id": ilyana["personaje"]["id"]}}
-        )
-        actualizado = ws_master.receive_json()
-        assert actualizado["tipo"] == "personaje_actualizado"
-        assert actualizado["datos"]["estado"] == "ausente"
-
-    with client.websocket_connect(f"/ws/sala/{codigo}?token={kara['token']}") as ws:
-        ws.receive_json()  # estado_inicial
-        ws.receive_json()  # jugador_conectado (self)
-
-        ws.send_json(
-            {
-                "tipo": "interactuar",
-                "datos": {"palabra_clave": "entregarlo todo a la guardia de la ciudad"},
-            }
-        )
-        voto = ws.receive_json()
-        assert voto["tipo"] == "voto_registrado"
-        # Solo Kara cuenta: Ilyana está ausente y no entra en el total.
-        assert voto["datos"]["votados"] == 1
-        assert voto["datos"]["total"] == 1
-
-        resultado = ws.receive_json()
-        assert resultado["tipo"] == "votacion_resuelta"
-        assert resultado["datos"]["opcion_ganadora"] == "entregarlo todo a la guardia de la ciudad"
-
-        final = ws.receive_json()
-        assert final["datos"]["finalizada"] is True
-
-
 def test_marcar_ausente_le_impide_interactuar_individualmente(
     client, historia_cuervo_negro, d20_siempre_veinte
 ):

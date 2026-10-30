@@ -5,6 +5,7 @@ mano, y expulsarlo de la sala.
 
 import uuid
 
+from app.engine.dice import Banda, ResultadoTirada
 from app.engine.resolver import ErrorInteraccion, aplicar_resultado, encontrar_nodo, encontrar_palabra_clave
 from app.models.personaje import Personaje
 from app.models.sala import Sala
@@ -48,12 +49,17 @@ async def _manejar_override_resultado(db, sala: Sala, conexion: ConexionJugador,
         await _enviar_error(conexion, str(exc) if isinstance(exc, ErrorInteraccion) else "Datos incompletos.")
         return
 
+    # El máster fuerza el resultado a mano: sin tirada real, así que no hay
+    # banda de 7-9 que forzar, solo éxito limpio o fallo.
     exito = bool(datos.get("exito", True))
+    resultado_forzado = ResultadoTirada(
+        dados=(0, 0), modificador=0, total=0, banda=Banda.EXITO if exito else Banda.FALLO
+    )
     personajes_sala = _personajes_no_master(db, sala.id)
     cambios = aplicar_resultado(
         nodo_id,
         palabra,
-        exito,
+        resultado_forzado,
         estado,
         personaje,
         muerte_permanente=_usa_muerte_permanente(sala),
