@@ -23,6 +23,19 @@ def _crear_personaje_pregenerado(client, codigo, personaje_id, jugador_nombre="J
     return resp.json()
 
 
+def _recibir_hasta(ws, tipo, maximo=10):
+    """Lee mensajes de `ws` saltándose los que no sean `tipo`. Con dos
+    conexiones abiertas a la vez (p. ej. jugador + máster), el orden exacto
+    en que cada una ve el 'jugador_conectado' de la otra no está
+    garantizado con el TestClient síncrono — así que no se asume posición,
+    solo se busca el mensaje que de verdad importa para la prueba."""
+    for _ in range(maximo):
+        m = ws.receive_json()
+        if m["tipo"] == tipo:
+            return m
+    raise AssertionError(f"no llegó un mensaje de tipo '{tipo}' tras {maximo} intentos")
+
+
 def test_crear_sala_ancla_version_y_nodo_inicial(client, historia_cuervo_negro):
     datos = _crear_sala(client, historia_cuervo_negro)
     assert len(datos["sala"]["codigo"]) == 6
@@ -58,35 +71,51 @@ def test_flujo_nodo_tirada_nodo_via_atributo(client, historia_cuervo_negro, d20_
     creado = _crear_personaje_pregenerado(client, codigo, "kara_la_espadachina")
     token = creado["token"]
 
-    with client.websocket_connect(f"/ws/sala/{codigo}?token={token}") as ws:
-        inicial = ws.receive_json()
-        assert inicial["tipo"] == "estado_inicial"
+    with client.websocket_connect(f"/ws/sala/{codigo}?token={token}") as ws, \
+            client.websocket_connect(f"/ws/sala/{codigo}?token={sala['master_token']}") as ws_master:
+        inicial = _recibir_hasta(ws, "estado_inicial")
         assert inicial["datos"]["nodo_actual_id"] == "n001"
-        assert ws.receive_json()["tipo"] == "jugador_conectado"
 
         ws.send_json(
             {"tipo": "interactuar", "datos": {"palabra_clave": "hombre apoyado en la pared"}}
         )
-        assert ws.receive_json()["tipo"] == "palabra_clave_bloqueada"
+        _recibir_hasta(ws, "palabra_clave_bloqueada")
 
-        resultado = ws.receive_json()
-        assert resultado["tipo"] == "tirada_resultado"
+        resultado = _recibir_hasta(ws, "tirada_resultado")
         assert resultado["datos"]["exito"] is True
         assert resultado["datos"]["tirada"]["total"] == 22  # d20(20) + astucia(2)
 
-        actualizado = ws.receive_json()
-        assert actualizado["tipo"] == "nodo_actualizado"
+        actualizado = _recibir_hasta(ws, "nodo_actualizado")
         assert actualizado["datos"]["nodo_actual_id"] == "n002"
 
-        assert ws.receive_json()["tipo"] == "palabra_clave_liberada"
+        _recibir_hasta(ws, "palabra_clave_liberada")
 
-        ws.send_json({"tipo": "continuar", "datos": {}})
-        assert ws.receive_json()["datos"]["nodo_actual_id"] == "n004"
+        # Avanzar un nodo narrativo es cosa del máster, no del jugador.
+        ws_master.send_json({"tipo": "continuar", "datos": {}})
+        assert _recibir_hasta(ws, "nodo_actualizado")["datos"]["nodo_actual_id"] == "n004"
 
-        ws.send_json({"tipo": "continuar", "datos": {}})
-        siguiente = ws.receive_json()
+        ws_master.send_json({"tipo": "continuar", "datos": {}})
+        siguiente = _recibir_hasta(ws, "nodo_actualizado")
         assert siguiente["datos"]["nodo_actual_id"] == "n006"
         assert siguiente["datos"]["nodo"]["tipo"] == "interactivo"
+
+
+def test_jugador_no_puede_avanzar_un_nodo_narrativo(client, historia_cuervo_negro):
+    """Avanzar un nodo narrativo ("continuar") es una decisión del máster,
+    no del jugador — este botón ya no existe en la pantalla del jugador,
+    pero el backend lo rechaza igualmente si llega por ahí."""
+    sala = _crear_sala(client, historia_cuervo_negro)
+    codigo = sala["sala"]["codigo"]
+    creado = _crear_personaje_pregenerado(client, codigo, "kara_la_espadachina")
+
+    with client.websocket_connect(f"/ws/sala/{codigo}?token={creado['token']}") as ws:
+        ws.receive_json()  # estado_inicial
+        ws.receive_json()  # jugador_conectado
+
+        ws.send_json({"tipo": "continuar", "datos": {}})
+        error = ws.receive_json()
+        assert error["tipo"] == "error"
+        assert "máster" in error["datos"]["mensaje"]
 
 
 def test_palabra_clave_individual_sin_dificultad_no_tira_dado(

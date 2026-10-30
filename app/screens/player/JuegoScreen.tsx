@@ -309,7 +309,11 @@ export default function JuegoScreen({ navigation }: Props) {
         ) : (
           nodo?.tipo === 'narrativo' &&
           !soyMuerto &&
-          faltanJugadores === 0 && <Boton texto="Continuar" onPress={() => enviar('continuar')} />
+          faltanJugadores === 0 && (
+            <View style={styles.ausenteBanner}>
+              <Text style={styles.ausenteBannerTexto}>Esperando a que el máster continúe…</Text>
+            </View>
+          )
         )}
 
         {enCombate && (

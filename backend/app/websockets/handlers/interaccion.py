@@ -426,6 +426,10 @@ async def _manejar_interactuar(db, sala: Sala, conexion: ConexionJugador, datos:
 
 
 async def _manejar_continuar(db, sala: Sala, conexion: ConexionJugador, datos: dict) -> None:
+    if conexion.rol != "master":
+        await _enviar_error(conexion, "Solo el máster puede avanzar un nodo narrativo.")
+        return
+
     faltan = _faltan_jugadores_para_empezar(db, sala)
     if faltan > 0:
         if faltan == 1:
