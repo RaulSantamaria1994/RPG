@@ -1,6 +1,9 @@
-"""Mensaje `combate_accion`: atacar, huir, negociar, usar un objeto o lanzar
-un hechizo durante un combate, y la reacción inmediata del enemigo implicado
-tras cada acción del jugador (los enemigos no tienen turno propio).
+"""Mensaje `combate_accion`: golpear, proteger a alguien, escabullirse,
+actuar bajo presión, o usar un objeto durante un combate. Todo salvo el
+objeto se resuelve con una movida (2d6 + característica, mismas bandas que
+el resto del juego) — el enemigo no tiene turno propio ni tira: su
+contraataque, si lo hay, va dentro de la propia resolución de la movida
+del jugador (ver app/engine/combate.py).
 """
 
 import uuid
@@ -8,8 +11,6 @@ import uuid
 from sqlalchemy.orm.attributes import flag_modified
 
 from app.engine import combate as combate_engine
-from app.engine.dice import resolver_tirada_legacy_d20
-from app.engine.hechizos_base import hechizos_disponibles
 from app.models.personaje import Personaje
 from app.models.sala import Sala
 from app.websockets.comun import (
@@ -25,64 +26,24 @@ from app.websockets.comun import (
 from app.websockets.manager import ConexionJugador, gestor
 
 
-async def _reaccion_enemigo(
-    db, sala: Sala, combate: dict, estado, personaje: Personaje, enemigo_id: str | None
-) -> bool:
-    """Tras una acción de combate del jugador que no haya terminado el
-    combate, el enemigo implicado (o uno vivo al azar si la acción no
-    apuntaba a ninguno) le devuelve el golpe de inmediato — no espera a
-    ningún turno propio. Si está aturdido, consume el aturdimiento y no
-    ataca esta vez. Devuelve True si la partida ya quedó resuelta (muerte
-    total o derrota del grupo) y el llamador no debe seguir avanzando el
-    turno por su cuenta.
-    """
-    if combate.get("terminado"):
-        return False
-
-    if enemigo_id:
-        enemigo = combate_engine.enemigo_en_combate(combate, enemigo_id)
-        if enemigo is not None and enemigo["derrotado"]:
-            enemigo = None
-    else:
-        enemigo = combate_engine.elegir_enemigo_reactivo(combate)
-
-    if enemigo is None:
-        return False
-
-    if enemigo.get("aturdido"):
-        enemigo["aturdido"] = False
-        flag_modified(estado, "combate")
-        db.commit()
-        await gestor.broadcast(
-            str(sala.id),
-            {
-                "tipo": "combate_resultado",
-                "datos": {"origen": "enemigo", "accion": "aturdido", "enemigo_id": enemigo["enemigo_id"]},
-            },
-        )
-        return False
-
-    resultado = combate_engine.resolver_ataque_enemigo(
-        combate, enemigo["enemigo_id"], personaje, muerte_permanente=_usa_muerte_permanente(sala)
-    )
+async def _tras_dano(db, sala: Sala, estado, afectados: list[Personaje]) -> bool:
+    """Tras aplicar el daño de una acción de combate: notifica a quien lo
+    sufrió, procesa un posible epílogo (individual o muerte total), y si ya
+    no queda nadie activo, resuelve la derrota del grupo entero. Devuelve
+    True si la partida ya quedó resuelta por esta vía."""
     flag_modified(estado, "combate")
     db.commit()
-    datos_resultado = {"origen": "enemigo"}
-    for clave, valor in resultado.items():
-        datos_resultado[clave] = valor
-    await gestor.broadcast(str(sala.id), {"tipo": "combate_resultado", "datos": datos_resultado})
-    await gestor.broadcast(
-        str(sala.id), {"tipo": "personaje_actualizado", "datos": _personaje_publico(personaje)}
-    )
 
-    if await _procesar_posible_muerte(db, sala, personaje):
-        return True
+    for p in afectados:
+        await gestor.broadcast(
+            str(sala.id), {"tipo": "personaje_actualizado", "datos": _personaje_publico(p)}
+        )
+        if await _procesar_posible_muerte(db, sala, p):
+            return True
 
-    activos = []
-    for p in _personajes_no_master(db, sala.id):
-        if p.estado == "activo":
-            activos.append(p)
+    activos = [p for p in _personajes_no_master(db, sala.id) if p.estado == "activo"]
     if not activos:
+        combate = estado.combate
         combate["terminado"] = True
         combate["resultado"] = "derrota"
         flag_modified(estado, "combate")
@@ -113,76 +74,109 @@ async def _manejar_combate_accion(db, sala: Sala, conexion: ConexionJugador, dat
     personaje = db.get(Personaje, uuid.UUID(conexion.personaje_id))
     accion = datos.get("accion")
     nodo_actual = sala.historia.contenido["nodos"][estado.nodo_actual_id]
+    muerte_permanente = _usa_muerte_permanente(sala)
 
-    if accion == "atacar":
-        resultado = combate_engine.resolver_ataque_jugador(
-            combate, personaje, datos["enemigo_id"], personaje.fuerza
-        )
-        flag_modified(estado, "combate")
-        db.commit()
+    if accion == "golpear":
+        try:
+            enemigo_id = datos["enemigo_id"]
+        except KeyError:
+            await _enviar_error(conexion, "Falta a qué enemigo atacar.")
+            return
+        if combate_engine.enemigo_en_combate(combate, enemigo_id) is None:
+            await _enviar_error(conexion, "Ese enemigo no está en el combate.")
+            return
+
+        resultado = combate_engine.resolver_golpear(combate, personaje, enemigo_id, muerte_permanente)
         datos_resultado = {
             "origen": "jugador",
+            "accion": "golpear",
             "personaje_id": str(personaje.id),
             "personaje_nombre": personaje.nombre,
         }
-        for clave, valor in resultado.items():
-            datos_resultado[clave] = valor
+        datos_resultado.update(resultado)
         await gestor.broadcast(str(sala.id), {"tipo": "combate_resultado", "datos": datos_resultado})
+
+        if resultado["dano_recibido"] and await _tras_dano(db, sala, estado, [personaje]):
+            return
         if combate_engine.evaluar_fin_combate(combate) == "victoria":
             flag_modified(estado, "combate")
             db.commit()
             await _avanzar_y_notificar(db, sala, nodo_actual.get("nodo_victoria"))
             return
-        if await _reaccion_enemigo(db, sala, combate, estado, personaje, datos["enemigo_id"]):
+
+    elif accion == "proteger":
+        try:
+            protegido_id = datos["protegido_personaje_id"]
+            enemigo_id = datos["enemigo_id"]
+        except KeyError:
+            await _enviar_error(conexion, "Falta a quién proteger o de qué enemigo.")
             return
-    elif accion == "huir":
-        resultado = resolver_tirada_legacy_d20(personaje.agilidad, dificultad=combate.get("dificultad_huida", 12))
-        await gestor.broadcast(
-            str(sala.id),
-            {
-                "tipo": "combate_resultado",
-                "datos": {
-                    "origen": "jugador",
-                    "accion": "huir",
-                    "personaje_id": str(personaje.id),
-                    "personaje_nombre": personaje.nombre,
-                    "tirada": resultado.to_dict(),
-                },
-            },
+        try:
+            protegido = db.get(Personaje, uuid.UUID(protegido_id))
+        except ValueError:
+            protegido = None
+        if protegido is None or protegido.sala_id != sala.id:
+            await _enviar_error(conexion, "Ese personaje no está en esta sala.")
+            return
+        if combate_engine.enemigo_en_combate(combate, enemigo_id) is None:
+            await _enviar_error(conexion, "Ese enemigo no está en el combate.")
+            return
+
+        resultado = combate_engine.resolver_proteger(
+            combate, personaje, protegido, enemigo_id, muerte_permanente
         )
-        if resultado.exito and nodo_actual.get("nodo_huida"):
+        datos_resultado = {
+            "origen": "jugador",
+            "accion": "proteger",
+            "personaje_id": str(personaje.id),
+            "personaje_nombre": personaje.nombre,
+        }
+        datos_resultado.update(resultado)
+        await gestor.broadcast(str(sala.id), {"tipo": "combate_resultado", "datos": datos_resultado})
+
+        afectados = []
+        if resultado["dano_protector"]:
+            afectados.append(personaje)
+        if resultado["dano_protegido"]:
+            afectados.append(protegido)
+        if afectados and await _tras_dano(db, sala, estado, afectados):
+            return
+
+    elif accion == "escabullirse":
+        resultado = combate_engine.resolver_escabullirse(combate, personaje, muerte_permanente)
+        datos_resultado = {
+            "origen": "jugador",
+            "accion": "escabullirse",
+            "personaje_id": str(personaje.id),
+            "personaje_nombre": personaje.nombre,
+        }
+        datos_resultado.update(resultado)
+        await gestor.broadcast(str(sala.id), {"tipo": "combate_resultado", "datos": datos_resultado})
+
+        if resultado["dano_recibido"] and await _tras_dano(db, sala, estado, [personaje]):
+            return
+        if resultado["huido"] and nodo_actual.get("nodo_huida"):
             combate["terminado"] = True
             combate["resultado"] = "huida"
             flag_modified(estado, "combate")
             db.commit()
             await _avanzar_y_notificar(db, sala, nodo_actual["nodo_huida"])
             return
-        if await _reaccion_enemigo(db, sala, combate, estado, personaje, None):
+
+    elif accion == "actuar_bajo_presion":
+        resultado = combate_engine.resolver_actuar_bajo_presion(combate, personaje, muerte_permanente)
+        datos_resultado = {
+            "origen": "jugador",
+            "accion": "actuar_bajo_presion",
+            "personaje_id": str(personaje.id),
+            "personaje_nombre": personaje.nombre,
+        }
+        datos_resultado.update(resultado)
+        await gestor.broadcast(str(sala.id), {"tipo": "combate_resultado", "datos": datos_resultado})
+
+        if resultado["dano_recibido"] and await _tras_dano(db, sala, estado, [personaje]):
             return
-    elif accion == "negociar":
-        resultado = resolver_tirada_legacy_d20(personaje.astucia, dificultad=combate.get("dificultad_negociacion", 13))
-        await gestor.broadcast(
-            str(sala.id),
-            {
-                "tipo": "combate_resultado",
-                "datos": {
-                    "origen": "jugador",
-                    "accion": "negociar",
-                    "personaje_id": str(personaje.id),
-                    "personaje_nombre": personaje.nombre,
-                    "tirada": resultado.to_dict(),
-                },
-            },
-        )
-        if resultado.exito and nodo_actual.get("nodo_negociacion"):
-            combate["terminado"] = True
-            combate["resultado"] = "negociacion"
-            flag_modified(estado, "combate")
-            db.commit()
-            await _avanzar_y_notificar(db, sala, nodo_actual["nodo_negociacion"])
-            return
-        if await _reaccion_enemigo(db, sala, combate, estado, personaje, None):
-            return
+
     elif accion == "objeto":
         try:
             objeto_id = datos["objeto_id"]
@@ -191,8 +185,7 @@ async def _manejar_combate_accion(db, sala: Sala, conexion: ConexionJugador, dat
             return
 
         # El inventario es común al grupo: el objeto puede estar en el
-        # fondo compartido o, por compatibilidad con historias antiguas,
-        # en el inventario personal de quien lo usa.
+        # fondo compartido o en el inventario personal de quien lo usa.
         inventario_grupo = list(estado.inventario_grupo or [])
         inventario_personal = list(personaje.inventario or [])
 
@@ -243,9 +236,7 @@ async def _manejar_combate_accion(db, sala: Sala, conexion: ConexionJugador, dat
 
         db.commit()
         if tipo_efecto == "dano":
-            efecto_para_mostrar = {}
-            for clave, valor in efecto.items():
-                efecto_para_mostrar[clave] = valor
+            efecto_para_mostrar = dict(efecto)
             efecto_para_mostrar["enemigo_id"] = enemigo_objetivo_id
         else:
             efecto_para_mostrar = efecto
@@ -265,6 +256,10 @@ async def _manejar_combate_accion(db, sala: Sala, conexion: ConexionJugador, dat
         )
         if origen == "grupo":
             await _broadcast_nodo(sala)
+        else:
+            await gestor.broadcast(
+                str(sala.id), {"tipo": "personaje_actualizado", "datos": _personaje_publico(personaje)}
+            )
 
         if tipo_efecto == "dano" and combate_engine.evaluar_fin_combate(combate) == "victoria":
             flag_modified(estado, "combate")
@@ -272,103 +267,6 @@ async def _manejar_combate_accion(db, sala: Sala, conexion: ConexionJugador, dat
             await _avanzar_y_notificar(db, sala, nodo_actual.get("nodo_victoria"))
             return
 
-        if await _reaccion_enemigo(db, sala, combate, estado, personaje, enemigo_objetivo_id):
-            return
-    elif accion == "hechizo":
-        try:
-            hechizo_id = datos["hechizo_id"]
-        except KeyError:
-            await _enviar_error(conexion, "Falta el hechizo a lanzar.")
-            return
-
-        hechizo = hechizos_disponibles(sala.historia.contenido).get(hechizo_id)
-        if hechizo is None or hechizo["efecto"] not in (
-            "dano_directo",
-            "restaura_vida_o_mana",
-            "aturdir_enemigo",
-        ):
-            await _enviar_error(conexion, "Ese hechizo no se puede usar en combate.")
-            return
-        # Un grimorio equipado presta el hechizo aunque el personaje nunca
-        # lo haya aprendido — por eso no basta con mirar hechizos_conocidos.
-        grimorio_id = (personaje.hechizo_equipado or {}).get("hechizo_id")
-        if hechizo_id not in (personaje.hechizos_conocidos or []) and hechizo_id != grimorio_id:
-            await _enviar_error(conexion, "No conoces ese hechizo.")
-            return
-        if personaje.mana_actual < hechizo["coste_mana"]:
-            await _enviar_error(conexion, "No tienes maná suficiente.")
-            return
-
-        personaje.mana_actual -= hechizo["coste_mana"]
-        resultado_tirada = resolver_tirada_legacy_d20(personaje.voluntad, hechizo["dificultad"])
-        efecto_aplicado = None
-        objetivo_enemigo_id = None
-
-        if hechizo["efecto"] in ("dano_directo", "aturdir_enemigo"):
-            objetivo_enemigo_id = datos.get("objetivo_enemigo_id")
-
-        if resultado_tirada.exito:
-            if hechizo["efecto"] in ("dano_directo", "aturdir_enemigo"):
-                enemigo = combate_engine.enemigo_en_combate(combate, objetivo_enemigo_id or "")
-                if enemigo is None:
-                    await _enviar_error(conexion, "Ese enemigo no está en el combate.")
-                    return
-                if hechizo["efecto"] == "dano_directo":
-                    dano = max(1, personaje.voluntad // 2 + 2)
-                    enemigo["vida"] = max(0, enemigo["vida"] - dano)
-                    if enemigo["vida"] == 0:
-                        enemigo["derrotado"] = True
-                    efecto_aplicado = {"tipo": "dano", "enemigo_id": objetivo_enemigo_id, "dano": dano}
-                else:
-                    enemigo["aturdido"] = True
-                    efecto_aplicado = {"tipo": "aturdido", "enemigo_id": objetivo_enemigo_id}
-            else:  # restaura_vida_o_mana
-                objetivo_id = datos.get("objetivo_personaje_id")
-                try:
-                    objetivo = db.get(Personaje, uuid.UUID(objetivo_id)) if objetivo_id else None
-                except ValueError:
-                    objetivo = None
-                if objetivo is None or objetivo.sala_id != sala.id:
-                    await _enviar_error(conexion, "Ese objetivo no es válido.")
-                    return
-                cantidad = 6
-                objetivo.vida_actual = min(objetivo.vida_max, objetivo.vida_actual + cantidad)
-                efecto_aplicado = {
-                    "tipo": "curacion",
-                    "personaje_id": str(objetivo.id),
-                    "cantidad": cantidad,
-                }
-
-        flag_modified(estado, "combate")
-        db.commit()
-        await gestor.broadcast(
-            str(sala.id),
-            {
-                "tipo": "combate_resultado",
-                "datos": {
-                    "origen": "jugador",
-                    "accion": "hechizo",
-                    "personaje_id": str(personaje.id),
-                    "personaje_nombre": personaje.nombre,
-                    "hechizo": hechizo["nombre"],
-                    "tirada": resultado_tirada.to_dict(),
-                    "efecto": efecto_aplicado,
-                },
-            },
-        )
-        if hechizo["efecto"] == "dano_directo" and combate_engine.evaluar_fin_combate(combate) == "victoria":
-            flag_modified(estado, "combate")
-            db.commit()
-            await _avanzar_y_notificar(db, sala, nodo_actual.get("nodo_victoria"))
-            return
-
-        # El aturdimiento exitoso es justo lo que evita que ese enemigo
-        # responda: no tendría sentido consumirlo en el mismo instante en
-        # que se aplica.
-        aturdido_con_exito = resultado_tirada.exito and hechizo["efecto"] == "aturdir_enemigo"
-        if not aturdido_con_exito:
-            if await _reaccion_enemigo(db, sala, combate, estado, personaje, objetivo_enemigo_id):
-                return
     else:
         await _enviar_error(conexion, f"Acción de combate '{accion}' no reconocida.")
         return

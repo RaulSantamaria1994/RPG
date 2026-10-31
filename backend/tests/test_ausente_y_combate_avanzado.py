@@ -1,7 +1,12 @@
 """Pruebas de las funcionalidades pedidas tras el playtesting: que el juego
 deje de contar con un jugador ausente (en tiradas grupales y en combate), y
 que se puedan usar objetos y hechizos durante el propio turno de combate.
+
+Los hechizos en combate quedan fuera del motor PbtA por ahora (ver
+docs/motor_pbta_plan.md, sección 7) — esa prueba queda `skip`.
 """
+
+import pytest
 
 
 def _crear_sala(client, historia_cuervo_negro):
@@ -125,6 +130,7 @@ def test_usar_objeto_cura_vida_y_se_consume_en_combate(
     assert personaje["inventario"] == []  # la poción se consumió
 
 
+@pytest.mark.skip(reason="hechizos en combate fuera del motor PbtA por ahora — ver docs/motor_pbta_plan.md")
 def test_lanzar_hechizo_de_dano_en_combate(client, historia_cuervo_negro, d20_siempre_veinte):
     sala = _crear_sala(client, historia_cuervo_negro)
     codigo = sala["sala"]["codigo"]

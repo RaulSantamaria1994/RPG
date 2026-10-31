@@ -2,9 +2,15 @@
 tipo de nodo con solo llegar a él (no solo al éxito de una palabra clave de
 un nodo interactivo), y el inventario de grupo es usable por cualquier
 jugador en combate, sin necesidad de intercambiarlo antes a nadie.
+
+Una prueba espera la "reacción" automática del enemigo tras usar un objeto
+de ataque en combate, modelo que el motor PbtA retira por ahora (ver
+docs/motor_pbta_plan.md) — queda `skip` hasta la Fase 3.
 """
 
 import uuid
+
+import pytest
 
 from app.engine.validator import validar_historia
 from app.models.estado_sala import EstadoSala
@@ -213,6 +219,7 @@ def test_usar_objeto_del_grupo_en_combate_no_requiere_tenerlo_en_propiedad(
     assert estado.inventario_grupo == []  # se consumió del fondo común
 
 
+@pytest.mark.skip(reason="reacción automática del enemigo tras objeto retirada — rehacer en la Fase 3")
 def test_usar_objeto_de_ataque_en_combate_hace_dano_y_provoca_reaccion(
     client, historia_cuervo_negro, db
 ):

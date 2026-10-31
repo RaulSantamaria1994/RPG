@@ -1,64 +1,55 @@
-"""Resolución de combate reactivo, sin mapa/grid: tiradas narrativas.
-
-Los enemigos no tienen turno propio: cuando un jugador actúa (ataca, huye,
-negocia, usa un objeto o lanza un hechizo) y esa acción no termina el
-combate, el enemigo implicado (el atacado, o uno vivo al azar si la acción
-no apuntaba a ninguno) responde de inmediato con su propio ataque contra
-ese mismo jugador. Solo los jugadores tienen un orden de turno entre ellos.
+"""Combate PbtA: se resuelve con las mismas movidas y las mismas bandas que
+cualquier otra tirada (ver docs/motor_pbta_plan.md, sección 6). Los
+enemigos no tiran: solo tienen vida y un daño fijo que infligen al
+contraatacar, determinista según la banda de la movida del jugador — no
+hay un paso de "reacción del enemigo" aparte, va dentro de la propia
+resolución. Tampoco hay iniciativa de d20: el orden de turno es
+simplemente el de llegada.
 
 El estado de combate vive en `EstadoSala.combate` (JSON) con esta forma:
 
 {
   "enemigos": [
-    {"enemigo_id": "lobo_1", "nombre": "Lobo", "vida": 8, "vida_max": 8,
-     "atributos": {"fuerza": 3, "agilidad": 2}, "ataques": [...], "derrotado": False}
+    {"enemigo_id": "urbano", "nombre": "Urbano", "vida": 16, "vida_max": 16,
+     "dano": 6, "derrotado": False}
   ],
-  "orden_iniciativa": ["personaje:<id>", ...],  # solo jugadores
+  "orden_iniciativa": ["personaje:<id>", ...],
   "turno_index": 0,
   "ronda": 1,
   "terminado": False,
-  "resultado": null  # "victoria" | "derrota" | "huida" | "negociacion"
+  "resultado": None  # "victoria" | "derrota" | "huida"
 }
+
+Los hechizos quedan fuera de este combate por ahora (ver
+docs/motor_pbta_plan.md, sección 7: se dejan para más adelante, sin
+rediseñar su integración con el combate reactivo que tenían antes).
 """
 
 import secrets
 
-from app.engine.dice import resolver_tirada_legacy_d20, tirar_d20
+from app.engine.dice import Banda, resolver_tirada
+from app.engine.movidas import modificador_de
+from app.engine.resolver import aplicar_dano
 from app.models.personaje import Personaje
 
 
 def iniciar_combate(nodo: dict, personajes: list[Personaje]) -> dict:
     enemigos = []
     for enemigo in nodo.get("enemigos", []):
-        copia_enemigo = dict(enemigo)
-        copia_enemigo["vida"] = enemigo.get("vida")
-        copia_enemigo["vida_max"] = enemigo.get("vida")
-        copia_enemigo["derrotado"] = False
-        enemigos.append(copia_enemigo)
+        copia = dict(enemigo)
+        copia["vida_max"] = enemigo.get("vida")
+        copia["derrotado"] = False
+        enemigos.append(copia)
 
-    participantes: list[tuple[str, int]] = []
-    for personaje in personajes:
-        iniciativa = tirar_d20() + personaje.agilidad
-        participantes.append((f"personaje:{personaje.id}", iniciativa))
-
-    participantes.sort(key=lambda p: p[1], reverse=True)
-
-    orden_iniciativa = []
-    iniciativa_valores = {}
-    for id_participante, iniciativa in participantes:
-        orden_iniciativa.append(id_participante)
-        iniciativa_valores[id_participante] = iniciativa
+    orden_iniciativa = [f"personaje:{p.id}" for p in personajes]
 
     return {
         "enemigos": enemigos,
         "orden_iniciativa": orden_iniciativa,
-        "iniciativa_valores": iniciativa_valores,
         "turno_index": 0,
         "ronda": 1,
         "terminado": False,
         "resultado": None,
-        "dificultad_huida": nodo.get("dificultad_huida", 12),
-        "dificultad_negociacion": nodo.get("dificultad_negociacion", 13),
     }
 
 
@@ -70,80 +61,101 @@ def enemigo_en_combate(combate: dict, enemigo_id: str) -> dict | None:
 
 
 def elegir_enemigo_reactivo(combate: dict) -> dict | None:
-    """Enemigo que responde cuando la acción del jugador no apuntaba a
-    ninguno en concreto (huir, negociar, usar un objeto, curarse): uno al
-    azar de entre los que siguen en pie, o None si ya no queda ninguno."""
-    vivos = []
-    for e in combate["enemigos"]:
-        if not e["derrotado"]:
-            vivos.append(e)
+    """Un enemigo vivo al azar, para cuando hace falta que "alguien"
+    responda sin que la acción apuntara a uno en concreto (p. ej. al
+    fallar un intento de huida)."""
+    vivos = [e for e in combate["enemigos"] if not e["derrotado"]]
     if not vivos:
         return None
     return vivos[secrets.randbelow(len(vivos))]
 
 
-def _enemigo(combate: dict, enemigo_id: str) -> dict:
-    for enemigo in combate["enemigos"]:
-        if enemigo["enemigo_id"] == enemigo_id:
-            return enemigo
-    raise ValueError(f"Enemigo '{enemigo_id}' no está en este combate.")
+def _dano_arma(personaje: Personaje) -> int:
+    return 1 + (personaje.arma_equipada or {}).get("bono_dano", 0)
 
 
-def resolver_ataque_jugador(
-    combate: dict, personaje: Personaje, enemigo_id: str, modificador_ataque: int
+def resolver_golpear(
+    combate: dict, personaje: Personaje, enemigo_id: str, muerte_permanente: bool = False
 ) -> dict:
-    """Tirada opuesta: ataque del jugador vs defensa del enemigo."""
-    enemigo = _enemigo(combate, enemigo_id)
-    defensa = enemigo.get("atributos", {}).get("defensa", 10)
+    """10+: golpeas limpio, el enemigo no responde. 7-9: golpeas, pero el
+    enemigo contraataca. 6-: no golpeas, y el enemigo contraataca igual."""
+    enemigo = enemigo_en_combate(combate, enemigo_id)
+    resultado = resolver_tirada(modificador_de(personaje, "fuerza"))
 
-    resultado = resolver_tirada_legacy_d20(modificador=modificador_ataque, dificultad=defensa)
-
-    dano_aplicado = 0
-    if resultado.exito:
-        dano_aplicado = _dano_base(personaje)
-        enemigo["vida"] = max(0, enemigo["vida"] - dano_aplicado)
+    dano_a_enemigo = 0
+    dano_recibido = 0
+    if resultado.banda in (Banda.EXITO, Banda.EXITO_CON_COSTE):
+        dano_a_enemigo = _dano_arma(personaje)
+        enemigo["vida"] = max(0, enemigo["vida"] - dano_a_enemigo)
         if enemigo["vida"] == 0:
             enemigo["derrotado"] = True
+    if resultado.banda in (Banda.EXITO_CON_COSTE, Banda.FALLO):
+        dano_recibido = aplicar_dano(personaje, enemigo.get("dano", 2), muerte_permanente)
 
     return {
         "tirada": resultado.to_dict(),
-        "dano_aplicado": dano_aplicado,
         "enemigo_id": enemigo_id,
+        "dano_a_enemigo": dano_a_enemigo,
+        "dano_recibido": dano_recibido,
         "enemigo_derrotado": enemigo["derrotado"],
     }
 
 
-def _dano_base(personaje: Personaje) -> int:
-    base = max(1, personaje.fuerza // 2 + 2)
-    bono_arma = (personaje.arma_equipada or {}).get("bono_dano", 0)
-    return base + bono_arma
-
-
-def resolver_ataque_enemigo(
-    combate: dict, enemigo_id: str, personaje: Personaje, muerte_permanente: bool = False
+def resolver_proteger(
+    combate: dict,
+    protector: Personaje,
+    protegido: Personaje,
+    enemigo_id: str,
+    muerte_permanente: bool = False,
 ) -> dict:
-    enemigo = _enemigo(combate, enemigo_id)
-    ataques = enemigo.get("ataques") or [{"nombre": "Ataque", "dano": 2, "modificador": 2}]
-    ataque = ataques[0]
+    """10+: nadie recibe daño, controlas la situación. 7-9: el golpe
+    destinado al protegido te lo llevas tú. 6-: fallas al interponerte, el
+    golpe llega igualmente a quien protegías."""
+    enemigo = enemigo_en_combate(combate, enemigo_id)
+    resultado = resolver_tirada(modificador_de(protector, "fuerza"))
 
-    defensa_jugador = 10 + personaje.agilidad
-    resultado = resolver_tirada_legacy_d20(
-        modificador=ataque.get("modificador", 0), dificultad=defensa_jugador
-    )
-
-    dano_aplicado = 0
-    if resultado.exito:
-        dano_aplicado = ataque.get("dano", 2)
-        personaje.vida_actual = max(0, personaje.vida_actual - dano_aplicado)
-        if personaje.vida_actual == 0:
-            personaje.estado = "muerto" if muerte_permanente else "inconsciente"
+    dano_protector = 0
+    dano_protegido = 0
+    if resultado.banda == Banda.EXITO_CON_COSTE:
+        dano_protector = aplicar_dano(protector, enemigo.get("dano", 2), muerte_permanente)
+    elif resultado.banda == Banda.FALLO:
+        dano_protegido = aplicar_dano(protegido, enemigo.get("dano", 2), muerte_permanente)
 
     return {
         "tirada": resultado.to_dict(),
-        "dano_aplicado": dano_aplicado,
-        "personaje_id": str(personaje.id),
-        "personaje_inconsciente": personaje.vida_actual == 0,
+        "enemigo_id": enemigo_id,
+        "protegido_id": str(protegido.id),
+        "dano_protector": dano_protector,
+        "dano_protegido": dano_protegido,
     }
+
+
+def resolver_escabullirse(combate: dict, personaje: Personaje, muerte_permanente: bool = False) -> dict:
+    """10+: huyes limpio. 7-9: huyes, pero te alcanzan antes de salir. 6-:
+    no consigues huir, y te alcanzan igual."""
+    resultado = resolver_tirada(modificador_de(personaje, "agilidad"))
+
+    huido = resultado.banda in (Banda.EXITO, Banda.EXITO_CON_COSTE)
+    dano_recibido = 0
+    if resultado.banda in (Banda.EXITO_CON_COSTE, Banda.FALLO):
+        enemigo = elegir_enemigo_reactivo(combate)
+        if enemigo is not None:
+            dano_recibido = aplicar_dano(personaje, enemigo.get("dano", 2), muerte_permanente)
+
+    return {"tirada": resultado.to_dict(), "huido": huido, "dano_recibido": dano_recibido}
+
+
+def resolver_actuar_bajo_presion(
+    combate: dict, personaje: Personaje, muerte_permanente: bool = False
+) -> dict:
+    """Cajón de sastre para cualquier otra acción arriesgada en pleno
+    combate (usar algo del entorno, improvisar) que no sea atacar,
+    proteger o huir. 7-9: sale bien, pero con un pequeño coste."""
+    resultado = resolver_tirada(modificador_de(personaje, "voluntad"))
+    dano_recibido = 0
+    if resultado.banda == Banda.EXITO_CON_COSTE:
+        dano_recibido = aplicar_dano(personaje, 1, muerte_permanente)
+    return {"tirada": resultado.to_dict(), "dano_recibido": dano_recibido}
 
 
 def avanzar_turno(combate: dict) -> None:
@@ -157,11 +169,7 @@ def evaluar_fin_combate(combate: dict) -> str | None:
     """Devuelve 'victoria' si todos los enemigos están derrotados, o None."""
     if not combate["enemigos"]:
         return None
-    todos_derrotados = True
-    for e in combate["enemigos"]:
-        if not e["derrotado"]:
-            todos_derrotados = False
-    if todos_derrotados:
+    if all(e["derrotado"] for e in combate["enemigos"]):
         combate["terminado"] = True
         combate["resultado"] = "victoria"
         return "victoria"

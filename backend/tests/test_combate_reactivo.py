@@ -2,9 +2,16 @@
 `orden_iniciativa` (solo los jugadores lo tienen) y responden de inmediato
 a la acción del jugador que los implica, sin esperar a nada. Un enemigo al
 que nadie ataca no hace nada.
+
+Dos de estas pruebas (reacción de un enemigo concreto, aturdir por
+hechizo) corresponden al modelo de combate viejo (un paso de "reacción"
+aparte tras cada acción) que el motor PbtA sustituye por el contraataque
+dentro de la propia banda de la movida — quedan `skip` hasta la Fase 3.
 """
 
 import uuid
+
+import pytest
 
 
 def _crear_sala(client, historia_cuervo_negro):
@@ -45,6 +52,7 @@ def test_orden_iniciativa_solo_tiene_personajes(client, historia_cuervo_negro, d
     assert not any(e.startswith("enemigo:") for e in orden)
 
 
+@pytest.mark.skip(reason="modelo de reacción del combate viejo — rehacer en la Fase 3")
 def test_solo_responde_el_enemigo_atacado_el_otro_no_hace_nada(
     client, historia_cuervo_negro, d20_siempre_veinte
 ):
@@ -97,6 +105,7 @@ def test_solo_responde_el_enemigo_atacado_el_otro_no_hace_nada(
     assert enemigos["contrabandista_2"]["vida"] == 10  # nadie lo ha atacado: no actúa
 
 
+@pytest.mark.skip(reason="modelo de reacción del combate viejo — rehacer en la Fase 3")
 def test_hechizo_aturdir_evita_que_ese_enemigo_responda(
     client, historia_cuervo_negro, d20_siempre_veinte
 ):
