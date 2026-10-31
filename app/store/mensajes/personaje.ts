@@ -31,7 +31,7 @@ export function equipo_cambiado(datos: Record<string, unknown>, set: FijarEstado
   const d = datos as {
     personaje_nombre: string;
     objeto_nombre: string;
-    ranura: 'arma' | 'hechizo';
+    ranura: 'arma' | 'armadura' | 'hechizo';
     accion: 'equipar' | 'desequipar';
   };
   const texto =

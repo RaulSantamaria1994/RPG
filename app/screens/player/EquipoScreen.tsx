@@ -38,10 +38,13 @@ export default function EquipoScreen() {
   if (!personaje) return null;
 
   const armas = [];
+  const armaduras = [];
   const grimorios = [];
   for (const o of inventarioGrupo) {
     if (o.categoria === 'arma') {
       armas.push(o);
+    } else if (o.categoria === 'armadura') {
+      armaduras.push(o);
     } else if (o.categoria === 'grimorio') {
       grimorios.push(o);
     }
@@ -51,8 +54,8 @@ export default function EquipoScreen() {
     <ScrollView contentContainerStyle={styles.contenedor}>
       <Text style={styles.titulo}>Equipo</Text>
       <Text style={styles.subtitulo}>
-        Un arma y un hechizo como mucho, sacados del inventario común. Al desequipar algo vuelve al
-        grupo para que otro lo lleve.
+        Un arma, una armadura y un hechizo como mucho, sacados del inventario común. Al desequipar
+        algo vuelve al grupo para que otro lo lleve.
       </Text>
 
       <View style={{ gap: espacio.sm }}>
@@ -64,7 +67,7 @@ export default function EquipoScreen() {
               <View style={{ flex: 1 }}>
                 <Text style={styles.objetoNombre}>{personaje.arma_equipada.nombre}</Text>
                 {!!personaje.arma_equipada.bono_dano && (
-                  <Text style={styles.objetoDetalle}>+{personaje.arma_equipada.bono_dano} de daño al atacar</Text>
+                  <Text style={styles.objetoDetalle}>+{personaje.arma_equipada.bono_dano} de daño al golpear</Text>
                 )}
               </View>
             </View>
@@ -77,6 +80,34 @@ export default function EquipoScreen() {
         ) : (
           <Tarjeta style={styles.tarjetaVacia}>
             <Text style={styles.vacioTexto}>Ninguna arma equipada.</Text>
+          </Tarjeta>
+        )}
+      </View>
+
+      <View style={{ gap: espacio.sm }}>
+        <Text style={styles.seccionTitulo}>RANURA DE ARMADURA</Text>
+        {personaje.armadura_equipada ? (
+          <Tarjeta acento={color.interactivo} style={styles.tarjetaRanura}>
+            <View style={styles.filaRanura}>
+              <MaterialCommunityIcons name="shield-outline" size={20} color={color.interactivo} />
+              <View style={{ flex: 1 }}>
+                <Text style={styles.objetoNombre}>{personaje.armadura_equipada.nombre}</Text>
+                {!!personaje.armadura_equipada.reduccion_dano && (
+                  <Text style={styles.objetoDetalle}>
+                    -{personaje.armadura_equipada.reduccion_dano} al daño recibido
+                  </Text>
+                )}
+              </View>
+            </View>
+            <Boton
+              texto="Desequipar"
+              variante="fantasma"
+              onPress={() => enviar('desequipar_objeto', { ranura: 'armadura' })}
+            />
+          </Tarjeta>
+        ) : (
+          <Tarjeta style={styles.tarjetaVacia}>
+            <Text style={styles.vacioTexto}>Ninguna armadura equipada.</Text>
           </Tarjeta>
         )}
       </View>
@@ -113,7 +144,24 @@ export default function EquipoScreen() {
             <Tarjeta key={o.objeto_id} style={styles.tarjetaDisponible}>
               <View style={{ flex: 1 }}>
                 <Text style={styles.objetoNombre}>{o.nombre}</Text>
-                {!!o.bono_dano && <Text style={styles.objetoDetalle}>+{o.bono_dano} de daño al atacar</Text>}
+                {!!o.bono_dano && <Text style={styles.objetoDetalle}>+{o.bono_dano} de daño al golpear</Text>}
+              </View>
+              <Boton texto="Equipar" variante="secundario" onPress={() => enviar('equipar_objeto', { objeto_id: o.objeto_id })} />
+            </Tarjeta>
+          ))
+        )}
+      </View>
+
+      <View style={{ gap: espacio.sm }}>
+        <Text style={styles.seccionTitulo}>ARMADURAS DEL INVENTARIO COMÚN</Text>
+        {armaduras.length === 0 ? (
+          <Text style={styles.vacioTexto}>No hay ninguna armadura suelta en el grupo ahora mismo.</Text>
+        ) : (
+          armaduras.map((o) => (
+            <Tarjeta key={o.objeto_id} style={styles.tarjetaDisponible}>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.objetoNombre}>{o.nombre}</Text>
+                {!!o.reduccion_dano && <Text style={styles.objetoDetalle}>-{o.reduccion_dano} al daño recibido</Text>}
               </View>
               <Boton texto="Equipar" variante="secundario" onPress={() => enviar('equipar_objeto', { objeto_id: o.objeto_id })} />
             </Tarjeta>

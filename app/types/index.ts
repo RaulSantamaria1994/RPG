@@ -27,7 +27,6 @@ export interface PersonajePregenerado {
   trasfondo: string;
   atributos: Record<Atributo, number>;
   habilidad_pasiva: string;
-  vida_max?: number;
   mana_max?: number;
   hechizos_conocidos?: string[];
 }
@@ -52,15 +51,27 @@ export interface Personaje {
   habilidad_pasiva: string;
   vida_max: number;
   vida_actual: number;
+  /** Puntos de Suerte: 7 al crear el personaje, no se recuperan solos
+   * (ver docs/motor_pbta_plan.md, sección 4). */
+  puntos_suerte_max: number;
+  puntos_suerte_actual: number;
   mana_max: number;
   mana_actual: number;
   inventario: ObjetoInventario[];
   hechizos_conocidos: string[];
   rasgos: string[];
   arma_equipada?: ObjetoInventario | null;
+  armadura_equipada?: ObjetoInventario | null;
   hechizo_equipado?: ObjetoInventario | null;
   estado: string;
   es_master?: boolean;
+}
+
+/** A partir de 4 de daño acumulado (barra de 7 con 3 o menos de vida
+ * restante) el personaje queda "inestable": sigue jugando, pero es la
+ * señal narrativa de que un golpe más es grave. */
+export function esInestable(personaje: { vida_max: number; vida_actual: number }): boolean {
+  return personaje.vida_max - personaje.vida_actual >= 4;
 }
 
 export interface ObjetoInventario {
@@ -68,14 +79,18 @@ export interface ObjetoInventario {
   nombre: string;
   efecto?: { tipo: string; cantidad?: number } | null;
   consumible?: boolean;
-  /** 'arma' y 'grimorio' son equipables desde la pestaña de Equipo. El
-   * valor 'hechizo' es otra cosa, histórica: un objeto otorgado con esa
-   * categoría nunca llega a ser un objeto físico — enseña el hechizo a
-   * todo el grupo en el momento en que se otorga (ver `otorgar_objeto` en
-   * el backend), así que jamás aparece en un inventario. */
-  categoria?: 'arma' | 'grimorio' | 'hechizo';
+  /** 'arma', 'armadura' y 'grimorio' son equipables desde la pestaña de
+   * Equipo. El valor 'hechizo' es otra cosa, histórica: un objeto
+   * otorgado con esa categoría nunca llega a ser un objeto físico —
+   * enseña el hechizo a todo el grupo en el momento en que se otorga
+   * (ver `otorgar_objeto` en el backend), así que jamás aparece en un
+   * inventario. */
+  categoria?: 'arma' | 'armadura' | 'grimorio' | 'hechizo';
   /** Solo en categoria 'arma': bono de daño que suma al atacar con ella equipada. */
   bono_dano?: number;
+  /** Solo en categoria 'armadura': reducción de daño fija que resta a
+   * cualquier golpe recibido antes de descontar de la barra de 7. */
+  reduccion_dano?: number;
   /** Solo en categoria 'grimorio': qué hechizo del catálogo deja lanzar. */
   hechizo_id?: string;
 }
@@ -85,27 +100,34 @@ export interface Hechizo {
   nombre: string;
   categoria: string;
   coste_mana: number;
-  dificultad: number;
   descripcion: string;
   efecto?: string | null;
 }
 
+/** Id de una de las 8 movidas básicas del motor (ver
+ * docs/motor_pbta_plan.md, sección 2) — vive en el motor, no en la
+ * historia: una palabra clave solo referencia el id. */
+export type MovidaId =
+  | 'actuar_bajo_presion'
+  | 'convencer'
+  | 'investigar'
+  | 'leer_el_peligro'
+  | 'golpear'
+  | 'proteger'
+  | 'escabullirse'
+  | 'ayudar';
+
 export interface PalabraClave {
   texto: string;
-  tipo_interaccion?: string;
-  atributo?: Atributo;
-  dificultad?: number;
-  modo_interaccion?: 'individual' | 'grupal' | 'apoyo' | 'opuesta' | 'cadena';
+  /** Ausente = decisión narrativa sin tirada (el grupo lo habla y
+   * cualquiera confirma la opción acordada); el motor ya no cuenta votos. */
+  movida?: MovidaId;
   repetible?: boolean;
   requiere_flag?: string | null;
   requiere_objeto?: string | null;
   categoria_hechizo_alternativa?: string;
   hechizo_id_alternativo?: string;
-  atributo_apoyo?: Atributo;
-  dificultad_apoyo?: number;
-  npc_modificador?: number;
-  regla_grupal?: 'mejor_resultado' | 'todos_aciertan';
-  dano_exito?: { cantidad: number };
+  coste_parcial?: { tipo: string; cantidad?: number } | null;
   dano_fallo?: { cantidad: number };
 }
 
@@ -119,14 +141,16 @@ export interface Nodo {
   enemigos?: EnemigoCombate[];
 }
 
+/** Ficha de enemigo simplificada: solo vida y un daño fijo que inflige al
+ * contraatacar — el enemigo no tira, reacciona de forma determinista a la
+ * banda de la movida del jugador (ver docs/motor_pbta_plan.md, sección 6). */
 export interface EnemigoCombate {
   enemigo_id: string;
   nombre: string;
   vida: number;
   vida_max: number;
+  dano: number;
   derrotado: boolean;
-  aturdido?: boolean;
-  atributos?: { defensa?: number; fuerza?: number; agilidad?: number };
 }
 
 export interface EstadoCombate {
@@ -136,8 +160,6 @@ export interface EstadoCombate {
   ronda: number;
   terminado: boolean;
   resultado: string | null;
-  dificultad_huida?: number;
-  dificultad_negociacion?: number;
 }
 
 export interface EntradaDiario {
@@ -161,27 +183,24 @@ export interface EstadoPublico {
   tipo_final: string | null;
 }
 
-/** Qué clase de acción de combate acaba de resolverse — así la interfaz
- * puede mostrar un icono y una animación propios de atacar, huir,
- * negociar o lanzar un hechizo, en vez de un aviso genérico igual para
- * todo. Las dos últimas son reacciones del enemigo, no del jugador. */
-export type AccionCombateTipo =
-  | 'atacar'
-  | 'huir'
-  | 'negociar'
-  | 'hechizo'
-  | 'objeto'
-  | 'enemigo_ataca'
-  | 'enemigo_aturdido';
+/** Qué movida de combate acaba de resolverse — así la interfaz puede
+ * mostrar un icono y una animación propios de cada una, en vez de un
+ * aviso genérico igual para todo. El enemigo ya no tiene turno ni
+ * reacción aparte: su contraataque, si lo hay, va dentro de la propia
+ * resolución de la movida del jugador. */
+export type AccionCombateTipo = 'golpear' | 'proteger' | 'escabullirse' | 'actuar_bajo_presion' | 'objeto';
+
+/** Las tres bandas fijas de 2d6 + modificador (ver docs/motor_pbta_plan.md,
+ * sección 1): 10+ éxito limpio, 7-9 éxito con coste, 6- fallo. */
+export type Banda = 'exito' | 'exito_con_coste' | 'fallo';
 
 export interface TiradaResultado {
-  dado?: number;
+  dados?: [number, number];
   modificador?: number;
   total?: number;
-  dificultad?: number;
+  banda?: Banda;
   exito: boolean;
   hechizo?: string;
-  resultados?: { personaje: string; exito: boolean; total: number }[];
 }
 
 export interface NodoResumen {

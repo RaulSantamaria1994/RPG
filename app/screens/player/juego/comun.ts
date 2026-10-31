@@ -1,4 +1,4 @@
-import type { Atributo } from '../../../types';
+import type { Atributo, MovidaId } from '../../../types';
 
 export const ETIQUETA_ATRIBUTO: Record<Atributo, string> = {
   fuerza: 'Fuerza',
@@ -7,34 +7,23 @@ export const ETIQUETA_ATRIBUTO: Record<Atributo, string> = {
   agilidad: 'Agilidad',
 };
 
+/** Catálogo cerrado de las 8 movidas básicas (ver docs/motor_pbta_plan.md,
+ * sección 2) — vive en el motor, no en la historia, así que el nombre y la
+ * característica de cada una se muestran a partir de este catálogo, igual
+ * que en el backend (`app/engine/movidas.py`), nunca desde el JSON de la
+ * historia. `caracteristica` es null para "ayudar": se resuelve con una
+ * tirada aparte, sin característica propia (ver `PanelInteraccion`). */
+export const MOVIDAS: Record<MovidaId, { nombre: string; caracteristica: Atributo | null }> = {
+  actuar_bajo_presion: { nombre: 'Actuar bajo presión', caracteristica: 'voluntad' },
+  convencer: { nombre: 'Convencer o manipular', caracteristica: 'voluntad' },
+  investigar: { nombre: 'Investigar', caracteristica: 'astucia' },
+  leer_el_peligro: { nombre: 'Leer el peligro', caracteristica: 'astucia' },
+  golpear: { nombre: 'Golpear', caracteristica: 'fuerza' },
+  proteger: { nombre: 'Proteger a alguien', caracteristica: 'fuerza' },
+  escabullirse: { nombre: 'Escabullirse', caracteristica: 'agilidad' },
+  ayudar: { nombre: 'Ayudar a otro', caracteristica: null },
+};
+
 export function formatearId(id: string): string {
   return id.replace(/_/g, ' ').replace(/^\w/, (c) => c.toUpperCase());
-}
-
-/** Texto de resumen de la tirada que pide una palabra clave, según cómo esté
- * configurada (tirada enfrentada, con dificultad normal, votación sin tirada,
- * o decisión directa sin tirada). */
-export function resumenDeLaTirada(
-  p: { modo_interaccion?: string; atributo?: Atributo; dificultad?: number },
-  esVotacion: boolean
-): string {
-  const nombreAtributo = p.atributo ? ETIQUETA_ATRIBUTO[p.atributo] : '?';
-  if (p.modo_interaccion === 'opuesta') {
-    return `${nombreAtributo} contra un rival`;
-  }
-  if (p.dificultad) {
-    return `${nombreAtributo} · dificultad ${p.dificultad}`;
-  }
-  if (esVotacion) {
-    return 'Sin tirada — gana la opción más votada por el grupo';
-  }
-  return 'Sin tirada — se resuelve al confirmar';
-}
-
-/** Texto que acompaña al enunciado de una palabra clave cuando se vota en
- * grupo, o cuando el grupo entero tiene que confirmarla para resolverse. */
-export function sufijoModoGrupal(esVotacion: boolean, modoInteraccion?: string): string {
-  if (esVotacion) return ' (vota el grupo)';
-  if (modoInteraccion === 'grupal') return ' (confirma todo el grupo)';
-  return '';
 }

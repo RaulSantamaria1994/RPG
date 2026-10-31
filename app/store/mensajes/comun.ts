@@ -1,4 +1,4 @@
-import type { AccionCombateTipo, EventoLog, Personaje } from '../../types';
+import type { AccionCombateTipo, Banda, EventoLog, Personaje } from '../../types';
 import type { SalaState } from '../salaStore';
 
 export interface PropuestaIntercambio {
@@ -34,13 +34,13 @@ export const ESTADO_INICIAL_TRANSITORIO = {
   personajes: [] as Personaje[],
   log: [] as EventoLog[],
   palabrasBloqueadas: {} as Record<string, string>,
-  confirmacionesGrupales: {} as Record<string, { confirmados: number; total: number }>,
-  votosGrupales: null as { votados: number; total: number; recuento: Record<string, number> } | null,
   propuestasIntercambio: [] as PropuestaIntercambio[],
   conectado: false,
   reintentandoConexion: false,
   cliente: null,
-  ultimaTirada: null,
+  ultimaTirada: null as
+    | { dados?: [number, number]; total?: number; banda?: Banda; exito: boolean; quien: string }
+    | null,
   ultimaAccionCombate: null as { tipo: AccionCombateTipo; exito?: boolean; en: number } | null,
   epilogoPersonal: null as EpilogoPersonal | null,
 };

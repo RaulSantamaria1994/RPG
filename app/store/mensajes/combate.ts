@@ -1,23 +1,30 @@
 /** Mensaje `combate_resultado`: el texto de log y la animación a disparar
- * para cada acción de combate (atacar, huir, negociar, objeto, hechizo),
- * venga del jugador o de la reacción inmediata del enemigo.
+ * para cada movida de combate (golpear, proteger, escabullirse, actuar
+ * bajo presión, objeto). El enemigo ya no tiene turno ni reacción
+ * aparte: su contraataque, si lo hay, viene ya incluido en el mismo
+ * mensaje de la movida del jugador (ver docs/motor_pbta_plan.md,
+ * sección 6), así que aquí nunca hace falta distinguir "origen: enemigo".
  */
-import type { AccionCombateTipo, Personaje } from '../../types';
+import type { AccionCombateTipo, Banda, Personaje } from '../../types';
 import type { FijarEstado } from './comun';
 import { nuevoEvento } from './comun';
 
 export function combate_resultado(datos: Record<string, unknown>, set: FijarEstado): void {
   const d = datos as {
-    origen: string;
-    dano_aplicado?: number;
-    accion?: string;
-    enemigo_id?: string;
+    accion: AccionCombateTipo;
     personaje_id?: string;
     personaje_nombre?: string;
+    tirada?: { dados?: [number, number]; total?: number; banda?: Banda; exito?: boolean };
+    enemigo_id?: string;
+    dano_a_enemigo?: number;
+    dano_recibido?: number;
+    enemigo_derrotado?: boolean;
+    protegido_id?: string;
+    dano_protector?: number;
+    dano_protegido?: number;
+    huido?: boolean;
     objeto?: { nombre: string };
-    hechizo?: string;
-    efecto?: { tipo: string; dano?: number; cantidad?: number; enemigo_id?: string } | null;
-    tirada?: { exito?: boolean; dado?: number; total?: number };
+    efecto?: { tipo: string; cantidad?: number; enemigo_id?: string } | null;
   };
   set((s) => {
     // El autor de la acción no tiene por qué ser quien ve la pantalla:
@@ -32,61 +39,50 @@ export function combate_resultado(datos: Record<string, unknown>, set: FijarEsta
       }
     }
     const quien = d.personaje_nombre ?? personajeEmisor?.nombre ?? 'Un jugador';
+    const exito = d.tirada?.exito;
+
     let texto: string;
-    let tipoAnim: AccionCombateTipo;
-    let exitoAnim: boolean | undefined;
-    if (d.origen === 'enemigo' && d.accion === 'aturdido') {
-      texto = 'Un enemigo aturdido pierde su turno';
-      tipoAnim = 'enemigo_aturdido';
-    } else if (d.accion === 'objeto') {
+    if (d.accion === 'golpear') {
+      if (d.enemigo_derrotado) {
+        texto = `${quien} golpea: ${d.dano_a_enemigo ?? 0} de daño — enemigo derrotado`;
+      } else {
+        texto = `${quien} golpea: ${d.dano_a_enemigo ?? 0} de daño`;
+      }
+      if (d.dano_recibido) {
+        texto += ` (recibe ${d.dano_recibido} de daño)`;
+      }
+    } else if (d.accion === 'proteger') {
+      if (d.dano_protector) {
+        texto = `${quien} se interpone y recibe ${d.dano_protector} de daño`;
+      } else if (d.dano_protegido) {
+        texto = `${quien} no llega a tiempo: el golpe pasa igualmente`;
+      } else {
+        texto = `${quien} protege a su compañero sin que nadie sufra daño`;
+      }
+    } else if (d.accion === 'escabullirse') {
+      texto = d.huido ? `${quien} consigue escabullirse` : `${quien} no logra escabullirse`;
+      if (d.dano_recibido) {
+        texto += ` (recibe ${d.dano_recibido} de daño)`;
+      }
+    } else if (d.accion === 'actuar_bajo_presion') {
+      texto = exito ? `${quien} sale bien de la situación` : `${quien} sale mal de la situación`;
+      if (d.dano_recibido) {
+        texto += ` (recibe ${d.dano_recibido} de daño)`;
+      }
+    } else {
       const nombreObjeto = d.objeto?.nombre ?? 'un objeto';
       texto =
         d.efecto?.tipo === 'dano'
           ? `${quien} usa "${nombreObjeto}": ${d.efecto.cantidad ?? 0} de daño`
           : `${quien} usa "${nombreObjeto}"`;
-      tipoAnim = 'objeto';
-    } else if (d.accion === 'hechizo') {
-      const exito = d.tirada?.exito;
-      if (exito) {
-        let descripcionEfecto: string;
-        if (d.efecto?.tipo === 'dano') {
-          descripcionEfecto = `${d.efecto.dano} de daño`;
-        } else if (d.efecto?.tipo === 'aturdido') {
-          descripcionEfecto = 'enemigo aturdido';
-        } else if (d.efecto?.tipo === 'curacion') {
-          descripcionEfecto = `${d.efecto.cantidad} de curación`;
-        } else {
-          descripcionEfecto = 'efecto aplicado';
-        }
-        texto = `${quien} lanza ${d.hechizo}: ${descripcionEfecto}`;
-      } else {
-        texto = `${quien} falla al lanzar ${d.hechizo}`;
-      }
-      tipoAnim = 'hechizo';
-      exitoAnim = exito;
-    } else if (d.accion === 'huir') {
-      texto = d.tirada?.exito ? `${quien} consigue huir` : `${quien} no logra huir`;
-      tipoAnim = 'huir';
-      exitoAnim = d.tirada?.exito;
-    } else if (d.accion === 'negociar') {
-      texto = d.tirada?.exito ? `${quien} consigue negociar` : `${quien} no logra negociar`;
-      tipoAnim = 'negociar';
-      exitoAnim = d.tirada?.exito;
-    } else if (d.origen === 'jugador') {
-      texto = `${quien} ataca: ${d.dano_aplicado ?? 0} de daño`;
-      tipoAnim = 'atacar';
-      exitoAnim = d.tirada?.exito;
-    } else {
-      texto = `Un enemigo ataca: ${d.dano_aplicado ?? 0} de daño`;
-      tipoAnim = 'enemigo_ataca';
     }
+
     return {
       log: [nuevoEvento(texto), ...s.log],
-      ultimaTirada:
-        d.origen === 'jugador' && d.tirada
-          ? { dado: d.tirada.dado, total: d.tirada.total, exito: !!d.tirada.exito, quien }
-          : s.ultimaTirada,
-      ultimaAccionCombate: { tipo: tipoAnim, exito: exitoAnim, en: Date.now() },
+      ultimaTirada: d.tirada
+        ? { dados: d.tirada.dados, total: d.tirada.total, banda: d.tirada.banda, exito: !!d.tirada.exito, quien }
+        : s.ultimaTirada,
+      ultimaAccionCombate: { tipo: d.accion, exito, en: Date.now() },
     };
   });
 }

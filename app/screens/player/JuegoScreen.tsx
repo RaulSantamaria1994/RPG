@@ -8,7 +8,7 @@ import { Boton, BarraRecurso, EfectoCombate, IconoEvento, IndicadorConexion, Ins
 import { api } from '../../services/api';
 import { useSalaStore } from '../../store/salaStore';
 import { useAcento } from '../../store/configStore';
-import type { Atributo, Hechizo } from '../../types';
+import { esInestable, type Atributo, type Banda, type Hechizo } from '../../types';
 import { color, espacio, radio, tipo } from '../../theme';
 import { ETIQUETA_ATRIBUTO } from './juego/comun';
 import PanelInteraccion from './juego/PanelInteraccion';
@@ -23,6 +23,12 @@ const COLOR_TIPO_NODO: Record<string, string> = {
   combate: color.combate,
 };
 
+const ETIQUETA_BANDA_DADO: Record<Banda, string> = {
+  exito: 'ÉXITO',
+  exito_con_coste: 'ÉXITO CON COSTE',
+  fallo: 'FALLO',
+};
+
 export default function JuegoScreen({ navigation }: Props) {
   const insets = useSafeAreaInsets();
   const sala = useSalaStore((s) => s.sala);
@@ -33,8 +39,6 @@ export default function JuegoScreen({ navigation }: Props) {
   const reintentandoConexion = useSalaStore((s) => s.reintentandoConexion);
   const log = useSalaStore((s) => s.log);
   const palabrasBloqueadas = useSalaStore((s) => s.palabrasBloqueadas);
-  const confirmacionesGrupales = useSalaStore((s) => s.confirmacionesGrupales);
-  const votosGrupales = useSalaStore((s) => s.votosGrupales);
   const propuestasIntercambio = useSalaStore((s) => s.propuestasIntercambio);
   const ultimaTirada = useSalaStore((s) => s.ultimaTirada);
   const ultimaAccionCombate = useSalaStore((s) => s.ultimaAccionCombate);
@@ -56,7 +60,7 @@ export default function JuegoScreen({ navigation }: Props) {
 
   const [hechizos, setHechizos] = useState<Hechizo[]>([]);
   const [lanzando, setLanzando] = useState(false);
-  const [caraDado, setCaraDado] = useState(20);
+  const [carasDado, setCarasDado] = useState<[number, number]>([1, 1]);
 
   const opacidadDado = useRef(new Animated.Value(0)).current;
   const intervaloDado = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -139,14 +143,18 @@ export default function JuegoScreen({ navigation }: Props) {
     }
   }
 
+  function caraAlAzar(): number {
+    return 1 + Math.floor(Math.random() * 6);
+  }
+
   function lanzarDado(tipoAccion: string, datos: Record<string, unknown> = {}) {
     setLanzando(true);
-    setCaraDado(1 + Math.floor(Math.random() * 20));
+    setCarasDado([caraAlAzar(), caraAlAzar()]);
     opacidadDado.stopAnimation();
     opacidadDado.setValue(1);
     if (intervaloDado.current) clearInterval(intervaloDado.current);
     intervaloDado.current = setInterval(() => {
-      setCaraDado(1 + Math.floor(Math.random() * 20));
+      setCarasDado([caraAlAzar(), caraAlAzar()]);
     }, 80);
     if (timeoutDado.current) clearTimeout(timeoutDado.current);
     timeoutDado.current = setTimeout(() => {
@@ -171,9 +179,13 @@ export default function JuegoScreen({ navigation }: Props) {
       <IndicadorConexion conectado={conectado} reintentando={reintentandoConexion} />
       <View style={styles.cabecera}>
         <View style={{ flex: 1, gap: 6 }}>
-          <Text style={styles.nombrePersonaje}>{personaje.nombre}</Text>
+          <View style={styles.filaNombre}>
+            <Text style={styles.nombrePersonaje}>{personaje.nombre}</Text>
+            {esInestable(personaje) && <Insignia texto="inestable" tono="peligro" />}
+          </View>
           <BarraRecurso etiqueta="PV" actual={personaje.vida_actual} maximo={personaje.vida_max} />
           <BarraRecurso etiqueta="Maná" actual={personaje.mana_actual} maximo={personaje.mana_max} sinAlerta />
+          <BarraRecurso etiqueta="Suerte" actual={personaje.puntos_suerte_actual} maximo={personaje.puntos_suerte_max} sinAlerta />
           <View style={styles.filaAtributos}>
             {(Object.keys(ETIQUETA_ATRIBUTO) as Atributo[]).map((a) => (
               <View key={a} style={styles.atributoChip}>
@@ -182,6 +194,12 @@ export default function JuegoScreen({ navigation }: Props) {
                 </Text>
               </View>
             ))}
+            {personaje.armadura_equipada && (
+              <View style={styles.atributoChip}>
+                <MaterialCommunityIcons name="shield-outline" size={11} color={color.textoSecundario} />
+                <Text style={styles.atributoChipTexto}> {personaje.armadura_equipada.nombre}</Text>
+              </View>
+            )}
           </View>
         </View>
         <View style={styles.accionesCabecera}>
@@ -215,18 +233,36 @@ export default function JuegoScreen({ navigation }: Props) {
       >
         {lanzando ? (
           <View style={styles.filaDado}>
-            <MaterialCommunityIcons name="dice-d20" size={26} color={color.texto} />
-            <Text style={styles.dadoValor}>{caraDado}</Text>
+            <MaterialCommunityIcons name={`dice-${carasDado[0]}` as never} size={26} color={color.texto} />
+            <MaterialCommunityIcons name={`dice-${carasDado[1]}` as never} size={26} color={color.texto} />
           </View>
         ) : (
           ultimaTirada && (
             <>
               <View style={styles.filaDado}>
-                <MaterialCommunityIcons name="dice-d20" size={26} color={color.texto} />
-                <Text style={styles.dadoValor}>{ultimaTirada.dado ?? '?'}</Text>
+                <MaterialCommunityIcons
+                  name={`dice-${ultimaTirada.dados?.[0] ?? 1}` as never}
+                  size={26}
+                  color={color.texto}
+                />
+                <MaterialCommunityIcons
+                  name={`dice-${ultimaTirada.dados?.[1] ?? 1}` as never}
+                  size={26}
+                  color={color.texto}
+                />
               </View>
-              <Text style={[styles.dadoResultado, ultimaTirada.exito ? styles.exito : styles.fallo]}>
-                {ultimaTirada.exito ? 'ÉXITO' : 'FALLO'} · total {ultimaTirada.total ?? '?'}
+              <Text
+                style={[
+                  styles.dadoResultado,
+                  ultimaTirada.banda === 'fallo'
+                    ? styles.fallo
+                    : ultimaTirada.banda === 'exito_con_coste'
+                      ? styles.exitoConCoste
+                      : styles.exito,
+                ]}
+              >
+                {ETIQUETA_BANDA_DADO[ultimaTirada.banda ?? (ultimaTirada.exito ? 'exito' : 'fallo')]} · total{' '}
+                {ultimaTirada.total ?? '?'}
               </Text>
             </>
           )
@@ -281,9 +317,11 @@ export default function JuegoScreen({ navigation }: Props) {
                   </Text>
                   {p.estado === 'ausente' && <Insignia texto="ausente" tono="aviso" />}
                   {p.estado === 'muerto' && <Insignia texto="caído" tono="peligro" />}
+                  {p.estado === 'activo' && esInestable(p) && <Insignia texto="inestable" tono="peligro" />}
                 </View>
                 <BarraRecurso etiqueta="PV" actual={p.vida_actual} maximo={p.vida_max} />
                 <BarraRecurso etiqueta="Maná" actual={p.mana_actual} maximo={p.mana_max} sinAlerta />
+                <BarraRecurso etiqueta="Suerte" actual={p.puntos_suerte_actual} maximo={p.puntos_suerte_max} sinAlerta />
               </View>
             ))}
           </Tarjeta>
@@ -295,8 +333,6 @@ export default function JuegoScreen({ navigation }: Props) {
             nodoActualId={estado?.nodo_actual_id ?? ''}
             palabrasClaveUsadas={estado?.palabras_clave_usadas ?? []}
             palabrasBloqueadas={palabrasBloqueadas}
-            confirmacionesGrupales={confirmacionesGrupales}
-            votosGrupales={votosGrupales}
             personaje={personaje}
             hechizos={hechizos}
             lanzarDado={lanzarDado}
@@ -323,7 +359,6 @@ export default function JuegoScreen({ navigation }: Props) {
             personajeEnTurnoNombre={personajeEnTurno?.nombre}
             personaje={personaje}
             personajes={personajes}
-            hechizos={hechizos}
             inventarioGrupo={estado?.inventario_grupo ?? []}
             lanzarDado={lanzarDado}
             enviar={enviar}
@@ -373,6 +408,7 @@ const styles = StyleSheet.create({
     borderBottomColor: color.borde,
     gap: espacio.sm,
   },
+  filaNombre: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   nombrePersonaje: { ...tipo.subtitulo, fontSize: 18 },
   filaAtributos: { flexDirection: 'row', gap: 6, marginTop: 2, flexWrap: 'wrap' },
   atributoChip: {
@@ -419,6 +455,7 @@ const styles = StyleSheet.create({
   dadoValor: { fontSize: 30, color: color.texto, fontWeight: '700' },
   dadoResultado: { fontSize: 13, marginTop: 4, fontWeight: '700' },
   exito: { color: color.exito },
+  exitoConCoste: { color: color.aviso },
   fallo: { color: color.peligro },
   finalBanner: { backgroundColor: color.acentoSuave, padding: espacio.md, borderRadius: radio.md, borderWidth: 1, borderColor: color.acento },
   finalBannerTexto: { color: color.texto, fontWeight: '600' },

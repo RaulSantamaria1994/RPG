@@ -2,7 +2,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
 import { ClienteSala } from '../services/websocket';
-import type { AccionCombateTipo, EstadoPublico, EventoLog, Personaje, Sala } from '../types';
+import type { AccionCombateTipo, Banda, EstadoPublico, EventoLog, Personaje, Sala } from '../types';
 import { ESTADO_INICIAL_TRANSITORIO, type EpilogoPersonal, type PropuestaIntercambio } from './mensajes/comun';
 import { procesarMensaje } from './mensajes';
 
@@ -17,8 +17,6 @@ export interface SalaState {
   personajes: Personaje[];
   log: EventoLog[];
   palabrasBloqueadas: Record<string, string>;
-  confirmacionesGrupales: Record<string, { confirmados: number; total: number }>;
-  votosGrupales: { votados: number; total: number; recuento: Record<string, number> } | null;
   propuestasIntercambio: PropuestaIntercambio[];
   conectado: boolean;
   /** Solo tiene sentido cuando `conectado` es false: distingue "todavía no
@@ -27,7 +25,7 @@ export interface SalaState {
    * "Reconectando…" según toque. */
   reintentandoConexion: boolean;
   cliente: ClienteSala | null;
-  ultimaTirada: { dado?: number; total?: number; exito: boolean; quien: string } | null;
+  ultimaTirada: { dados?: [number, number]; total?: number; banda?: Banda; exito: boolean; quien: string } | null;
   /** La última acción de combate resuelta — solo para disparar el icono y
    * la animación específicos de atacar/huir/negociar/hechizo/etc. en la
    * pantalla; el texto legible de lo ocurrido va siempre al `log`. `en` es

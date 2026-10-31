@@ -258,10 +258,10 @@ export default function MasterSalaScreen({ navigation }: Props) {
                 <Text style={styles.enemigoNombre} numberOfLines={1}>
                   {en.nombre}{' '}
                   {en.derrotado && <Ionicons name="skull-outline" size={13} color={color.textoTenue} />}
-                  {en.aturdido && <Ionicons name="sparkles-outline" size={13} color={color.aviso} />}
                 </Text>
                 <View style={{ flex: 1 }}>
                   <BarraRecurso etiqueta="PV" actual={en.vida} maximo={en.vida_max} />
+                  <Text style={styles.enemigoDano}>daño {en.dano}</Text>
                 </View>
               </View>
             ))}
@@ -281,8 +281,15 @@ export default function MasterSalaScreen({ navigation }: Props) {
               </View>
               <BarraRecurso etiqueta="PV" actual={p.vida_actual} maximo={p.vida_max} />
               <BarraRecurso etiqueta="Maná" actual={p.mana_actual} maximo={p.mana_max} sinAlerta />
-              {(p.arma_equipada || p.hechizo_equipado) && (
+              <BarraRecurso etiqueta="Suerte" actual={p.puntos_suerte_actual} maximo={p.puntos_suerte_max} sinAlerta />
+              {(p.arma_equipada || p.armadura_equipada || p.hechizo_equipado) && (
                 <View style={styles.filaEquipo}>
+                  {p.armadura_equipada && (
+                    <View style={styles.chipEquipo}>
+                      <MaterialCommunityIcons name="shield-outline" size={12} color={color.interactivo} />
+                      <Text style={styles.equipoTexto}>{p.armadura_equipada.nombre}</Text>
+                    </View>
+                  )}
                   {p.arma_equipada && (
                     <View style={styles.chipEquipo}>
                       <MaterialCommunityIcons name="sword-cross" size={12} color={color.combate} />
@@ -565,6 +572,7 @@ const styles = StyleSheet.create({
   turnoTexto: { color: color.texto, fontWeight: '700', marginBottom: 4 },
   filaEnemigo: { flexDirection: 'row', alignItems: 'center', gap: espacio.sm, marginTop: 4 },
   enemigoNombre: { color: color.texto, width: 100, fontSize: 12 },
+  enemigoDano: { color: color.textoTenue, fontSize: 10, marginTop: 1 },
   jugadorBloque: { gap: 6, paddingVertical: espacio.sm, borderTopWidth: 1, borderTopColor: color.bordeSutil },
   jugadorCabecera: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: espacio.sm },
   jugadorNombre: { color: color.texto, fontWeight: '700', flex: 1 },

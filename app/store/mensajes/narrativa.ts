@@ -1,9 +1,9 @@
 /** Mensajes de avance narrativo: cambio de nodo, bloqueo/liberación de
  * palabras clave mientras alguien las resuelve, resultado de una tirada
- * (individual o grupal), votaciones, apoyo, objetos otorgados y daño al
- * llegar a un nodo.
+ * (2d6 + modificador de la movida), ayuda a otro, objetos otorgados y
+ * daño al llegar a un nodo.
  */
-import type { EstadoPublico, EventoLog } from '../../types';
+import type { Banda, EstadoPublico, EventoLog } from '../../types';
 import type { FijarEstado } from './comun';
 import { nuevoEvento } from './comun';
 
@@ -27,8 +27,6 @@ export function nodo_actualizado(datos: Record<string, unknown>, set: FijarEstad
     eventosPistas.reverse();
     return {
       estado: nuevoEstado,
-      confirmacionesGrupales: {},
-      votosGrupales: null,
       log: [...eventosPistas, ...s.log],
     };
   });
@@ -48,19 +46,25 @@ export function palabra_clave_liberada(datos: Record<string, unknown>, set: Fija
   });
 }
 
+const ETIQUETA_BANDA: Record<Banda, string> = {
+  exito: 'ÉXITO',
+  exito_con_coste: 'ÉXITO CON COSTE',
+  fallo: 'FALLO',
+};
+
 export function tirada_resultado(datos: Record<string, unknown>, set: FijarEstado): void {
   const d = datos as {
     personaje_nombre?: string;
     palabra_clave?: string;
     exito: boolean;
-    tirada?: { dado?: number; total?: number };
+    tirada?: { dados?: [number, number]; total?: number; banda?: Banda };
     cambios?: {
       dano_aplicado?: number;
       objeto_otorgado?: { nombre: string; categoria?: string } | null;
     };
   };
   const quien = d.personaje_nombre ?? 'El grupo';
-  const resultado = d.exito ? 'ÉXITO' : 'FALLO';
+  const resultado = d.tirada?.banda ? ETIQUETA_BANDA[d.tirada.banda] : d.exito ? 'ÉXITO' : 'FALLO';
   const dano = d.cambios?.dano_aplicado ? ` (-${d.cambios.dano_aplicado} PV)` : '';
   let objeto = '';
   if (d.cambios?.objeto_otorgado) {
@@ -73,22 +77,12 @@ export function tirada_resultado(datos: Record<string, unknown>, set: FijarEstad
   set((s) => ({
     log: [nuevoEvento(`${quien} intenta "${d.palabra_clave}" → ${resultado}${dano}${objeto}`), ...s.log],
     ultimaTirada: {
-      dado: d.tirada?.dado,
+      dados: d.tirada?.dados,
       total: d.tirada?.total,
+      banda: d.tirada?.banda,
       exito: d.exito,
       quien,
     },
-  }));
-}
-
-export function confirmacion_registrada(datos: Record<string, unknown>, set: FijarEstado): void {
-  const d = datos as { clave: string; confirmados: number; total: number };
-  set((s) => ({
-    confirmacionesGrupales: {
-      ...s.confirmacionesGrupales,
-      [d.clave]: { confirmados: d.confirmados, total: d.total },
-    },
-    log: [nuevoEvento(`Confirmaciones: ${d.confirmados}/${d.total}`), ...s.log],
   }));
 }
 
@@ -129,33 +123,21 @@ export function dano_al_llegar(datos: Record<string, unknown>, set: FijarEstado)
   }));
 }
 
-export function voto_registrado(datos: Record<string, unknown>, set: FijarEstado): void {
-  const d = datos as { personaje_nombre: string; opcion: string; votados: number; total: number };
-  set((s) => {
-    const recuentoAnterior = s.votosGrupales?.recuento ?? {};
-    const votosDeEstaOpcion = (recuentoAnterior[d.opcion] ?? 0) + 1;
-    return {
-      votosGrupales: {
-        votados: d.votados,
-        total: d.total,
-        recuento: { ...recuentoAnterior, [d.opcion]: votosDeEstaOpcion },
-      },
-      log: [nuevoEvento(`${d.personaje_nombre} vota: "${d.opcion}" (${d.votados}/${d.total})`), ...s.log],
-    };
-  });
-}
-
-export function votacion_resuelta(datos: Record<string, unknown>, set: FijarEstado): void {
-  const d = datos as { recuento: Record<string, number>; empate: boolean; opcion_ganadora: string };
-  const sufijo = d.empate ? ' (empate resuelto al azar)' : '';
-  set((s) => ({
-    votosGrupales: null,
-    log: [nuevoEvento(`El grupo decide: "${d.opcion_ganadora}"${sufijo}`), ...s.log],
-  }));
-}
-
-export function apoyo_resuelto(datos: Record<string, unknown>, set: FijarEstado): void {
-  const d = datos as { personaje_nombre: string; tirada: { exito: boolean } };
+export function ayuda_resuelta(datos: Record<string, unknown>, set: FijarEstado): void {
+  const d = datos as {
+    personaje_nombre: string;
+    palabra_clave: string;
+    tirada: { dados?: [number, number]; total?: number; banda?: Banda; exito: boolean };
+  };
   const resultado = d.tirada.exito ? 'consigue ayudar' : 'no logra ayudar';
-  set((s) => ({ log: [nuevoEvento(`${d.personaje_nombre} ${resultado}`), ...s.log] }));
+  set((s) => ({
+    log: [nuevoEvento(`${d.personaje_nombre} ${resultado} con "${d.palabra_clave}"`), ...s.log],
+    ultimaTirada: {
+      dados: d.tirada.dados,
+      total: d.tirada.total,
+      banda: d.tirada.banda,
+      exito: d.tirada.exito,
+      quien: d.personaje_nombre,
+    },
+  }));
 }

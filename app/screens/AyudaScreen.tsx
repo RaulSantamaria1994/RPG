@@ -20,42 +20,44 @@ const SECCIONES: Seccion[] = [
     titulo: 'Atributos',
     acento: color.narrativo,
     parrafos: [
-      'Cada personaje tiene cuatro: Fuerza (pelear, forzar), Astucia (observar, engañar), Voluntad (resistir, lanzar hechizos) y Agilidad (esquivar, huir, iniciativa).',
-      'Cuanto más alto, mejor se te da. Cada palabra clave o acción usa el atributo que tenga más sentido para ella.',
+      'Cada personaje tiene cuatro: Fuerza (golpear, proteger), Astucia (investigar, leer el peligro), Voluntad (convencer, actuar bajo presión) y Agilidad (escabullirse).',
+      'Van de 1 a 5 y se convierten en un modificador de -2 a +2 (valor - 3) al tirar.',
     ],
   },
   {
-    icono: <MaterialCommunityIcons name="dice-d20-outline" size={18} color={color.texto} />,
+    icono: <MaterialCommunityIcons name="dice-6" size={18} color={color.texto} />,
     titulo: 'Tiradas',
     acento: color.interactivo,
     parrafos: [
-      'Cuando una acción requiere tirada, el juego lanza un d20, le suma tu atributo, y compara el total con la dificultad del nodo. Igualar o superarla es éxito.',
-      'Algunas palabras clave no piden tirada: se resuelven solo con confirmar (o, si es una decisión del grupo, con la opción más votada).',
+      'Cuando una acción requiere tirada, el juego lanza 2d6 y les suma tu modificador. 10 o más es éxito limpio; 7, 8 o 9 es éxito con un pequeño coste (normalmente 1 de daño, o algo narrativo si la movida es social); 6 o menos es fallo.',
+      'Las palabras clave sin movida son decisiones narrativas: no hay tirada, se resuelven en cuanto alguien del grupo las confirma — el motor no cuenta votos, lo habláis entre vosotros y uno confirma la opción acordada.',
     ],
   },
   {
-    icono: <Ionicons name="people-outline" size={18} color={color.texto} />,
-    titulo: 'Decisiones en grupo',
+    icono: <Ionicons name="list-outline" size={18} color={color.texto} />,
+    titulo: 'Las movidas',
     acento: color.interactivo,
     parrafos: [
-      'Una palabra clave puede ser individual (solo tú actúas), de apoyo (otro jugador te da ventaja antes de tirar), opuesta (tirada enfrentada contra un rival) o grupal.',
-      'En una decisión grupal con dificultad, todos confirman la misma opción antes de tirar. Sin dificultad, cada uno vota y gana la opción más votada (empate: al azar).',
+      'Golpear, Proteger a alguien y Escabullirse son las movidas de combate. Convencer o manipular, Investigar y Leer el peligro se usan explorando o hablando con alguien. Actuar bajo presión es el cajón de sastre para cualquier otra cosa arriesgada que ninguna de las anteriores cubra.',
+      'Ayudar a otro es aparte: antes de que actúe un compañero, tiras tu propia tirada sin característica — si no sale fallo, le das +1 a la suya.',
     ],
   },
   {
     icono: <Ionicons name="heart-outline" size={18} color={color.texto} />,
-    titulo: 'Vida y maná',
+    titulo: 'Vida y Puntos de Suerte',
     acento: color.peligro,
     parrafos: [
-      'La vida (PV) baja con el daño. Al llegar a 0 quedas inconsciente — o, si el máster activó la muerte permanente en esta sala, puedes morir de verdad.',
-      'El maná se gasta al lanzar hechizos y se recupera descansando. Ambos se ven como una barra en la parte de arriba de la pantalla.',
+      'La barra de daño es de 7 para todos. Al llegar a 4 o más de daño acumulado quedas "inestable": sigues jugando, pero un golpe más es grave. Al llegar a 7/7 quedas inconsciente — o, si el máster activó la muerte permanente en esta sala, puedes morir de verdad.',
+      'Empiezas con 7 Puntos de Suerte y no se recuperan solos. Puedes gastar uno, antes de tirar una movida (fuera de combate), para convertir un fallo en éxito si al final sale mal.',
+      'El maná se gasta al lanzar hechizos y se recupera descansando.',
     ],
   },
   {
     icono: <Ionicons name="bag-handle-outline" size={18} color={color.texto} />,
-    titulo: 'Inventario',
+    titulo: 'Inventario y equipo',
     parrafos: [
       'Hay objetos personales (solo tuyos, aunque puedes dárselos a otro jugador) y objetos del grupo: esos los puede usar cualquiera, sin tener que pedirlos primero.',
+      'Un arma equipada suma un bono fijo al daño al golpear; una armadura equipada resta un valor fijo a cualquier golpe que recibas. Cada una tiene su propia ranura, en la pestaña de Equipo.',
     ],
   },
   {
@@ -63,8 +65,9 @@ const SECCIONES: Seccion[] = [
     titulo: 'Combate',
     acento: color.combate,
     parrafos: [
-      'Los jugadores actúan por turnos (el orden se decide al empezar, tirando Agilidad). Los enemigos no tienen turno propio: responden de inmediato cuando les atacas, o a quien les haya hecho algo si tu acción no iba dirigida a ninguno.',
-      'En tu turno puedes Atacar, Huir, Negociar, Usar un objeto o Lanzar un hechizo — cada una con su propia tirada.',
+      'Los jugadores actúan por turnos, en el orden en que se unieron a la partida. Los enemigos no tiran ni tienen turno propio: su contraataque, si lo hay, viene ya incluido en el resultado de tu propia movida.',
+      'En tu turno puedes Golpear a un enemigo, Proteger a un compañero, Escabullirte, Actuar bajo presión o Usar un objeto.',
+      'Golpear en 10+ no deja que el enemigo responda; en 7-9 golpeas pero recibes su daño; en 6- fallas y lo recibes igual. Proteger se lleva el golpe que iba para tu compañero si sale 7-9, o deja que le llegue igual si sale 6-.',
     ],
   },
 ];

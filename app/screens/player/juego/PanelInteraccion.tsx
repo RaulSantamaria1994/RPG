@@ -1,19 +1,17 @@
 import { useState } from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { Boton, Insignia, Tarjeta } from '../../../components';
 import { useAcento } from '../../../store/configStore';
 import type { Hechizo, Nodo, Personaje } from '../../../types';
 import { color, espacio, radio } from '../../../theme';
-import { ETIQUETA_ATRIBUTO, formatearId, resumenDeLaTirada, sufijoModoGrupal } from './comun';
+import { ETIQUETA_ATRIBUTO, MOVIDAS, formatearId } from './comun';
 
 type Props = {
   nodo: Nodo;
   nodoActualId: string;
   palabrasClaveUsadas: string[];
   palabrasBloqueadas: Record<string, string>;
-  confirmacionesGrupales: Record<string, { confirmados: number; total: number }>;
-  votosGrupales: { votados: number; total: number; recuento: Record<string, number> } | null;
   personaje: Personaje;
   hechizos: Hechizo[];
   lanzarDado: (tipoAccion: string, datos?: Record<string, unknown>) => void;
@@ -21,17 +19,16 @@ type Props = {
 };
 
 /** Lista de palabras clave del nodo interactivo actual — cada una se
- * despliega para mostrar qué hace falta para resolverla (tirada, apoyo,
- * vía mágica alternativa) y confirma la acción. Antes vivía inline en
- * JuegoScreen; tiene su propio estado de "cuál está desplegada" porque
- * nada fuera de este panel necesita saberlo. */
+ * despliega para mostrar qué movida resuelve (o que es una decisión sin
+ * tirada), y permite ayudar a quien la resuelve o lanzarla por una vía
+ * mágica alternativa. Antes vivía inline en JuegoScreen; tiene su propio
+ * estado de "cuál está desplegada" porque nada fuera de este panel
+ * necesita saberlo. */
 export default function PanelInteraccion({
   nodo,
   nodoActualId,
   palabrasClaveUsadas,
   palabrasBloqueadas,
-  confirmacionesGrupales,
-  votosGrupales,
   personaje,
   hechizos,
   lanzarDado,
@@ -39,6 +36,7 @@ export default function PanelInteraccion({
 }: Props) {
   const acento = useAcento();
   const [palabraExpandida, setPalabraExpandida] = useState<string | null>(null);
+  const [usarSuerte, setUsarSuerte] = useState(false);
 
   return (
     <View style={{ gap: espacio.sm }}>
@@ -68,52 +66,48 @@ export default function PanelInteraccion({
           }
         }
 
-        const esVotacion = p.modo_interaccion === 'grupal' && !p.dificultad;
-        const confirmacion = confirmacionesGrupales[clave];
-
-        const requiereTirada = p.modo_interaccion === 'opuesta' || !!p.dificultad;
-        const resumenTirada = resumenDeLaTirada(p, esVotacion);
+        const movida = p.movida ? MOVIDAS[p.movida] : null;
+        const caracteristica = movida?.caracteristica ?? null;
+        const modificador = caracteristica ? personaje[caracteristica] - 3 : 0;
+        const puedeUsarSuerte = !!movida && personaje.puntos_suerte_actual > 0;
 
         let contenidoRequisito;
-        if (p.modo_interaccion === 'opuesta') {
+        if (movida && caracteristica) {
+          const signo = modificador >= 0 ? '+' : '';
           contenidoRequisito = (
             <Text style={styles.requisitoTexto}>
-              Tirada enfrentada: tu {p.atributo ? ETIQUETA_ATRIBUTO[p.atributo] : '?'} (
-              {p.atributo ? personaje[p.atributo] : '?'}) contra un rival con modificador{' '}
-              {p.npc_modificador ?? 0}.
-            </Text>
-          );
-        } else if (p.dificultad) {
-          let coletilla = '.';
-          if (p.modo_interaccion === 'grupal') {
-            coletilla = ' — cuenta la mejor tirada del grupo, según la regla.';
-          }
-          contenidoRequisito = (
-            <Text style={styles.requisitoTexto}>
-              Necesitas sacar {p.dificultad} o más tirando 1d20 +{' '}
-              {p.atributo ? ETIQUETA_ATRIBUTO[p.atributo] : '?'} (tu{' '}
-              {p.atributo ? ETIQUETA_ATRIBUTO[p.atributo] : '?'}:{' '}
-              {p.atributo ? personaje[p.atributo] : '?'})
-              {coletilla}
+              {movida.nombre}: 2d6 {signo}
+              {modificador} ({ETIQUETA_ATRIBUTO[caracteristica]} {personaje[caracteristica]}). 10+ éxito
+              limpio, 7-9 éxito con coste, 6- fallo.
               {p.dano_fallo ? ` Si falla, ${p.dano_fallo.cantidad} de daño.` : ''}
             </Text>
           );
+        } else if (movida) {
+          // "ayudar" en sí mismo no se resuelve desde aquí (no tiene sentido
+          // ayudarse a ayudar) — este caso no debería darse en una historia
+          // bien formada, pero no rompe nada mostrarlo así si pasara.
+          contenidoRequisito = <Text style={styles.requisitoTexto}>{movida.nombre}.</Text>;
         } else {
           contenidoRequisito = (
             <Text style={styles.requisitoTexto}>
-              Esta acción no requiere tirada: se resuelve al confirmar.
+              Decisión del grupo: no requiere tirada, se resuelve al confirmar.
             </Text>
           );
         }
 
         function tirar(datosExtra: Record<string, unknown> = {}) {
-          const conDado = requiereTirada || datosExtra.via === 'hechizo' || datosExtra.rol_apoyo === 'apoyo';
+          const conDado = !!movida || datosExtra.via === 'hechizo' || datosExtra.rol_apoyo === 'apoyo';
+          const extra = { ...datosExtra };
+          if (movida && !datosExtra.via && usarSuerte) {
+            extra.usar_suerte = true;
+          }
           if (conDado) {
-            lanzarDado('interactuar', { palabra_clave: p.texto, ...datosExtra });
+            lanzarDado('interactuar', { palabra_clave: p.texto, ...extra });
           } else {
-            enviar('interactuar', { palabra_clave: p.texto, ...datosExtra });
+            enviar('interactuar', { palabra_clave: p.texto, ...extra });
           }
           setPalabraExpandida(null);
+          setUsarSuerte(false);
         }
 
         return (
@@ -131,17 +125,14 @@ export default function PanelInteraccion({
               >
                 <View style={styles.filaPalabraCabecera}>
                   <View style={{ flex: 1 }}>
-                    <Text style={styles.textoPalabra}>
-                      {p.texto}
-                      {sufijoModoGrupal(esVotacion, p.modo_interaccion)}
-                    </Text>
+                    <Text style={styles.textoPalabra}>{p.texto}</Text>
                     {!deshabilitada && (
                       <Text style={styles.subtextoPalabra}>
-                        {requiereTirada && (
-                          <MaterialCommunityIcons name="dice-d20-outline" size={12} color={color.textoSecundario} />
+                        {movida && (
+                          <MaterialCommunityIcons name="dice-6" size={12} color={color.textoSecundario} />
                         )}
-                        {requiereTirada ? ' ' : ''}
-                        {resumenTirada}
+                        {movida ? ' ' : ''}
+                        {movida ? movida.nombre : 'Sin tirada — se decide hablando'}
                       </Text>
                     )}
                   </View>
@@ -149,41 +140,45 @@ export default function PanelInteraccion({
                   {bloqueada && !usada && <Insignia texto="en curso…" tono="aviso" />}
                 </View>
 
-                {esVotacion && votosGrupales && !usada && (
-                  <View style={styles.filaVotosOpcion}>
-                    <Insignia
-                      texto={`${votosGrupales.recuento[p.texto] ?? 0} voto(s) a esta opción`}
-                      tono="acento"
-                    />
-                    <Insignia texto={`${votosGrupales.votados}/${votosGrupales.total} han votado`} tono="aviso" />
-                  </View>
-                )}
-                {!esVotacion && p.modo_interaccion === 'grupal' && confirmacion && !usada && (
-                  <Insignia
-                    texto={`Confirmados: ${confirmacion.confirmados}/${confirmacion.total}`}
-                    tono="aviso"
-                  />
-                )}
-
                 {expandida && !deshabilitada && (
                   <View style={styles.panelExpandido}>
                     {contenidoRequisito}
 
                     <Boton
-                      texto={requiereTirada ? 'Tirar dado' : 'Confirmar'}
+                      texto={movida ? 'Tirar 2d6' : 'Confirmar'}
                       icono={
-                        requiereTirada ? (
-                          <MaterialCommunityIcons name="dice-d20-outline" size={17} color={color.textoSobreAcento} />
+                        movida ? (
+                          <MaterialCommunityIcons name="dice-6" size={17} color={color.textoSobreAcento} />
                         ) : undefined
                       }
                       onPress={() => tirar()}
                     />
 
-                    {p.modo_interaccion === 'apoyo' && (
-                      <TouchableOpacity style={styles.botonApoyo} onPress={() => tirar({ rol_apoyo: 'apoyo' })}>
+                    {puedeUsarSuerte && (
+                      <TouchableOpacity
+                        style={styles.filaSuerte}
+                        onPress={() => setUsarSuerte((v) => !v)}
+                        activeOpacity={0.8}
+                      >
+                        <Ionicons
+                          name={usarSuerte ? 'checkbox' : 'square-outline'}
+                          size={18}
+                          color={usarSuerte ? acento.acento : color.textoSecundario}
+                        />
+                        <Text style={styles.suerteTexto}>
+                          Si falla, gastar un Punto de Suerte para convertirlo en éxito (te quedan{' '}
+                          {personaje.puntos_suerte_actual})
+                        </Text>
+                      </TouchableOpacity>
+                    )}
+
+                    {!!movida && (
+                      <TouchableOpacity
+                        style={styles.botonApoyo}
+                        onPress={() => tirar({ rol_apoyo: 'apoyo' })}
+                      >
                         <Text style={styles.botonApoyoTexto}>
-                          Ayudar con {p.atributo_apoyo ? ETIQUETA_ATRIBUTO[p.atributo_apoyo] : 'otro atributo'} —
-                          dificultad {p.dificultad_apoyo ?? p.dificultad ?? 10} (da ventaja a quien actúe)
+                          Ayudar — tira aparte; si aciertas, da +1 a quien resuelva esto
                         </Text>
                       </TouchableOpacity>
                     )}
@@ -202,9 +197,9 @@ export default function PanelInteraccion({
                           onPress={() => tirar({ via: 'hechizo', hechizo_id: h })}
                         >
                           <Text style={styles.botonHechizoTexto}>
-                            <MaterialCommunityIcons name="dice-d20-outline" size={13} color={color.textoSecundario} />{' '}
-                            Lanzar {info?.nombre ?? formatearId(h)} (vía mágica) — dificultad {info?.dificultad ?? '?'},
-                            coste {info?.coste_mana ?? '?'} maná
+                            <MaterialCommunityIcons name="dice-6" size={13} color={color.textoSecundario} />{' '}
+                            Lanzar {info?.nombre ?? formatearId(h)} (vía mágica) — 2d6+Voluntad, coste{' '}
+                            {info?.coste_mana ?? '?'} maná
                           </Text>
                         </TouchableOpacity>
                       );
@@ -223,7 +218,6 @@ export default function PanelInteraccion({
 const styles = StyleSheet.create({
   tarjetaPalabra: { gap: espacio.xs },
   filaPalabraCabecera: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', gap: espacio.sm },
-  filaVotosOpcion: { flexDirection: 'row', flexWrap: 'wrap', gap: espacio.xs, marginTop: 4 },
   textoPalabra: { color: color.texto, fontSize: 15, fontWeight: '600' },
   subtextoPalabra: { color: color.textoSecundario, fontSize: 12, marginTop: 3 },
   panelExpandido: {
@@ -250,4 +244,6 @@ const styles = StyleSheet.create({
     borderColor: '#6f9fd0',
   },
   botonApoyoTexto: { color: '#b8d8ff', fontSize: 13 },
+  filaSuerte: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 2 },
+  suerteTexto: { color: color.textoSecundario, fontSize: 12, flex: 1, lineHeight: 16 },
 });
