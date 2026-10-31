@@ -1,5 +1,15 @@
 """Carga las historias de ejemplo del directorio `seeds/` en la base de datos,
 validándolas antes de insertarlas. Uso: python -m app.seeds.load_seed
+
+Las 4 historias originales (cuervo_negro, ala_norte, frecuencia_negra,
+lo_que_duerme_en_la_orilla) usan el esquema viejo (dificultad/atributo) y
+quedan retiradas con la reestructuración a PbtA: ya no pasan el validador
+nuevo, así que se sacan de la lista de siembra para no romper el arranque
+en cada despliegue. Sus archivos y las filas ya existentes en la base de
+datos de producción no se tocan (ver docs/motor_pbta_plan.md, sección 8;
+la retirada de las filas publicadas vive en la migración de Alembic
+correspondiente). La lista queda vacía hasta que haya historias de ejemplo
+en el esquema nuevo (Fase 5: rediseño del artefacto de creación de historias).
 """
 
 import json
@@ -10,12 +20,7 @@ from app.engine.validator import validar_historia
 from app.models.historia import Historia
 
 SEEDS_DIR = Path(__file__).parent
-HISTORIAS_SEED = [
-    "cuervo_negro.json",
-    "ala_norte.json",
-    "frecuencia_negra.json",
-    "lo_que_duerme_en_la_orilla.json",
-]
+HISTORIAS_SEED: list[str] = []
 
 
 def cargar_historia(db, nombre_archivo: str) -> Historia:

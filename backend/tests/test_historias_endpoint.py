@@ -8,6 +8,7 @@ from app.models.historia import Historia
 HISTORIA_MINIMA_VALIDA = {
     "historia_id": "prueba_historias_endpoint",
     "titulo": "Prueba del endpoint de historias",
+    "motor_version": "pbta-1",
     "nodo_inicial": "n1",
     "nodos": {
         "n1": {"tipo": "narrativo", "texto": "Inicio.", "es_final": True, "tipo_final": "fin"},

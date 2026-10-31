@@ -1,0 +1,149 @@
+{
+  "historia_id": "ala_norte",
+  "titulo": "El ala norte",
+  "version": 1,
+  "motor_version": "pbta-1",
+  "muerte_permanente": false,
+  "nodo_inicial": "n001",
+  "nodo_muerte_total": "n_muerte_total",
+  "pistas": {
+    "conoce_ala_norte": "Sabéis que ha habido tres casos antes que el de esta noche, todos en turno de noche, todos en habitaciones del ala norte."
+  },
+  "hechizos": [],
+  "habilidades_pasivas_personalizado": [
+    {
+      "id": "instinto_de_uci",
+      "nombre": "Instinto de UCI",
+      "descripcion": "Ventaja en la primera tirada de voluntad de cada nodo."
+    },
+    {
+      "id": "reflejos_de_rescate",
+      "nombre": "Reflejos de rescate",
+      "descripcion": "Ventaja en la primera tirada de fuerza de cada nodo."
+    },
+    {
+      "id": "ojo_de_periodista",
+      "nombre": "Ojo de periodista",
+      "descripcion": "Ventaja en la primera tirada de astucia de cada nodo."
+    },
+    {
+      "id": "templanza",
+      "nombre": "Templanza",
+      "descripcion": "Ventaja en la primera tirada de voluntad de cada combate."
+    },
+    {
+      "id": "paso_ligero",
+      "nombre": "Paso ligero",
+      "descripcion": "Ventaja en la primera tirada de agilidad de cada nodo."
+    }
+  ],
+  "personajes_pregenerados": [
+    {
+      "id": "thalia_ticona",
+      "nombre": "Dra. Thalia Ticona",
+      "trasfondo": "Médico adjunta de la UCI desde hace seis años. Es quien os ha llamado esta noche.",
+      "atributos": { "fuerza": 1, "astucia": 3, "voluntad": 5, "agilidad": 3 },
+      "habilidad_pasiva": "instinto_de_uci",
+      "vida_max": 16
+    },
+    {
+      "id": "hugo_bravo",
+      "nombre": "Hugo Bravo",
+      "trasfondo": "Ex-bombero, dejó el cuerpo después de un incendio que no ardía como el fuego normal arde.",
+      "atributos": { "fuerza": 5, "astucia": 2, "voluntad": 2, "agilidad": 3 },
+      "habilidad_pasiva": "reflejos_de_rescate",
+      "vida_max": 24
+    },
+    {
+      "id": "marina_solis",
+      "nombre": "Marina Solís",
+      "trasfondo": "Periodista de sucesos, especializada en lo que los periódicos serios no publican.",
+      "atributos": { "fuerza": 1, "astucia": 5, "voluntad": 2, "agilidad": 4 },
+      "habilidad_pasiva": "ojo_de_periodista",
+      "vida_max": 16
+    },
+    {
+      "id": "elena_duarte",
+      "nombre": "Elena Duarte",
+      "trasfondo": "Ex-negociadora de una unidad de crisis, ahora psicóloga de emergencias.",
+      "atributos": { "fuerza": 2, "astucia": 2, "voluntad": 5, "agilidad": 3 },
+      "habilidad_pasiva": "templanza",
+      "vida_max": 18
+    },
+    {
+      "id": "noa_ferreira",
+      "nombre": "Noa Ferreira",
+      "trasfondo": "Antigua trepadora de tejados y cerraduras. Conoce los pasillos de servicio de media ciudad.",
+      "atributos": { "fuerza": 2, "astucia": 3, "voluntad": 2, "agilidad": 5 },
+      "habilidad_pasiva": "paso_ligero",
+      "vida_max": 18
+    }
+  ],
+  "nodos": {
+    "n001": {
+      "tipo": "narrativo",
+      "texto": "Pasan las tres de la madrugada y el hospital respira despacio. La doctora Ticona os ha llamado por un paciente que no debería haber vuelto en las condiciones en que ha vuelto.",
+      "nodo_siguiente": "nD1",
+      "es_final": false
+    },
+    "nD1": {
+      "tipo": "interactivo",
+      "texto": "Una plancha del suelo técnico cede ligeramente bajo el peso de quien va delante, mal encajada, con un hueco debajo lo bastante grande como para tragarse un tobillo si nadie mira dónde pisa.",
+      "palabras_clave": [
+        {
+          "texto": "avanzar con cuidado",
+          "movida": "escabullirse",
+          "nodo_exito": "nD2",
+          "nodo_fallo": "nD2",
+          "dano_fallo": { "cantidad": 3 }
+        }
+      ],
+      "es_final": false
+    },
+    "nD2": {
+      "tipo": "interactivo",
+      "texto": "El pasillo de servicio sigue adelante, estrecho y mal iluminado.",
+      "palabras_clave": [
+        {
+          "texto": "seguir hasta el archivo",
+          "nodo_exito": "nBc"
+        }
+      ],
+      "es_final": false
+    },
+    "nBc": {
+      "tipo": "interactivo",
+      "texto": "Al fondo del archivo encontráis una carpeta fina, marcada \"Ala norte — cierre parcial, uso restringido\", con un dibujo que ya habíais visto antes esta misma noche.",
+      "palabras_clave": [
+        {
+          "texto": "guardar la carpeta",
+          "nodo_exito": "nBs2",
+          "objeto_otorga_exito": {
+            "objeto_id": "prueba",
+            "nombre": "Prueba del patrón",
+            "destino": "grupo"
+          }
+        }
+      ],
+      "es_final": false
+    },
+    "nBs2": {
+      "tipo": "narrativo",
+      "texto": "Con la carpeta en las manos, volvéis hacia las plantas de arriba. Ya no vais a ciegas.",
+      "nodo_siguiente": "n_final",
+      "es_final": false
+    },
+    "n_final": {
+      "tipo": "narrativo",
+      "texto": "Lo que hayáis descubierto esta noche sobre el ala norte, lo lleváis con vosotros al amanecer.",
+      "es_final": true,
+      "tipo_final": "heroico"
+    },
+    "n_muerte_total": {
+      "tipo": "narrativo",
+      "texto": "El ala norte no hace ruido cuando reclama a los últimos que quedaban. Nadie sale esta vez a contarlo.",
+      "es_final": true,
+      "tipo_final": "muerte_total"
+    }
+  }
+}

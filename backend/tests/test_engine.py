@@ -23,6 +23,7 @@ def test_validar_detecta_nodo_huerfano():
     contenido = {
         "historia_id": "x",
         "titulo": "x",
+        "motor_version": "pbta-1",
         "nodo_inicial": "a",
         "nodos": {
             "a": {"tipo": "narrativo", "texto": "..", "es_final": True, "tipo_final": "heroico"},
@@ -38,6 +39,7 @@ def test_validar_detecta_referencia_rota():
     contenido = {
         "historia_id": "x",
         "titulo": "x",
+        "motor_version": "pbta-1",
         "nodo_inicial": "a",
         "nodos": {
             "a": {"tipo": "narrativo", "texto": "..", "nodo_siguiente": "no_existe", "es_final": False},
@@ -52,6 +54,7 @@ def test_validar_detecta_camino_sin_final():
     contenido = {
         "historia_id": "x",
         "titulo": "x",
+        "motor_version": "pbta-1",
         "nodo_inicial": "a",
         "nodos": {
             "a": {"tipo": "narrativo", "texto": "..", "nodo_siguiente": "b", "es_final": False},

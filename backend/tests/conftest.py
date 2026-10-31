@@ -21,8 +21,13 @@ from app.engine.validator import validar_historia  # noqa: E402
 from app.main import app  # noqa: E402
 from app.models.historia import Historia  # noqa: E402
 
-SEED_PATH = Path(__file__).resolve().parents[1] / "app" / "seeds" / "cuervo_negro.json"
-SEED_PATH_ALA_NORTE = Path(__file__).resolve().parents[1] / "app" / "seeds" / "ala_norte.json"
+# Historias de prueba en esquema pbta-1, no las seeds retiradas de
+# app/seeds/ (esquema viejo, dificultad/atributo) — ver
+# docs/motor_pbta_plan.md, secciones 7 y 8. Mismos ids de historia, nodo y
+# personaje que las seeds originales para no tener que tocar las decenas
+# de pruebas que ya los referencian.
+SEED_PATH = Path(__file__).resolve().parent / "fixtures" / "cuervo_negro.json"
+SEED_PATH_ALA_NORTE = Path(__file__).resolve().parent / "fixtures" / "ala_norte.json"
 
 
 @pytest.fixture(scope="session", autouse=True)

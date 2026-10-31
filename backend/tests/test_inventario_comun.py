@@ -44,6 +44,7 @@ HISTORIA_SINTETICA = {
     "historia_id": "prueba_objetos_al_llegar",
     "titulo": "Prueba: objetos al llegar",
     "version": 1,
+    "motor_version": "pbta-1",
     "nodo_inicial": "n_salida",
     "nodos": {
         "n_salida": {"tipo": "narrativo", "texto": "..", "es_final": False, "nodo_siguiente": "n_hallazgo"},
@@ -108,6 +109,7 @@ HISTORIA_HECHIZO_AL_LLEGAR = {
     "historia_id": "prueba_hechizo_al_llegar",
     "titulo": "Prueba: hechizo al llegar",
     "version": 1,
+    "motor_version": "pbta-1",
     "nodo_inicial": "n_salida",
     "nodos": {
         "n_salida": {"tipo": "narrativo", "texto": "..", "es_final": False, "nodo_siguiente": "n_grimorio"},

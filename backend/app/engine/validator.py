@@ -1,15 +1,25 @@
 """Validación de historias antes de poder activarlas en una sala.
 
 Reglas exigidas por el spec:
+  0. La historia declara `motor_version: "pbta-1"` — el esquema viejo
+     (dificultad/atributo/modo_interaccion) se rechaza con un error claro
+     en vez de dejarlo pasar con un comportamiento indefinido (ver
+     docs/motor_pbta_plan.md, secciones 7 y 8).
   1. Todas las referencias (nodo_exito, nodo_fallo, nodo_siguiente y las
      variantes de combate) apuntan a nodos existentes.
   2. No hay nodos huérfanos (inalcanzables desde el nodo inicial).
   3. Todo camino alcanzable termina en al menos un nodo con es_final: true.
+  4. Cada palabra clave con `movida` referencia un id del catálogo cerrado
+     de movidas del motor; cada enemigo de un nodo de combate declara
+     `vida` y `dano` (ficha simplificada, sin atributos ni ataques[]).
 """
 
 from dataclasses import dataclass, field
 
+from app.engine.movidas import MOVIDAS
+
 TIPOS_NODO_VALIDOS = {"interactivo", "narrativo", "combate"}
+MOTOR_VERSION_SOPORTADA = "pbta-1"
 
 
 @dataclass
@@ -40,6 +50,16 @@ def _referencias_de_nodo(nodo_id: str, nodo: dict) -> set[str]:
 def validar_historia(contenido: dict) -> ResultadoValidacion:
     errores: list[str] = []
 
+    motor_version = contenido.get("motor_version")
+    if motor_version != MOTOR_VERSION_SOPORTADA:
+        errores.append(
+            "Esta historia no es compatible con el motor PbtA: falta o no coincide "
+            f"'motor_version' (se esperaba '{MOTOR_VERSION_SOPORTADA}', se encontró "
+            f"{motor_version!r}). El esquema viejo (dificultad/atributo/modo_interaccion) "
+            "ya no es válido — ver docs/motor_pbta_plan.md."
+        )
+        return ResultadoValidacion(False, errores)
+
     nodo_inicial = contenido.get("nodo_inicial")
     nodos: dict = contenido.get("nodos", {}) or {}
 
@@ -63,6 +83,32 @@ def validar_historia(contenido: dict) -> ResultadoValidacion:
             errores.append(f"Nodo '{nodo_id}': interactivo sin palabras_clave y no es final.")
         if nodo.get("es_final") and not nodo.get("tipo_final"):
             errores.append(f"Nodo '{nodo_id}': es_final=true sin 'tipo_final'.")
+
+        if tipo == "interactivo":
+            for palabra in nodo.get("palabras_clave", []) or []:
+                movida_id = palabra.get("movida")
+                if movida_id is not None and movida_id not in MOVIDAS:
+                    errores.append(
+                        f"Nodo '{nodo_id}': la palabra clave '{palabra.get('texto')}' "
+                        f"referencia una movida desconocida '{movida_id}'."
+                    )
+
+        if tipo == "combate":
+            for enemigo in nodo.get("enemigos", []) or []:
+                enemigo_id = enemigo.get("enemigo_id", "?")
+                if "atributos" in enemigo or "ataques" in enemigo:
+                    errores.append(
+                        f"Nodo '{nodo_id}': el enemigo '{enemigo_id}' usa el esquema de "
+                        "combate viejo (atributos/ataques); conviértelo a {vida, dano}."
+                    )
+                if not isinstance(enemigo.get("vida"), int):
+                    errores.append(
+                        f"Nodo '{nodo_id}': el enemigo '{enemigo_id}' necesita 'vida' (entero)."
+                    )
+                if not isinstance(enemigo.get("dano"), int):
+                    errores.append(
+                        f"Nodo '{nodo_id}': el enemigo '{enemigo_id}' necesita 'dano' (entero)."
+                    )
 
     # 1. Referencias válidas
     edges: dict[str, set[str]] = {}
